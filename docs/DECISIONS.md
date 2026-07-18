@@ -41,4 +41,13 @@ Collapsed the two-word git flow ("commit it" then "push it") into a single signa
 commits the agreed change and pushes it to GitHub in one step.** The build gate and git gate
 stay separate; only the git step is simplified.
 
+## 2026-07-18 — DLD comps: validated live; demo seeds from a UAE Mac (no UAE cloud)
+Probed the DLD API live from the UAE and confirmed everything (auth flow a, daily-fresh
+feed, numeric-ID filters, m²→ft² math, rooms/reg_type mappings) — see the DLD PRD §4.
+Architecture call given the AWS me-central-1 outage (regional conflict): the demo does NOT
+need a UAE cloud runner. Frontend (Vercel) + data/read-API (Supabase, Mumbai) are global;
+the DLD pull runs **locally from a UAE machine** to seed Supabase. Unattended UAE-cloud
+automation (proxy or recovered region) is deferred post-demo. Ingestion is now a local-first
+CLI (`node index.mjs backfill`) that keeps the Lambda export for later.
+
 <!-- Add new entries above this line. Newest first. -->
