@@ -1,0 +1,17 @@
+{
+  "name": "solum-dld-ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DLD → Supabase ingestion. Runs from a UAE IP (local Mac for the demo seed, or a UAE cloud runner later).",
+  "main": "index.mjs",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "probe": "node index.mjs probe",
+    "backfill": "node index.mjs backfill",
+    "incremental": "node index.mjs incremental"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

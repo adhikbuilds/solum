@@ -1,0 +1,5 @@
+# Supabase project config.
+# Set project_id to your project ref (Supabase dashboard → Project Settings →
+# General → "Reference ID"). The GitHub integration applies supabase/migrations/
+# on merge to main; this file mostly matters for local `supabase` CLI use.
+project_id = "REPLACE_WITH_YOUR_PROJECT_REF"
