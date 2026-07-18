@@ -18,11 +18,12 @@ assumption — every action waits for an explicit go-ahead.
    editing `solum.html`, writing a PRD, creating or changing any file — Claude
    pauses and waits for a clear go-ahead before writing anything.
 
-4. **Ask before touching git.** Any commit, push, pull, fetch, or branch is
-   stated explicitly first ("here's exactly what I'm about to do and why") and
-   then waits for approval. Nothing lands in the repo without an explicit yes.
-   The git gate is separate from the build gate — approving a build is *not*
-   approval to commit it.
+4. **Ask before touching git.** Any push, pull, fetch, or branch is stated
+   explicitly first ("here's exactly what I'm about to do and why") and then
+   waits for approval. Nothing lands in the repo without an explicit yes. The
+   git gate is separate from the build gate — approving a build is *not*
+   approval to push it. **"push it" is one step: it commits the agreed change
+   and pushes it to GitHub together.**
 
 5. **Decisions are flagged, not filed.** When a brainstorm produces a real
    decision, Claude says "this feels like a lock — want it recorded?" and waits.
@@ -34,7 +35,7 @@ assumption — every action waits for an explicit go-ahead.
 |---|---|
 | *(anything else)* | brainstorm — no files, no git |
 | **"build it"** / **"go"** | make the code/doc change just agreed on |
-| **"commit it"** / **"push it"** | the git step — Claude states the exact action first |
+| **"push it"** | the git step — commit the change *and* push to GitHub in one go (Claude states the exact action first) |
 | **"lock it"** | write the decision into `DECISIONS.md` |
 | **"pause"** / **"stop"** | halt whatever is mid-progress |
 | **"brainstorm only"** | drop any tool Claude was reaching for; back to talking |

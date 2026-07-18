@@ -36,4 +36,9 @@ reading is always allowed; Claude asks before building (any file write) and sepa
 touching git (commit/push/pull). Decisions are flagged, not filed, until "lock it". Signal
 words defined ("build it", "commit it", "lock it", "brainstorm only", etc.).
 
+## 2026-07-18 — Simplified git signal to one word: "push it"
+Collapsed the two-word git flow ("commit it" then "push it") into a single signal: **"push it"
+commits the agreed change and pushes it to GitHub in one step.** The build gate and git gate
+stay separate; only the git step is simplified.
+
 <!-- Add new entries above this line. Newest first. -->
