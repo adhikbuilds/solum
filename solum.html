@@ -111,13 +111,13 @@ body.pre-login .topbar,body.pre-login .appbody{display:none}
 .topbar-plot{display:flex; flex-direction:column; justify-content:center; min-width:0}
 .topbar-plot .nm{font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px}
 .topbar-plot .loc{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
-body.view-portfolio .topbar-plot,body.view-compare .topbar-plot{display:none}
+body.view-portfolio .topbar-plot,body.view-compare .topbar-plot,body.view-market .topbar-plot{display:none}
 .topbar-spacer{flex:1}
 .topbar-actions{display:flex; align-items:center; gap:var(--sp-2)}
 .btn-export{display:flex; align-items:center; gap:6px; height:var(--size-el-sm); padding:0 var(--sp-3); border-radius:var(--radius-sm); border:1px solid var(--accent-500); background:var(--accent-50); color:var(--accent-700); font-family:var(--font-sans); font-size:var(--fs-label); font-weight:var(--fw-bold); cursor:pointer; transition:all var(--dur-fast) var(--ease-std)}
 .btn-export:hover{background:var(--accent-500); color:#fff}
 .btn-export:disabled{opacity:.5; cursor:not-allowed}
-body.view-portfolio .btn-export,body.view-compare .btn-export{display:none}
+body.view-portfolio .btn-export,body.view-compare .btn-export,body.view-market .btn-export{display:none}
 
 /* ================= APP BODY: leftnav + main ================= */
 .appbody{display:flex; height:calc(100vh - var(--topbar-h)); overflow:hidden}
@@ -125,7 +125,7 @@ body.view-portfolio .btn-export,body.view-compare .btn-export{display:none}
   width:var(--leftnav-w); flex:0 0 auto; background:var(--surface); border-right:1px solid var(--line);
   padding:var(--sp-5) var(--sp-3); display:flex; flex-direction:column; overflow-y:auto;
 }
-body.view-portfolio .leftnav,body.view-compare .leftnav{display:none}
+body.view-portfolio .leftnav,body.view-compare .leftnav,body.view-market .leftnav{display:none}
 .leftnav-item{
   display:block; width:100%; text-align:left; background:transparent; border:0; border-radius:var(--radius-sm);
   padding:11px var(--sp-3); font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--muted); cursor:pointer;
@@ -140,12 +140,10 @@ body.view-portfolio .leftnav,body.view-compare .leftnav{display:none}
 .delete-link:hover{color:var(--accent-800)}
 
 .wrap{flex:1; padding:var(--sp-8); overflow-y:auto}
-body.view-plot #portfolioView{display:none}
-body.view-plot #compareView{display:none}
-body.view-portfolio #plotView{display:none}
-body.view-portfolio #compareView{display:none}
-body.view-compare #plotView{display:none}
-body.view-compare #portfolioView{display:none}
+body.view-plot #portfolioView,body.view-plot #compareView,body.view-plot #marketView{display:none}
+body.view-portfolio #plotView,body.view-portfolio #compareView,body.view-portfolio #marketView{display:none}
+body.view-compare #plotView,body.view-compare #portfolioView,body.view-compare #marketView{display:none}
+body.view-market #plotView,body.view-market #portfolioView,body.view-market #compareView{display:none}
 
 /* ================= buttons ================= */
 .btn{font-family:var(--font-sans); font-size:var(--fs-body); font-weight:var(--fw-bold); border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); height:var(--size-el-md); padding:0 var(--sp-4); cursor:pointer; transition:all var(--dur-fast) var(--ease-std); display:flex; align-items:center; justify-content:center; white-space:nowrap;}
@@ -455,12 +453,34 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .login-err{color:var(--error); font-size:var(--fs-label); font-weight:var(--fw-semibold); min-height:16px; margin-top:8px; text-align:center}
 .comps-basis{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
 .comps-basis.sourced{color:var(--accent-700)}
-.typeahead-drop{position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:40; background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-sm); box-shadow:var(--sh-med); max-height:230px; overflow-y:auto; display:none}
+.typeahead-drop{position:fixed; z-index:1000; background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-sm); box-shadow:var(--sh-med); max-height:250px; overflow-y:auto; display:none}
 .typeahead-drop.show{display:block}
 .typeahead-opt{padding:9px 12px; cursor:pointer; font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink)}
 .typeahead-opt:hover{background:var(--accent-50)}
 @keyframes flashSourced{from{background:var(--accent-100)}to{background:transparent}}
 #utable-body tr.flash-sourced td{animation:flashSourced 1.3s var(--ease-std)}
+/* ---- Market Insights ---- */
+.market-head{margin-bottom:var(--sp-6)}
+.market-head h1{font-size:1.5rem; font-weight:var(--fw-black); letter-spacing:-.01em}
+.market-2col{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-6)}
+@media(max-width:900px){ .market-2col{grid-template-columns:1fr} }
+.chart{margin-top:var(--sp-3)}
+.chart-empty,.chart-loading{color:var(--muted); font-weight:var(--fw-semibold); font-size:var(--fs-body); padding:var(--sp-6) 0; text-align:center}
+.svgchart{width:100%; height:auto; display:block}
+.svgchart .ax{fill:var(--muted); font-size:11px; font-weight:600; font-family:var(--font-sans)}
+.hbars{display:flex; flex-direction:column; gap:8px}
+.hbar{display:grid; grid-template-columns:150px 1fr 56px; align-items:center; gap:10px}
+.hbar-lab{font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.hbar-track{height:14px; background:var(--surface-2); border-radius:var(--radius-pill); overflow:hidden}
+.hbar-fill{height:100%; background:var(--accent-500); border-radius:var(--radius-pill)}
+.hbar-val{font-size:var(--fs-label); font-weight:var(--fw-bold); color:var(--ink); text-align:right; font-feature-settings:"tnum" 1}
+.stackbar{display:flex; height:34px; border-radius:var(--radius-sm); overflow:hidden; margin-top:var(--sp-3)}
+.stackbar .seg.off{background:var(--accent-500)}
+.stackbar .seg.ready{background:var(--accent-300)}
+.stack-legend{display:flex; gap:var(--sp-5); margin-top:var(--sp-3); font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--ink)}
+.stack-legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px}
+.stack-legend i.off{background:var(--accent-500)}
+.stack-legend i.ready{background:var(--accent-300)}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:22px; margin-top:20px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -593,6 +613,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
   <div class="topbar-actions">
     <span class="savechip" id="saveChip" style="margin-right:8px"></span>
     <button class="btn" id="btnAllPlots">All plots</button>
+    <button class="btn" id="btnMarket">Market</button>
     <button class="btn" id="btnCompareTop">Compare</button>
     <button class="btn primary" id="btnNewTop">+ New plot</button>
   </div>
@@ -659,6 +680,31 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
         <button class="btn" id="compare-back">← Back to all plots</button>
       </div>
       <div class="compare-cols" id="compareCols"></div>
+    </div>
+
+    <!-- ============ MARKET INSIGHTS VIEW ============ -->
+    <div id="marketView">
+      <div class="market-head">
+        <h1>Market Insights</h1>
+        <p class="sec-note">Dubai residential apartment sales from DLD<span id="mkt-asof"></span>. Sales velocity — not absorption (we have sold transactions, not live inventory).</p>
+      </div>
+      <div class="panel" style="margin-bottom:var(--sp-6)">
+        <h2>Price trend</h2>
+        <p class="sec-note">Median sale price per ft² by month, last 24 months (outlier-trimmed).</p>
+        <div id="chart-trend" class="chart"></div>
+      </div>
+      <div class="market-2col">
+        <div class="panel">
+          <h2>Sales velocity by community</h2>
+          <p class="sec-note">Transactions in the last 12 months — where the market is most active.</p>
+          <div id="chart-velocity" class="chart"></div>
+        </div>
+        <div class="panel">
+          <h2>Off-plan vs ready</h2>
+          <p class="sec-note">Share of sales by registration type, last 24 months.</p>
+          <div id="chart-offplan" class="chart"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ============ SINGLE PLOT VIEW ============ -->
@@ -1567,9 +1613,12 @@ function switchView(mode){
   document.body.classList.toggle('view-portfolio', mode==='portfolio');
   document.body.classList.toggle('view-plot', mode==='plot');
   document.body.classList.toggle('view-compare', mode==='compare');
+  document.body.classList.toggle('view-market', mode==='market');
   if(mode==='portfolio'){ loadPortfolioRows().then(renderPortfolio); }
+  if(mode==='market'){ loadMarket(); }
 }
 document.getElementById('btnAllPlots').addEventListener('click', ()=>switchView('portfolio'));
+document.getElementById('btnMarket').addEventListener('click', ()=>switchView('market'));
 document.getElementById('brandHome').addEventListener('click', ()=>switchView('portfolio'));
 
 /* ---------------- portfolio / all-plots view ---------------- */
@@ -2114,17 +2163,21 @@ function resolveAreaId(){
 function initCommunityTypeahead(){
   const input=document.getElementById('in-community'), drop=document.getElementById('communityDrop');
   if(!input || !drop || input._taBound) return; input._taBound=true;
+  document.body.appendChild(drop);   /* escape any overflow:hidden card ancestor */
   const close=()=>{ drop.classList.remove('show'); drop.innerHTML=''; };
+  const place=()=>{ const r=input.getBoundingClientRect(); drop.style.left=r.left+'px'; drop.style.top=(r.bottom+4)+'px'; drop.style.width=r.width+'px'; };
   const open=()=>{
     const q=(input.value||'').toLowerCase().trim();
     const list=LOCATIONS.filter(l=>(l.area_name_en||'').toLowerCase().includes(q)).slice(0,8);
     if(!list.length){ close(); return; }
     drop.innerHTML=list.map(l=>`<div class="typeahead-opt" data-id="${l.area_id}" data-name="${(l.area_name_en||'').replace(/"/g,'&quot;')}">${l.area_name_en}</div>`).join('');
-    drop.classList.add('show');
+    place(); drop.classList.add('show');
   };
   input.addEventListener('input', open);
   input.addEventListener('focus', open);
   input.addEventListener('blur', ()=>setTimeout(close,150));
+  window.addEventListener('scroll', close, true);
+  window.addEventListener('resize', close);
   drop.addEventListener('mousedown', e=>{
     const opt=e.target.closest('.typeahead-opt'); if(!opt) return;
     e.preventDefault();
@@ -2184,6 +2237,68 @@ function applyComps(rows){
   if(applied) document.querySelectorAll('#utable-body tr').forEach(tr=>{
     tr.classList.add('flash-sourced'); setTimeout(()=>tr.classList.remove('flash-sourced'),1300);
   });
+}
+
+/* ---------------- Market Insights (Phase 3) ---------------- */
+let MARKET_LOADED=false;
+async function loadMarket(){
+  if(!sb) return;
+  const t=document.getElementById('chart-trend'), v=document.getElementById('chart-velocity'), o=document.getElementById('chart-offplan');
+  if(!MARKET_LOADED) [t,v,o].forEach(el=>{ if(el) el.innerHTML='<div class="chart-loading">Loading DLD market data…</div>'; });
+  try{
+    const [tr,ve,of]=await Promise.all([
+      sb.rpc('market_price_trend',{p_months:24}),
+      sb.rpc('market_velocity',{p_months:12,p_limit:15}),
+      sb.rpc('market_offplan',{p_months:24}),
+    ]);
+    renderTrend(tr.error?[]:(tr.data||[]));
+    renderVelocity(ve.error?[]:(ve.data||[]));
+    renderOffplan(of.error?[]:(of.data||[]));
+    MARKET_LOADED=true;
+  }catch(e){ console.error('market', e); }
+}
+function renderTrend(rows){
+  const el=document.getElementById('chart-trend'); if(!el) return;
+  rows=(rows||[]).filter(r=>r&&r.price_sqft!=null).sort((a,b)=> a.month<b.month?-1:1);
+  if(rows.length<2){ el.innerHTML='<div class="chart-empty">Not enough data.</div>'; return; }
+  const asof=document.getElementById('mkt-asof'); if(asof) asof.textContent=' · through '+String(rows[rows.length-1].month).slice(0,7);
+  const W=720,H=240,P=44;
+  const ys=rows.map(r=>+r.price_sqft), ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const X=i=>P+(W-2*P)*i/(rows.length-1);
+  const Y=val=>H-P-(H-2*P)*(val-ymin)/((ymax-ymin)||1);
+  const pts=rows.map((r,i)=>X(i).toFixed(1)+','+Y(+r.price_sqft).toFixed(1)).join(' ');
+  const mid=(ymin+ymax)/2;
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" class="svgchart" preserveAspectRatio="xMidYMid meet">'
+    +'<line x1="'+P+'" y1="'+Y(mid).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(mid).toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>'
+    +'<polygon points="'+P+','+(H-P)+' '+pts+' '+X(rows.length-1).toFixed(1)+','+(H-P)+'" fill="var(--accent-500)" opacity="0.08"/>'
+    +'<polyline points="'+pts+'" fill="none" stroke="var(--accent-500)" stroke-width="2.5" stroke-linejoin="round"/>'
+    +'<text x="'+P+'" y="'+(H-16)+'" class="ax">'+String(rows[0].month).slice(0,7)+'</text>'
+    +'<text x="'+(W-P)+'" y="'+(H-16)+'" class="ax" text-anchor="end">'+String(rows[rows.length-1].month).slice(0,7)+'</text>'
+    +'<text x="'+(P-8)+'" y="'+(Y(ymax)+4).toFixed(1)+'" class="ax" text-anchor="end">'+fN(ymax)+'</text>'
+    +'<text x="'+(P-8)+'" y="'+(Y(ymin)+4).toFixed(1)+'" class="ax" text-anchor="end">'+fN(ymin)+'</text>'
+    +'</svg>';
+}
+function renderVelocity(rows){
+  const el=document.getElementById('chart-velocity'); if(!el) return;
+  rows=(rows||[]).slice().filter(r=>r&&r.n!=null).sort((a,b)=>(+b.n)-(+a.n)).slice(0,15);
+  if(!rows.length){ el.innerHTML='<div class="chart-empty">No data.</div>'; return; }
+  const max=Math.max.apply(null,rows.map(r=>+r.n))||1;
+  el.innerHTML='<div class="hbars">'+rows.map(function(r){
+    const pct=(100*(+r.n)/max).toFixed(1), name=(r.area_name||r.area_name_en||'—');
+    return '<div class="hbar"><div class="hbar-lab" title="'+name+'">'+name+'</div>'
+      +'<div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%"></div></div>'
+      +'<div class="hbar-val">'+fN(+r.n)+'</div></div>';
+  }).join('')+'</div>';
+}
+function renderOffplan(rows){
+  const el=document.getElementById('chart-offplan'); if(!el) return;
+  let off=0, ready=0;
+  (rows||[]).forEach(function(r){ if(!r) return; if(r.reg_type==='offplan') off=+r.n; else if(r.reg_type==='ready') ready=+r.n; });
+  const tot=off+ready; if(!tot){ el.innerHTML='<div class="chart-empty">No data.</div>'; return; }
+  const op=100*off/tot, rp=100-op;
+  el.innerHTML='<div class="stackbar"><div class="seg off" style="width:'+op+'%"></div><div class="seg ready" style="width:'+rp+'%"></div></div>'
+    +'<div class="stack-legend"><span><i class="off"></i>Off-plan '+op.toFixed(0)+'% · '+fN(off)+'</span>'
+    +'<span><i class="ready"></i>Ready '+rp.toFixed(0)+'% · '+fN(ready)+'</span></div>';
 }
 
 /* ---------------- auth (Supabase) ---------------- */
