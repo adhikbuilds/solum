@@ -28,11 +28,12 @@ the layout, or a locked decision.
 |---|---|
 | `PROJECT_CONTEXT.md` | The **strategic layer** — why Solum exists, who it's for, competitive references, the long-run vision, and the product-level decision log. Read this for the *why*. |
 | `../SOLUM_CONTEXT.md` | The **build/architecture handoff** — what Solum is, locked design decisions, the token system, structural checks. Read this for the *how*. Authoritative on current build state. |
+| `WORKING_AGREEMENT.md` | How Claude and the owner collaborate — brainstorm by default, ask before building or touching git. Read this to know the rules of engagement. |
 | `DECISIONS.md` | Running log of decisions, newest first. The lightweight record. |
 | `prd/TEMPLATE.md` | Copy this to start a new PRD. |
 | `prd/*.md` | One file per feature/change worth a spec. |
 
-**Read order for a new session:** `PROJECT_CONTEXT.md` (why) → `SOLUM_CONTEXT.md` (how) → this file (workflow).
+**Read order for a new session:** `WORKING_AGREEMENT.md` (rules of engagement) → `PROJECT_CONTEXT.md` (why) → `SOLUM_CONTEXT.md` (how) → this file (workflow).
 
 ## Using chat / Projects alongside this
 
