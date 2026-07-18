@@ -21,4 +21,13 @@ code loop, rather than splitting thinking into chat/Projects and code into the
 repo. Keeps intent and code in one history, no re-transporting. See
 `README.md`.
 
+## 2026-07-18 — Strategic context captured in the repo
+Added `docs/PROJECT_CONTEXT.md` — the why/vision/competitive-landscape/strategic decision
+log (Bloomberg-terminal-for-real-estate thesis, Aprao / JD Console / BCG references, product
+identity, roadmap). Kept as a separate doc from `SOLUM_CONTEXT.md` because they sit at
+different altitudes (product/strategy vs. build/architecture); cross-linked both ways.
+Reconciled the pre-existing Astryx framing in that doc against the Path B decision via inline
+`Update (2026-07-18)` annotations rather than rewriting its history. `SOLUM_CONTEXT.md` is
+authoritative where the two docs differ on current build state.
+
 <!-- Add new entries above this line. Newest first. -->
