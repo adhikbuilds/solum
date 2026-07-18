@@ -716,18 +716,6 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
         <!-- development programme — total units / sellable area / avg size -->
         <div class="devstrip" id="devstrip"></div>
 
-        <!-- small icon-scale verdict indicator -->
-        <div class="verdict-mini">
-          <div class="vicon" id="vicon">
-            <svg id="viconSvg" width="18" height="18" viewBox="0 0 20 20" fill="none"></svg>
-          </div>
-          <div class="vtext">
-            <div class="plotctx" id="plotctx"></div>
-            <span class="tag" id="vtag">—</span>
-            <div class="vsub" id="vsub"></div>
-          </div>
-        </div>
-
         <div class="grid">
           <div>
             <div class="panel">
@@ -1416,16 +1404,9 @@ function render(){
   const mk=marketInputs(STATE);
   const {best,cand}=optimise(mk,STATE);
 
-  document.getElementById('plotctx').innerHTML =
-    `<span>Plot <b>${STATE.plotNumber||'—'}</b></span><span><b>${STATE.community||'No community set'}</b></span><span>Max GFA <b>${fN(STATE.plot.gfa)} sqft</b></span>`;
-
   if(!best){
-    document.getElementById('vtag').className='tag pass'; document.getElementById('vtag').textContent='check bands';
-    document.getElementById('vsub').innerHTML='<span class="empty">No unit mix fits these min–max bands. Widen a range or turn a type on.</span>';
     ['vm-roi','vm-rop','vm-profit','sm-inv','sm-gross','sm-avgprice','sm-cpsf-w','sm-cpsf-n','breakeven'].forEach(id=>document.getElementById(id).textContent='—');
     document.getElementById('vm-verdict-cell').innerHTML='<span class="tag pass">no mix</span>';
-    document.getElementById('vicon').className='vicon';
-    document.getElementById('viconSvg').innerHTML=VICON_SVG.PASS;
     document.getElementById('devstrip').innerHTML='';
     document.getElementById('buildupTable').innerHTML='';
     document.getElementById('rectable-body').innerHTML='';
@@ -1434,17 +1415,6 @@ function render(){
   }
 
   const v=verdictOf(best.mcost,mk.hurdle);
-  const tag=document.getElementById('vtag');
-  tag.className='tag '+v.toLowerCase(); tag.textContent=v;
-  document.getElementById('vicon').className='vicon '+v.toLowerCase();
-  document.getElementById('viconSvg').innerHTML=VICON_SVG[v];
-  const head=best.rlv-mk.land;
-  const sub = v==='PURSUE'
-    ? `Clears your ${fP(mk.hurdle)} hurdle at ${fM(mk.land)} land, with ${fM(head)} of headroom on price.`
-    : v==='NEGOTIATE'
-    ? `Just under your ${fP(mk.hurdle)} hurdle — works if land drops to about ${fM(best.rlv)}.`
-    : `Below your ${fP(mk.hurdle)} hurdle at ${fM(mk.land)} land — needs to land nearer ${fM(best.rlv)}.`;
-  document.getElementById('vsub').textContent=sub;
 
   /* headline KPIs — ROI-first, JD vocabulary */
   document.getElementById('vm-roi').innerHTML=fP(best.mcost)+' <span class="u">net ÷ investment</span>';
