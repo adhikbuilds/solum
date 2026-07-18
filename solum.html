@@ -455,6 +455,12 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .login-err{color:var(--error); font-size:var(--fs-label); font-weight:var(--fw-semibold); min-height:16px; margin-top:8px; text-align:center}
 .comps-basis{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
 .comps-basis.sourced{color:var(--accent-700)}
+.typeahead-drop{position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:40; background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-sm); box-shadow:var(--sh-med); max-height:230px; overflow-y:auto; display:none}
+.typeahead-drop.show{display:block}
+.typeahead-opt{padding:9px 12px; cursor:pointer; font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink)}
+.typeahead-opt:hover{background:var(--accent-50)}
+@keyframes flashSourced{from{background:var(--accent-100)}to{background:transparent}}
+#utable-body tr.flash-sourced td{animation:flashSourced 1.3s var(--ease-std)}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:22px; margin-top:20px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -768,6 +774,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
         <div class="panel">
           <h2><span class="n">03</span> Unit types, sizes &amp; pricing <button class="info" data-pop="unitprice">i</button></h2>
           <p class="sec-note">Size and sales price per sq ft set separately for each type. A row mutes automatically when that type is switched off above.</p>
+          <div id="compsBasisMatrix" class="comps-basis" style="margin:0 0 12px"></div>
           <table class="utable">
             <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th></tr></thead>
             <tbody id="utable-body"></tbody>
@@ -826,7 +833,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
             <div class="lever"><div class="lab"><span>Plot number</span></div>
               <div class="field"><input type="text" id="in-plotnumber" value="6488595"></div></div>
             <div class="lever"><div class="lab"><span>Community</span><button class="info" data-pop="loc">i</button></div>
-              <div class="field"><input type="text" id="in-community" value="Wadi Al Safa 5" list="communityList" autocomplete="off"><datalist id="communityList"></datalist></div></div>
+              <div class="field" style="position:relative"><input type="text" id="in-community" value="Wadi Al Safa 5" autocomplete="off"><div id="communityDrop" class="typeahead-drop"></div></div></div>
             <div class="lever"><div class="lab"><span>Sub-community</span></div>
               <div class="field"><input type="text" id="in-subcommunity" value=""></div></div>
             <div class="lever" style="grid-column:1/-1">
@@ -2085,24 +2092,46 @@ function enterApp(){
   loadLocations();   /* populate the community typeahead from DLD */
 }
 /* ---------------- DLD comps (Phase 2b) ---------------- */
-let LOCATIONS=[], LOC_BY_NAME={};
+let LOCATIONS=[], LOC_BY_NAME={}, LOC_BY_ID={};
 async function loadLocations(){
   if(!sb || LOCATIONS.length) return;
   try{
     const {data,error}=await sb.from('dld_locations').select('area_id,area_name_en').order('area_name_en');
     if(error){ console.error('locations', error); return; }
     LOCATIONS=data||[];
-    const dl=document.getElementById('communityList'); if(dl) dl.innerHTML='';
-    LOC_BY_NAME={};
+    LOC_BY_NAME={}; LOC_BY_ID={};
     LOCATIONS.forEach(l=>{
       LOC_BY_NAME[(l.area_name_en||'').toLowerCase().trim()]=l.area_id;
-      if(dl){ const o=document.createElement('option'); o.value=l.area_name_en; dl.appendChild(o); }
+      LOC_BY_ID[l.area_id]=l.area_name_en;
     });
   }catch(e){ console.error(e); }
 }
 function resolveAreaId(){
   const name=(document.getElementById('in-community').value||'').toLowerCase().trim();
   return (name in LOC_BY_NAME) ? LOC_BY_NAME[name] : null;
+}
+/* clickable community typeahead (native datalist is unreliable, esp. on Mac) */
+function initCommunityTypeahead(){
+  const input=document.getElementById('in-community'), drop=document.getElementById('communityDrop');
+  if(!input || !drop || input._taBound) return; input._taBound=true;
+  const close=()=>{ drop.classList.remove('show'); drop.innerHTML=''; };
+  const open=()=>{
+    const q=(input.value||'').toLowerCase().trim();
+    const list=LOCATIONS.filter(l=>(l.area_name_en||'').toLowerCase().includes(q)).slice(0,8);
+    if(!list.length){ close(); return; }
+    drop.innerHTML=list.map(l=>`<div class="typeahead-opt" data-id="${l.area_id}" data-name="${(l.area_name_en||'').replace(/"/g,'&quot;')}">${l.area_name_en}</div>`).join('');
+    drop.classList.add('show');
+  };
+  input.addEventListener('input', open);
+  input.addEventListener('focus', open);
+  input.addEventListener('blur', ()=>setTimeout(close,150));
+  drop.addEventListener('mousedown', e=>{
+    const opt=e.target.closest('.typeahead-opt'); if(!opt) return;
+    e.preventDefault();
+    input.value=opt.dataset.name; STATE.community=opt.dataset.name; STATE.areaId=+opt.dataset.id;
+    if(typeof updateTopbarPlot==='function') updateTopbarPlot();
+    scheduleSave(); close();
+  });
 }
 async function pullComps(){
   const basis=document.getElementById('compsBasis'); basis.className='comps-basis';
@@ -2113,10 +2142,10 @@ async function pullComps(){
   btn.disabled=true; btn.textContent='Pulling…';
   try{
     const {data,error}=await sb.rpc('get_comps',{p_area_id:areaId});
-    if(error){ basis.textContent='Comps error: '+error.message; }
-    else applyComps(data||[]);
-  }catch(e){ basis.textContent='Comps failed. Please try again.'; }
-  btn.disabled=false; btn.textContent=orig;
+    if(error){ basis.textContent='Comps error: '+error.message; btn.textContent=orig; }
+    else { applyComps(data||[]); btn.textContent='↻ Refresh DLD comps'; }
+  }catch(e){ basis.textContent='Comps failed. Please try again.'; btn.textContent=orig; }
+  btn.disabled=false;
 }
 function applyComps(rows){
   const basis=document.getElementById('compsBasis');
@@ -2126,25 +2155,35 @@ function applyComps(rows){
   STATE.types.forEach(t=>{
     const r=by[t.name];
     if(r && r.sample_n>=MIN){
-      t.price=Math.round(+r.price_sqft); t.sourced=true;
+      t.price=Math.round(+r.price_sqft);
+      if(r.size_sqft) t.size=Math.round(+r.size_sqft);   /* typical sold size for this type */
+      t.sourced=true;
       applied++; totalN+=r.sample_n;
       if(!asOf || r.as_of>asOf) asOf=r.as_of;
     } else { t.sourced=false; }
   });
   STATE.areaId=resolveAreaId();
-  const community=document.getElementById('in-community').value;
+  const community=LOC_BY_ID[STATE.areaId] || document.getElementById('in-community').value;
   STATE.comps={community, asOf, applied, totalN};
+  let cls, msg;
   if(applied){
-    POPS.unitprice={ t:'Sales price per sq ft, per unit type.',
-      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''} — outlier-trimmed, recency-weighted.`,
+    const perType=STATE.types.filter(t=>t.sourced).map(t=>`${t.name}: ${fN(t.size)} sqft @ ${fN(t.price)}/sqft (n=${(by[t.name].sample_n).toLocaleString()})`).join('  ·  ');
+    POPS.unitprice={ t:'Size and sales price per sq ft, per unit type.',
+      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''} — sizes are the median sold size, prices outlier-trimmed & recency-weighted. Per type — ${perType}.`,
       tier:'sourced' };
-    basis.className='comps-basis sourced';
-    basis.textContent=`Sourced · ${applied} unit type${applied>1?'s':''} priced from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
+    cls='comps-basis sourced';
+    msg=`Market-sourced · sizes & prices from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
   } else {
-    basis.className='comps-basis';
-    basis.textContent=`Not enough DLD comps (need ≥${MIN} per type) for ${community} — pricing stays modeled.`;
+    cls='comps-basis';
+    msg=`Not enough DLD comps (need ≥${MIN} per type) for ${community} — pricing stays modeled.`;
   }
+  [document.getElementById('compsBasis'), document.getElementById('compsBasisMatrix')].forEach(el=>{
+    if(el){ el.className=cls; el.textContent=msg; }
+  });
   buildUnitTable(); render(); scheduleSave();
+  if(applied) document.querySelectorAll('#utable-body tr').forEach(tr=>{
+    tr.classList.add('flash-sourced'); setTimeout(()=>tr.classList.remove('flash-sourced'),1300);
+  });
 }
 
 /* ---------------- auth (Supabase) ---------------- */
@@ -2169,6 +2208,7 @@ async function doLogout(){ try{ if(sb) await sb.auth.signOut(); }catch(e){} loca
 document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('btnSignout').addEventListener('click', doLogout);
 document.getElementById('btnPullComps').addEventListener('click', pullComps);
+initCommunityTypeahead();
 
 /* ---------------- boot ---------------- */
 (async()=>{
