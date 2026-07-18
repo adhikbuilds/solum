@@ -88,7 +88,7 @@
 }
 
 *{box-sizing:border-box}
-html,body{margin:0}
+html,body{margin:0; overflow-x:hidden}
 body{
   background:var(--bg); color:var(--ink); font-family:var(--font-sans);
   font-size:var(--fs-body); line-height:1.5; -webkit-font-smoothing:antialiased;
@@ -111,13 +111,13 @@ body.pre-login .topbar,body.pre-login .appbody{display:none}
 .topbar-plot{display:flex; flex-direction:column; justify-content:center; min-width:0}
 .topbar-plot .nm{font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px}
 .topbar-plot .loc{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
-body.view-portfolio .topbar-plot,body.view-compare .topbar-plot,body.view-market .topbar-plot{display:none}
+body.view-portfolio .topbar-plot,body.view-compare .topbar-plot{display:none}
 .topbar-spacer{flex:1}
 .topbar-actions{display:flex; align-items:center; gap:var(--sp-2)}
 .btn-export{display:flex; align-items:center; gap:6px; height:var(--size-el-sm); padding:0 var(--sp-3); border-radius:var(--radius-sm); border:1px solid var(--accent-500); background:var(--accent-50); color:var(--accent-700); font-family:var(--font-sans); font-size:var(--fs-label); font-weight:var(--fw-bold); cursor:pointer; transition:all var(--dur-fast) var(--ease-std)}
 .btn-export:hover{background:var(--accent-500); color:#fff}
 .btn-export:disabled{opacity:.5; cursor:not-allowed}
-body.view-portfolio .btn-export,body.view-compare .btn-export,body.view-market .btn-export{display:none}
+body.view-portfolio .btn-export,body.view-compare .btn-export{display:none}
 
 /* ================= APP BODY: leftnav + main ================= */
 .appbody{display:flex; height:calc(100vh - var(--topbar-h)); overflow:hidden}
@@ -125,7 +125,7 @@ body.view-portfolio .btn-export,body.view-compare .btn-export,body.view-market .
   width:var(--leftnav-w); flex:0 0 auto; background:var(--surface); border-right:1px solid var(--line);
   padding:var(--sp-5) var(--sp-3); display:flex; flex-direction:column; overflow-y:auto;
 }
-body.view-portfolio .leftnav,body.view-compare .leftnav,body.view-market .leftnav{display:none}
+body.view-portfolio .leftnav,body.view-compare .leftnav{display:none}
 .leftnav-item{
   display:block; width:100%; text-align:left; background:transparent; border:0; border-radius:var(--radius-sm);
   padding:11px var(--sp-3); font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--muted); cursor:pointer;
@@ -140,10 +140,12 @@ body.view-portfolio .leftnav,body.view-compare .leftnav,body.view-market .leftna
 .delete-link:hover{color:var(--accent-800)}
 
 .wrap{flex:1; padding:var(--sp-8); overflow-y:auto}
-body.view-plot #portfolioView,body.view-plot #compareView,body.view-plot #marketView{display:none}
-body.view-portfolio #plotView,body.view-portfolio #compareView,body.view-portfolio #marketView{display:none}
-body.view-compare #plotView,body.view-compare #portfolioView,body.view-compare #marketView{display:none}
-body.view-market #plotView,body.view-market #portfolioView,body.view-market #compareView{display:none}
+body.view-plot #portfolioView{display:none}
+body.view-plot #compareView{display:none}
+body.view-portfolio #plotView{display:none}
+body.view-portfolio #compareView{display:none}
+body.view-compare #plotView{display:none}
+body.view-compare #portfolioView{display:none}
 
 /* ================= buttons ================= */
 .btn{font-family:var(--font-sans); font-size:var(--fs-body); font-weight:var(--fw-bold); border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); height:var(--size-el-md); padding:0 var(--sp-4); cursor:pointer; transition:all var(--dur-fast) var(--ease-std); display:flex; align-items:center; justify-content:center; white-space:nowrap;}
@@ -435,14 +437,14 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .ai-foot button:disabled{opacity:.4; cursor:not-allowed}
 
 /* ================= LOGIN — split screen ================= */
-#loginScreen{min-height:100vh; display:grid; grid-template-columns:1fr 1fr}
-.login-side{display:flex; align-items:center; justify-content:center; padding:var(--sp-6); background:var(--surface)}
+#loginScreen{height:100vh; overflow:hidden; display:grid; grid-template-columns:1fr 1fr}
+.login-side{display:flex; align-items:center; justify-content:center; padding:var(--sp-6); background:var(--surface); overflow-y:auto}
 .login-card{width:100%; max-width:380px; animation:loginIn var(--dur-med) var(--ease-std)}
 @keyframes loginIn{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)}}
-.login-brand{display:flex; flex-direction:column; align-items:flex-start; margin-bottom:32px}
-.login-brand .word{font-weight:var(--fw-black); font-size:1.625rem; letter-spacing:-.01em; color:var(--ink); margin-top:14px}
+.login-brand{display:flex; flex-direction:column; align-items:flex-start; margin-bottom:22px}
+.login-brand .word{font-weight:var(--fw-black); font-size:1.625rem; letter-spacing:-.01em; color:var(--ink); margin-top:12px}
 .login-brand .sub{font-weight:var(--fw-bold); font-size:var(--fs-label); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:4px}
-.login-demo{margin-bottom:24px}
+.login-demo{margin-bottom:16px}
 .login-demo .lbl{font-weight:var(--fw-bold); font-size:var(--fs-label); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px}
 .login-field{margin-bottom:12px}
 .login-field label{display:block; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); margin-bottom:6px}
@@ -481,14 +483,21 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .stack-legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px}
 .stack-legend i.off{background:var(--accent-500)}
 .stack-legend i.ready{background:var(--accent-300)}
-.btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:22px; margin-top:20px}
+.leftnav-section2{margin-top:var(--sp-4); padding-top:var(--sp-4); border-top:1px solid var(--line)}
+.mkt-panel h2{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.chart-collapse{flex:0 0 auto; width:26px; height:26px; border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); border-radius:var(--radius-sm); font-size:17px; line-height:1; cursor:pointer; font-weight:var(--fw-bold)}
+.chart-collapse:hover{border-color:var(--accent-500); color:var(--accent-500)}
+.mkt-panel.collapsed .chart,.mkt-panel.collapsed .sec-note{display:none}
+#chart-trend .svgchart{max-height:230px}
+.svgchart .pt{fill:var(--accent-500)}
+.btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
-.login-divider{display:flex; align-items:center; gap:14px; margin-bottom:22px; color:var(--muted); font-size:var(--fs-label); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em}
+.login-divider{display:flex; align-items:center; gap:14px; margin-bottom:16px; color:var(--muted); font-size:var(--fs-label); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em}
 .login-divider::before,.login-divider::after{content:""; flex:1; height:1px; background:var(--line)}
-.btn-sso{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:12px; transition:all var(--dur-fast) var(--ease-std); margin-bottom:14px}
+.btn-sso{width:100%; height:var(--size-el-md); border-radius:var(--radius-sm); border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:12px; transition:all var(--dur-fast) var(--ease-std); margin-bottom:10px}
 .btn-sso:hover{border-color:var(--accent-500); color:var(--accent-500); box-shadow:var(--sh-low)}
-.login-foot{margin-top:32px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); line-height:1.6}
+.login-foot{margin-top:20px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); line-height:1.6}
 
 .login-visual{
   position:relative; overflow:hidden; background:var(--ink);
@@ -542,11 +551,10 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
           <circle cx="27" cy="7" r="2.1" fill="var(--ink)"/>
         </svg>
         <div class="word">SOLUM</div>
-        <div class="sub">Land Feasibility Console · Al Mizan</div>
+        <div class="sub">Land Feasibility Console</div>
       </div>
 
       <div class="login-demo">
-        <div class="lbl">Demo access — already filled in</div>
         <div class="login-field">
           <label for="loginUser">Username</label>
           <input class="box" id="loginUser" type="email" value="demo@almizan.ae" autocomplete="username" spellcheck="false">
@@ -585,8 +593,8 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
       <circle cx="140" cy="40" r="3.2" fill="#fff" opacity=".85"/>
     </svg>
     <div class="caption">
-      <div class="t">Every plot, one verdict.</div>
-      <div class="s">Land price, unit mix, and margin — resolved live against your hurdle, before you make an offer.</div>
+      <div class="t">Find the right plot. Faster.</div>
+      <div class="s">Screen plots, understand what you can build, and evaluate the opportunity before you commit.</div>
     </div>
   </div>
 </div>
@@ -613,7 +621,6 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
   <div class="topbar-actions">
     <span class="savechip" id="saveChip" style="margin-right:8px"></span>
     <button class="btn" id="btnAllPlots">All plots</button>
-    <button class="btn" id="btnMarket">Market</button>
     <button class="btn" id="btnCompareTop">Compare</button>
     <button class="btn primary" id="btnNewTop">+ New plot</button>
   </div>
@@ -628,6 +635,8 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
     <button class="leftnav-item" data-tab="mix">Unit Matrix</button>
     <button class="leftnav-item" data-tab="assumptions">Assumptions</button>
     <button class="leftnav-item" data-tab="details">Plot Details</button>
+    <div class="leftnav-eyebrow leftnav-section2">Market</div>
+    <button class="leftnav-item" data-tab="market">Market Insights</button>
     <div class="leftnav-foot">
       <span class="savechip" id="saveChipNav"></span>
       <button class="delete-link" id="btnDelete">Delete this plot</button>
@@ -680,31 +689,6 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
         <button class="btn" id="compare-back">← Back to all plots</button>
       </div>
       <div class="compare-cols" id="compareCols"></div>
-    </div>
-
-    <!-- ============ MARKET INSIGHTS VIEW ============ -->
-    <div id="marketView">
-      <div class="market-head">
-        <h1>Market Insights</h1>
-        <p class="sec-note">Dubai residential apartment sales from DLD<span id="mkt-asof"></span>. Sales velocity — not absorption (we have sold transactions, not live inventory).</p>
-      </div>
-      <div class="panel" style="margin-bottom:var(--sp-6)">
-        <h2>Price trend</h2>
-        <p class="sec-note">Median sale price per ft² by month, last 24 months (outlier-trimmed).</p>
-        <div id="chart-trend" class="chart"></div>
-      </div>
-      <div class="market-2col">
-        <div class="panel">
-          <h2>Sales velocity by community</h2>
-          <p class="sec-note">Transactions in the last 12 months — where the market is most active.</p>
-          <div id="chart-velocity" class="chart"></div>
-        </div>
-        <div class="panel">
-          <h2>Off-plan vs ready</h2>
-          <p class="sec-note">Share of sales by registration type, last 24 months.</p>
-          <div id="chart-offplan" class="chart"></div>
-        </div>
-      </div>
     </div>
 
     <!-- ============ SINGLE PLOT VIEW ============ -->
@@ -767,7 +751,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
               </div>
             </div>
             <div class="panel">
-              <h2><span class="n">03</span> Land &amp; hurdle</h2>
+              <h2><span class="n">03</span> Land price &amp; margin hurdle</h2>
               <p class="sec-note">The two live levers you flex most when negotiating this specific plot.</p>
               <div class="leverrow">
                 <div class="lever">
@@ -787,7 +771,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
           </div>
         </div>
 
-        <div class="panel">
+        <div class="panel" style="margin-top:var(--sp-6)">
           <h2><span class="n">04</span> Scenario testing</h2>
           <p class="sec-note">Same recommended programme, flexing sale price &amp; construction cost by the amounts set on Assumptions.</p>
           <div class="scen" id="scen"></div>
@@ -907,6 +891,31 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
           <h2><span class="n">B</span> Notes</h2>
           <p class="sec-note">Anything from the plot document that doesn't fit a field above.</p>
           <div class="lever"><div class="field"><textarea id="in-notes" rows="4" placeholder="e.g. corner plot, setback restriction on north boundary, master-developer NOC pending…"></textarea></div></div>
+        </div>
+      </div>
+
+      <!-- ===== MARKET INSIGHTS (tab) ===== -->
+      <div class="tabpanel-x" id="tab-market" style="display:none">
+        <div class="market-head">
+          <h1>Market Insights</h1>
+          <p class="sec-note">Dubai residential apartment sales from DLD<span id="mkt-asof"></span>. Sales velocity, not absorption (we have sold transactions, not live inventory).</p>
+        </div>
+        <div class="panel mkt-panel" style="margin-bottom:var(--sp-6)">
+          <h2>Price trend <button class="chart-collapse" type="button" aria-label="Collapse chart">–</button></h2>
+          <p class="sec-note">Median sale price per ft² by month, last 24 months (outlier-trimmed).</p>
+          <div id="chart-trend" class="chart"></div>
+        </div>
+        <div class="market-2col">
+          <div class="panel mkt-panel">
+            <h2>Sales velocity by community <button class="chart-collapse" type="button" aria-label="Collapse chart">–</button></h2>
+            <p class="sec-note">Transactions in the last 12 months, where the market is most active.</p>
+            <div id="chart-velocity" class="chart"></div>
+          </div>
+          <div class="panel mkt-panel">
+            <h2>Off-plan vs ready <button class="chart-collapse" type="button" aria-label="Collapse chart">–</button></h2>
+            <p class="sec-note">Share of sales by registration type, last 24 months.</p>
+            <div id="chart-offplan" class="chart"></div>
+          </div>
         </div>
       </div>
 
@@ -1221,6 +1230,13 @@ document.querySelectorAll('.leftnav-item').forEach(t=>t.addEventListener('click'
   document.querySelectorAll('.tabpanel-x').forEach(x=>x.style.display='none');
   t.classList.add('active');
   document.getElementById('tab-'+t.dataset.tab).style.display='block';
+  if(t.dataset.tab==='market') loadMarket();
+}));
+/* collapsible market chart panels */
+document.querySelectorAll('.chart-collapse').forEach(b=>b.addEventListener('click',e=>{
+  e.stopPropagation();
+  const panel=b.closest('.mkt-panel'); const c=panel.classList.toggle('collapsed');
+  b.textContent = c ? '+' : '–';
 }));
 
 /* ---------------- hydrate DOM from STATE ---------------- */
@@ -1613,12 +1629,9 @@ function switchView(mode){
   document.body.classList.toggle('view-portfolio', mode==='portfolio');
   document.body.classList.toggle('view-plot', mode==='plot');
   document.body.classList.toggle('view-compare', mode==='compare');
-  document.body.classList.toggle('view-market', mode==='market');
   if(mode==='portfolio'){ loadPortfolioRows().then(renderPortfolio); }
-  if(mode==='market'){ loadMarket(); }
 }
 document.getElementById('btnAllPlots').addEventListener('click', ()=>switchView('portfolio'));
-document.getElementById('btnMarket').addEventListener('click', ()=>switchView('market'));
 document.getElementById('brandHome').addEventListener('click', ()=>switchView('portfolio'));
 
 /* ---------------- portfolio / all-plots view ---------------- */
@@ -2262,7 +2275,7 @@ function renderTrend(rows){
   rows=(rows||[]).filter(r=>r&&r.price_sqft!=null).sort((a,b)=> a.month<b.month?-1:1);
   if(rows.length<2){ el.innerHTML='<div class="chart-empty">Not enough data.</div>'; return; }
   const asof=document.getElementById('mkt-asof'); if(asof) asof.textContent=' · through '+String(rows[rows.length-1].month).slice(0,7);
-  const W=720,H=240,P=44;
+  const W=720,H=170,P=42;
   const ys=rows.map(r=>+r.price_sqft), ymin=Math.min(...ys), ymax=Math.max(...ys);
   const X=i=>P+(W-2*P)*i/(rows.length-1);
   const Y=val=>H-P-(H-2*P)*(val-ymin)/((ymax-ymin)||1);
@@ -2272,6 +2285,7 @@ function renderTrend(rows){
     +'<line x1="'+P+'" y1="'+Y(mid).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(mid).toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>'
     +'<polygon points="'+P+','+(H-P)+' '+pts+' '+X(rows.length-1).toFixed(1)+','+(H-P)+'" fill="var(--accent-500)" opacity="0.08"/>'
     +'<polyline points="'+pts+'" fill="none" stroke="var(--accent-500)" stroke-width="2.5" stroke-linejoin="round"/>'
+    +rows.map((r,i)=>'<circle class="pt" cx="'+X(i).toFixed(1)+'" cy="'+Y(+r.price_sqft).toFixed(1)+'" r="2.6"><title>'+String(r.month).slice(0,7)+' · '+fN(+r.price_sqft)+'/ft² (n='+fN(+r.n||0)+')</title></circle>').join('')
     +'<text x="'+P+'" y="'+(H-16)+'" class="ax">'+String(rows[0].month).slice(0,7)+'</text>'
     +'<text x="'+(W-P)+'" y="'+(H-16)+'" class="ax" text-anchor="end">'+String(rows[rows.length-1].month).slice(0,7)+'</text>'
     +'<text x="'+(P-8)+'" y="'+(Y(ymax)+4).toFixed(1)+'" class="ax" text-anchor="end">'+fN(ymax)+'</text>'
