@@ -450,6 +450,9 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .login-field label{display:block; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); margin-bottom:6px}
 .login-field .box{display:flex; align-items:center; height:44px; border:1px solid var(--line-strong); background:var(--surface); border-radius:var(--radius-sm); padding:0 14px; font-family:var(--font-sans); font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink)}
 .login-field .box.pw{letter-spacing:3px}
+.login-field input.box{width:100%; outline:none; -webkit-appearance:none; appearance:none}
+.login-field input.box:focus{border-color:var(--accent-500)}
+.login-err{color:var(--error); font-size:var(--fs-label); font-weight:var(--fw-semibold); min-height:16px; margin-top:8px; text-align:center}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:22px; margin-top:20px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -518,15 +521,16 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
         <div class="lbl">Demo access — already filled in</div>
         <div class="login-field">
           <label for="loginUser">Username</label>
-          <div class="box" id="loginUser">demo@almizan.ae</div>
+          <input class="box" id="loginUser" type="email" value="demo@almizan.ae" autocomplete="username" spellcheck="false">
         </div>
         <div class="login-field">
           <label for="loginPass">Password</label>
-          <div class="box pw" id="loginPass">••••••••</div>
+          <input class="box pw" id="loginPass" type="password" value="demo123" autocomplete="current-password">
         </div>
       </div>
 
       <button class="btn-login" id="btnLogin">Log in</button>
+      <div class="login-err" id="loginErr"></div>
 
       <div class="login-divider">or continue with</div>
 
@@ -598,6 +602,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
     <div class="leftnav-foot">
       <span class="savechip" id="saveChipNav"></span>
       <button class="delete-link" id="btnDelete">Delete this plot</button>
+      <button class="delete-link" id="btnSignout">Sign out</button>
     </div>
   </nav>
 
@@ -945,6 +950,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 /* ---------------- default project state ---------------- */
 function defaultState(){
@@ -999,6 +1005,22 @@ function solidHex(h){ return THEME.resolveVar(h); }
 
 const EFF={emax:0.86, uref:8, kc:0.004};
 const SLIDER_MAX=60;
+/* ---- Supabase client + storage shim (Phase 2 auth/comps) ---- */
+/* Outside Claude's artifact env (e.g. on Vercel) window.storage is absent —
+   shim it to localStorage so plots still persist in the browser. */
+if(!window.storage){
+  window.storage={
+    get:   async k     => { const v=localStorage.getItem(k); return v!=null?{value:v}:null; },
+    set:   async (k,v) => { localStorage.setItem(k,v); },
+    delete:async k     => { localStorage.removeItem(k); },
+  };
+}
+const SUPABASE_URL='https://glpbkfsqkwjtzrxufdda.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable___j6e_lNTrmQyNYtonxTrg_0ZkL8N2Q';
+let sb=null;
+try{ sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null; }
+catch(e){ console.error('Supabase init failed', e); }
+
 let STATE=defaultState();
 let PROJECTS=[];
 let CURRENT_ID=null;
@@ -2056,12 +2078,34 @@ function enterApp(){
   switchView('plot');
   window.scrollTo(0,0);
 }
+/* ---------------- auth (Supabase) ---------------- */
+async function doLogin(){
+  const email=(document.getElementById('loginUser').value||'').trim();
+  const password=document.getElementById('loginPass').value||'';
+  const btn=document.getElementById('btnLogin'), err=document.getElementById('loginErr');
+  err.textContent='';
+  if(!sb){ err.textContent='Auth service unavailable — check your connection and reload.'; return; }
+  const orig=btn.textContent; btn.disabled=true; btn.textContent='Signing in…';
+  try{
+    const {error}=await sb.auth.signInWithPassword({email, password});
+    if(error){ err.textContent=error.message||'Sign in failed.'; btn.disabled=false; btn.textContent=orig; return; }
+    enterApp();
+  }catch(e){ err.textContent='Sign in failed. Please try again.'; btn.disabled=false; btn.textContent=orig; }
+}
+async function doLogout(){ try{ if(sb) await sb.auth.signOut(); }catch(e){} location.reload(); }
+
 ['btnLogin','btnGoogle','btnMicrosoft'].forEach(id=>{
-  document.getElementById(id).addEventListener('click', enterApp);
+  document.getElementById(id).addEventListener('click', doLogin);
 });
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('btnSignout').addEventListener('click', doLogout);
 
 /* ---------------- boot ---------------- */
-initProjects();
+(async()=>{
+  await initProjects();
+  try{ if(sb){ const {data}=await sb.auth.getSession(); if(data && data.session) enterApp(); } }
+  catch(e){ console.error(e); }
+})();
 </script>
 </body>
 </html>
