@@ -163,7 +163,16 @@ solum/
 ├── solum.html                        the working file
 ├── SOLUM_CONTEXT.md                  this file
 ├── JD_Investment_Console.html        reference for visual/vocab decisions
+├── docs/
+│   ├── README.md                     how we work: brainstorm → decide → PRD → code
+│   ├── DECISIONS.md                  running decisions log (extends §3)
+│   └── prd/                          one spec per feature (TEMPLATE.md to start)
 └── (any plot PDFs to test upload extraction)
 ```
 
 For any new session: `Read SOLUM_CONTEXT.md before we start`, then work from there.
+
+**Working in the repo:** the whole loop — brainstorm, decide, PRD, code — happens
+here, with the thinking captured as docs next to the code. See `docs/README.md`.
+Lock decisions in writing (`docs/DECISIONS.md` for one-liners, `docs/prd/` for
+anything bigger) before executing them.
