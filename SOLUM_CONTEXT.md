@@ -2,6 +2,12 @@
 
 **Read this before touching `solum.html`.** It captures every decision made across the build sessions, why each was made, and what's deliberately out of scope. If you're a future Claude session, this file replaces about 12 hours of prior conversation.
 
+> **This is the build & architecture layer.** For the *why* — the strategic thesis, the
+> Bloomberg-terminal vision, the competitive references (Aprao / JD Console / BCG), product
+> identity, and the product-level decision log — read
+> [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) first. Where the two docs differ on
+> current build state, **this file is authoritative** (it tracks the shipped code).
+
 ---
 
 ## 1. What Solum is
