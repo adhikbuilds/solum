@@ -58,4 +58,12 @@ session, persisted across refreshes. Gate **both** the UI and the data: RLS tigh
 Stays single-file (supabase-js from CDN). Ships **with** Phase 2 frontend work — the RLS
 migration must land together with the frontend auth or reads break. Spec: docs/prd/auth-demo.md.
 
+## 2026-07-18 — Market Insights layer locked (DLD market intelligence)
+Locked a Market Insights feature — the market-intelligence pillar of the terminal vision
+(§7), powered by the loaded DLD data, no new infra (Postgres RPC/views + single-file charts).
+v1 = 3 high-signal charts (price trend, velocity heatmap, off-plan share) in two placements
+(contextual panel on the plot + standalone Market view). Guardrails: velocity ≠ absorption
+(no inventory data), as-of dating, thin-slice suppression, outlier trim. Geo choropleth is a
+flagged optional upgrade (needs boundary GeoJSON). Ships after Phase 2. Spec: docs/prd/market-insights.md.
+
 <!-- Add new entries above this line. Newest first. -->
