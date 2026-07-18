@@ -453,6 +453,8 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .login-field input.box{width:100%; outline:none; -webkit-appearance:none; appearance:none}
 .login-field input.box:focus{border-color:var(--accent-500)}
 .login-err{color:var(--error); font-size:var(--fs-label); font-weight:var(--fw-semibold); min-height:16px; margin-top:8px; text-align:center}
+.comps-basis{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
+.comps-basis.sourced{color:var(--accent-700)}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:22px; margin-top:20px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -824,9 +826,12 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
             <div class="lever"><div class="lab"><span>Plot number</span></div>
               <div class="field"><input type="text" id="in-plotnumber" value="6488595"></div></div>
             <div class="lever"><div class="lab"><span>Community</span><button class="info" data-pop="loc">i</button></div>
-              <div class="field"><input type="text" id="in-community" value="Wadi Al Safa 5"></div></div>
+              <div class="field"><input type="text" id="in-community" value="Wadi Al Safa 5" list="communityList" autocomplete="off"><datalist id="communityList"></datalist></div></div>
             <div class="lever"><div class="lab"><span>Sub-community</span></div>
               <div class="field"><input type="text" id="in-subcommunity" value=""></div></div>
+            <div class="lever" style="grid-column:1/-1">
+              <button class="btn sm" id="btnPullComps" type="button">Pull DLD market comps for this community</button>
+              <div id="compsBasis" class="comps-basis" style="margin-top:8px"></div></div>
             <div class="lever"><div class="lab"><span>Max GFA</span><button class="info" data-pop="gfa">i</button></div>
               <div class="field"><input type="number" id="in-gfa" value="150131.47"><span class="suf">sqft</span></div></div>
             <div class="lever"><div class="lab"><span>Plot area</span></div>
@@ -2077,7 +2082,71 @@ function enterApp(){
   document.getElementById('loginScreen').style.display='none'; /* root cause of the old scroll bug: this was never hidden */
   switchView('plot');
   window.scrollTo(0,0);
+  loadLocations();   /* populate the community typeahead from DLD */
 }
+/* ---------------- DLD comps (Phase 2b) ---------------- */
+let LOCATIONS=[], LOC_BY_NAME={};
+async function loadLocations(){
+  if(!sb || LOCATIONS.length) return;
+  try{
+    const {data,error}=await sb.from('dld_locations').select('area_id,area_name_en').order('area_name_en');
+    if(error){ console.error('locations', error); return; }
+    LOCATIONS=data||[];
+    const dl=document.getElementById('communityList'); if(dl) dl.innerHTML='';
+    LOC_BY_NAME={};
+    LOCATIONS.forEach(l=>{
+      LOC_BY_NAME[(l.area_name_en||'').toLowerCase().trim()]=l.area_id;
+      if(dl){ const o=document.createElement('option'); o.value=l.area_name_en; dl.appendChild(o); }
+    });
+  }catch(e){ console.error(e); }
+}
+function resolveAreaId(){
+  const name=(document.getElementById('in-community').value||'').toLowerCase().trim();
+  return (name in LOC_BY_NAME) ? LOC_BY_NAME[name] : null;
+}
+async function pullComps(){
+  const basis=document.getElementById('compsBasis'); basis.className='comps-basis';
+  if(!sb){ basis.textContent='Comps unavailable — no connection.'; return; }
+  const areaId=resolveAreaId();
+  if(areaId==null){ basis.textContent='Pick a community from the DLD list to pull comps.'; return; }
+  const btn=document.getElementById('btnPullComps'), orig=btn.textContent;
+  btn.disabled=true; btn.textContent='Pulling…';
+  try{
+    const {data,error}=await sb.rpc('get_comps',{p_area_id:areaId});
+    if(error){ basis.textContent='Comps error: '+error.message; }
+    else applyComps(data||[]);
+  }catch(e){ basis.textContent='Comps failed. Please try again.'; }
+  btn.disabled=false; btn.textContent=orig;
+}
+function applyComps(rows){
+  const basis=document.getElementById('compsBasis');
+  const MIN=5, by={};
+  rows.forEach(r=>by[r.unit_type]=r);
+  let applied=0, totalN=0, asOf=null;
+  STATE.types.forEach(t=>{
+    const r=by[t.name];
+    if(r && r.sample_n>=MIN){
+      t.price=Math.round(+r.price_sqft); t.sourced=true;
+      applied++; totalN+=r.sample_n;
+      if(!asOf || r.as_of>asOf) asOf=r.as_of;
+    } else { t.sourced=false; }
+  });
+  STATE.areaId=resolveAreaId();
+  const community=document.getElementById('in-community').value;
+  STATE.comps={community, asOf, applied, totalN};
+  if(applied){
+    POPS.unitprice={ t:'Sales price per sq ft, per unit type.',
+      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''} — outlier-trimmed, recency-weighted.`,
+      tier:'sourced' };
+    basis.className='comps-basis sourced';
+    basis.textContent=`Sourced · ${applied} unit type${applied>1?'s':''} priced from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
+  } else {
+    basis.className='comps-basis';
+    basis.textContent=`Not enough DLD comps (need ≥${MIN} per type) for ${community} — pricing stays modeled.`;
+  }
+  buildUnitTable(); render(); scheduleSave();
+}
+
 /* ---------------- auth (Supabase) ---------------- */
 async function doLogin(){
   const email=(document.getElementById('loginUser').value||'').trim();
@@ -2099,6 +2168,7 @@ async function doLogout(){ try{ if(sb) await sb.auth.signOut(); }catch(e){} loca
 });
 document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('btnSignout').addEventListener('click', doLogout);
+document.getElementById('btnPullComps').addEventListener('click', pullComps);
 
 /* ---------------- boot ---------------- */
 (async()=>{
