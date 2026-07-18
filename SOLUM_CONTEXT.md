@@ -131,15 +131,18 @@ Do not add these without being explicitly asked. They were considered and parked
 
 ---
 
-## 7. Open questions (unresolved as of last session)
+## 7. The Astryx question — RESOLVED (Path B, 2026-07-18)
 
-**The Astryx question.** Solum's original brief claimed its tokens were "adapted from Meta's Astryx design system." Verification found only two things actually match Astryx (motion values, spacing scale). Radius, type scale, colour philosophy, font, and naming conventions all diverge. Three possible paths were surfaced but not chosen:
+**Decision: Path B. The Astryx association is dropped. Solum owns its own design direction.**
 
-- **Path A — Full literal Astryx adoption.** Adopt their actual radius/type/colour values. This *reverses* several locked decisions (squarer corners, 3-size scale, saturated orange). Not recommended unless the user explicitly wants to walk those back.
-- **Path B — Fully commit to Solum's own direction.** Drop the Astryx association. Clean up the remaining half-Astryx/half-custom inconsistencies. This is what the last two sessions were pushing toward organically.
-- **Path C — Structural Astryx, custom values.** Rename tokens to Astryx conventions (`--color-background-surface`, `--color-text-secondary`, etc.) while keeping Solum's actual values. This gives real architectural alignment with a distinct visual identity.
+Background: Solum's original brief claimed its tokens were "adapted from Meta's Astryx design system." Verification found only two things actually matched Astryx (motion values, spacing scale); radius, type scale, colour philosophy, font, and naming conventions all diverged. Three paths were on the table (A: full literal Astryx adoption — reverses locked decisions; B: commit to Solum's own direction; C: Astryx token *naming* over Solum values). The user chose **B**, which is where the last two sessions were already drifting.
 
-At last handoff, the user hadn't picked. My recommendation was Path B.
+**What was done to execute Path B:**
+- Retired the entire legacy alias layer that made the token block half-and-half. The `:root` block previously carried two parallel vocabularies: the canonical tokens (`--accent-*`, `--surface-2`, `--font-sans/mono`, `--fs-label/body/data`, `--radius-*`) *and* a back-compat set left over from earlier iterations (`--pine*`, `--brass-deep`, `--surface2`, `--sans`, `--mono`, `--fs-xs/sm/base/lg/kpi`, `--r-none/inner/el/container/page/full`).
+- All 172 downstream usages of the legacy aliases were rewritten to the canonical tokens (1:1, behaviour-preserving), and the alias *declarations* were deleted from `:root`. The token block is now a single vocabulary.
+- Verified after the change: every `var(--x)` resolves to a defined token; the blue-swap acid test still leaves **zero** residual orange (the §5 token guarantee holds); JS syntax clean; tag balance and IDs intact.
+
+No visual change was intended or made — this was purely collapsing two naming systems into one. There are no remaining open Astryx-related questions.
 
 ---
 
