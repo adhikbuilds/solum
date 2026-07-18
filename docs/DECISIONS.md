@@ -50,4 +50,12 @@ the DLD pull runs **locally from a UAE machine** to seed Supabase. Unattended UA
 automation (proxy or recovered region) is deferred post-demo. Ingestion is now a local-first
 CLI (`node index.mjs backfill`) that keeps the Lambda export for later.
 
+## 2026-07-18 — Real demo auth via Supabase Auth (retires the fake login)
+Decided to replace the presentational login (PROJECT_CONTEXT §6.7) with real **Supabase
+Auth** — one shared demo credential (pre-filled on screen for easy demoing), real JWT
+session, persisted across refreshes. Gate **both** the UI and the data: RLS tightened from
+`using (true)` to `authenticated`, so the Supabase API returns nothing without a session.
+Stays single-file (supabase-js from CDN). Ships **with** Phase 2 frontend work — the RLS
+migration must land together with the frontend auth or reads break. Spec: docs/prd/auth-demo.md.
+
 <!-- Add new entries above this line. Newest first. -->
