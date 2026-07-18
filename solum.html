@@ -1,0 +1,2092 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solum — Land Feasibility Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   SOLUM DESIGN TOKENS — SINGLE SOURCE OF TRUTH
+   ----------------------------------------------------------------
+   To restyle the whole app, edit ONLY this block. Everything
+   downstream (CSS, JS, inline SVG, PDF export) resolves from here
+   at runtime via getComputedStyle — nothing is hardcoded elsewhere.
+
+   Common changes:
+   • Recolour (orange → blue): edit the 7 --accent-* / --brand-deep
+     values in "1 · BRAND RAMP". Unit-type + all UI colour follows.
+   • Change font (Urbanist → Inter): edit --font-family in "4 · TYPE".
+   • Squarer / rounder corners: edit the 4 --radius-* in "5 · RADIUS".
+   • Tighter / looser type: edit the 3 sizes in "4 · TYPE".
+   ================================================================ */
+:root{
+
+  /* ---- 1 · BRAND RAMP (the accent colour of the whole product) ---- */
+  /* Swap these 8 values to recolour everything. Lightest → darkest. */
+  --accent-50:  #FFF4ED;   /* faintest wash  (sidebar tint, hover fills) */
+  --accent-100: #FFE4D3;   /* light fill                                 */
+  --accent-300: #FFB784;   /* mid-light                                  */
+  --accent-500: #FF6B19;   /* PRIMARY accent — buttons, active nav, KPI  */
+  --accent-600: #FF8A47;   /* accent hover                               */
+  --accent-700: #B84E12;   /* strong accent                              */
+  --accent-800: #7A3D14;   /* deepest accent — text on light accent bg   */
+
+  /* ---- 2 · NEUTRAL RAMP (page, surfaces, text, hairlines) ---- */
+  --bg:            #F5F3F1;  /* page background            */
+  --surface:       #FFFFFF;  /* cards, panels              */
+  --surface-2:     #FBF5F0;  /* recessed fields, wells     */
+  --ink:           #1A0E08;  /* primary text + data        */
+  --muted:         #93867A;  /* secondary / label text     */
+  --line:          #ECE4DC;  /* default hairline           */
+  --line-strong:   #DCCEC0;  /* emphasised border          */
+
+  /* ---- 3 · VERDICT SEMANTICS (the ONLY non-accent colour allowed) ---- */
+  /* Reserved strictly for the Pursue / Negotiate / Pass verdict. */
+  --success: #27AE60; --success-bg: rgba(39, 174, 96, 0.12);
+  --warning: #F2994A; --warning-bg: rgba(242, 153, 74, 0.14);
+  --error:   #EB5757; --error-bg:   rgba(235, 87, 87, 0.12);
+
+  /* ---- 4 · TYPE (3-size scale + one font line) ---- */
+  --font-family: 'Urbanist', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-family);
+  --font-mono: var(--font-family);
+  --fs-label:   .75rem;    /* 12px — eyebrows, table headers, captions, small labels */
+  --fs-body:    .9375rem;  /* 15px — body copy, inputs, table cells, section sub-notes */
+  --fs-data:  1.5rem;      /* 24px — KPI + headline numbers (the anchor)              */
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600; --fw-bold:700; --fw-black:800;
+
+  /* Back-compat aliases (old names still used across the stylesheet).
+     These will be retired as sections are restyled — safe to keep for now. */
+  --fs-xs:   var(--fs-label);
+  --fs-sm:   var(--fs-body);
+  --fs-base: var(--fs-body);
+  --fs-lg:   var(--fs-data);
+  --fs-kpi:  var(--fs-data);
+  --pine:      var(--accent-500);
+  --pine-soft: var(--accent-600);
+  --pine-deep: var(--accent-700);
+  --pine-50:   var(--accent-50);
+  --pine-100:  var(--accent-100);
+  --pine-300:  var(--accent-300);
+  --brass-deep:var(--accent-800);
+  --surface2:  var(--surface-2);
+  --sans:      var(--font-sans);
+  --mono:      var(--font-mono);
+
+  /* ---- 5 · RADIUS (lower = squarer / more investor-grade) ---- */
+  --radius-sm:        4px;   /* buttons, inputs, small controls */
+  --radius-md:        6px;   /* cards, panels                   */
+  --radius-lg:        8px;   /* large containers, modals        */
+  --radius-pill:   9999px;   /* verdict tags, badges — a shape, not a corner */
+  /* aliases used by existing rules */
+  --r-none: 0px;
+  --r-inner:     var(--radius-sm);
+  --r-el:        var(--radius-sm);
+  --r-container: var(--radius-md);
+  --r-page:      var(--radius-lg);
+  --r-full:      var(--radius-pill);
+
+  /* ---- 6 · SPACING (uniform rhythm) ---- */
+  --sp-0:0px; --sp-05:2px; --sp-1:4px; --sp-1-5:6px; --sp-2:8px; --sp-2-5:10px;
+  --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:28px;
+  --sp-8:32px; --sp-9:36px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+
+  /* ---- 7 · ELEVATION, MOTION, SIZING ---- */
+  --sh-low: 0 4px 12px rgba(26, 14, 8, 0.03);
+  --sh-med: 0 8px 24px rgba(26, 14, 8, 0.06);
+  --sh-high: 0 16px 40px rgba(26, 14, 8, 0.08);
+  --sh-inset-focus: inset 0 0 0 2px color-mix(in srgb, var(--accent-500) 55%, transparent);
+  --dur-fast:175ms; --dur-med:410ms; --dur-slow:975ms;
+  --ease-std:cubic-bezier(.24,1,.4,1);
+  --size-el-sm:28px; --size-el-md:40px; --size-el-lg:48px;
+  --topbar-h:64px; --leftnav-w:220px;
+
+  /* ---- 8 · UNIT-TYPE IDENTITY (derived from the brand ramp) ---- */
+  /* Shades of the accent family — recolour automatically with §1. */
+  --u-studio: var(--accent-300);
+  --u-1br:    var(--accent-600);
+  --u-2br:    var(--accent-500);
+  --u-3br:    var(--accent-700);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  font-size:var(--fs-base); line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:var(--mono); font-feature-settings:"tnum" 1}
+h1,h2,h3{margin:0; font-weight:var(--fw-bold); font-family:var(--sans)}
+a{color:var(--pine-soft)}
+button{font:inherit}
+
+/* ================= TOP BAR (global) ================= */
+body.pre-login .topbar,body.pre-login .appbody{display:none}
+.topbar{
+  height:var(--topbar-h); display:flex; align-items:center; gap:var(--sp-5);
+  padding:0 var(--sp-6); background:var(--surface); border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:20;
+}
+.topbar .brand-mini{display:flex; align-items:center; gap:10px; cursor:pointer; flex:0 0 auto}
+.topbar .brand-mini .word{font-weight:var(--fw-black); font-size:1.1875rem; letter-spacing:-.01em; color:var(--ink)}
+.topbar .divider-v{width:1px; height:24px; background:var(--line); flex:0 0 auto}
+.topbar-plot{display:flex; flex-direction:column; justify-content:center; min-width:0}
+.topbar-plot .nm{font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px}
+.topbar-plot .loc{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
+body.view-portfolio .topbar-plot,body.view-compare .topbar-plot{display:none}
+.topbar-spacer{flex:1}
+.topbar-actions{display:flex; align-items:center; gap:var(--sp-2)}
+.btn-export{display:flex; align-items:center; gap:6px; height:var(--size-el-sm); padding:0 var(--sp-3); border-radius:var(--r-inner); border:1px solid var(--pine); background:var(--pine-50); color:var(--pine-deep); font-family:var(--sans); font-size:var(--fs-label); font-weight:var(--fw-bold); cursor:pointer; transition:all var(--dur-fast) var(--ease-std)}
+.btn-export:hover{background:var(--pine); color:#fff}
+.btn-export:disabled{opacity:.5; cursor:not-allowed}
+body.view-portfolio .btn-export,body.view-compare .btn-export{display:none}
+
+/* ================= APP BODY: leftnav + main ================= */
+.appbody{display:flex; height:calc(100vh - var(--topbar-h)); overflow:hidden}
+.leftnav{
+  width:var(--leftnav-w); flex:0 0 auto; background:var(--surface); border-right:1px solid var(--line);
+  padding:var(--sp-5) var(--sp-3); display:flex; flex-direction:column; overflow-y:auto;
+}
+body.view-portfolio .leftnav,body.view-compare .leftnav{display:none}
+.leftnav-item{
+  display:block; width:100%; text-align:left; background:transparent; border:0; border-radius:var(--r-inner);
+  padding:11px var(--sp-3); font-weight:var(--fw-bold); font-size:var(--fs-sm); color:var(--muted); cursor:pointer;
+  transition:all var(--dur-fast) var(--ease-std); margin-bottom:2px;
+}
+.leftnav-item:hover{background:var(--surface2); color:var(--ink)}
+.leftnav-item.active{background:var(--pine); color:#fff}
+.leftnav-eyebrow{font-size:var(--fs-xs); font-weight:var(--fw-black); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:0 var(--sp-3); margin:var(--sp-2) 0 var(--sp-1)}
+.leftnav-foot{margin-top:auto; padding-top:var(--sp-4); border-top:1px solid var(--line); display:flex; flex-direction:column; gap:var(--sp-2); align-items:center}
+.savechip{font-weight:var(--fw-semibold); font-size:var(--fs-xs); color:var(--muted); text-align:center}
+.delete-link{background:transparent; border:0; color:var(--muted); font-size:var(--fs-xs); font-weight:var(--fw-semibold); cursor:pointer; padding:6px; text-decoration:underline; text-underline-offset:2px}
+.delete-link:hover{color:var(--brass-deep)}
+
+.wrap{flex:1; padding:var(--sp-8); overflow-y:auto}
+body.view-plot #portfolioView{display:none}
+body.view-plot #compareView{display:none}
+body.view-portfolio #plotView{display:none}
+body.view-portfolio #compareView{display:none}
+body.view-compare #plotView{display:none}
+body.view-compare #portfolioView{display:none}
+
+/* ================= buttons ================= */
+.btn{font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:var(--r-inner); height:var(--size-el-md); padding:0 var(--sp-4); cursor:pointer; transition:all var(--dur-fast) var(--ease-std); display:flex; align-items:center; justify-content:center; white-space:nowrap;}
+.btn:hover{border-color:var(--pine); color:var(--pine)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn:disabled:hover{border-color:var(--line-strong); color:var(--ink)}
+.btn:focus-visible{box-shadow:var(--sh-inset-focus)}
+.btn.primary{background:var(--pine); color:#FFFFFF; border-color:var(--pine); box-shadow:var(--sh-low)}
+.btn.primary:hover{background:var(--pine-soft); box-shadow:var(--sh-med); color:#FFFFFF}
+.btn.danger{color:var(--brass-deep); border-color:var(--line-strong); background:transparent}
+.btn.danger:hover{background:var(--pine-50); border-color:var(--pine-100)}
+.btn.sm{height:var(--size-el-sm); padding:0 var(--sp-3); font-size:var(--fs-xs)}
+
+/* ================= KPI strip (Summary) — headline tier ================= */
+.kpistrip{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r-container); overflow:hidden; margin-bottom:var(--sp-3); box-shadow:var(--sh-low)}
+.kpicell{background:var(--surface); padding:var(--sp-4) var(--sp-5)}
+.kpicell .k{font-weight:var(--fw-bold); font-size:var(--fs-label); letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+.kpicell .v{font-family:var(--mono); font-size:var(--fs-data); font-weight:var(--fw-black); color:var(--ink); line-height:1.1; margin-top:4px; letter-spacing:-.01em}
+.kpicell .v .u{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold); margin-left:2px}
+.kpicell.accent .v{color:var(--pine)}
+
+/* ================= side KPI row (secondary tier) ================= */
+.kpiside{display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--r-container) var(--r-container); overflow:hidden; margin-bottom:var(--sp-5); margin-top:-1px}
+.kpiside .sc{background:var(--surface-2); padding:var(--sp-3) var(--sp-4)}
+.kpiside .k{font-weight:var(--fw-semibold); font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.kpiside .v{font-family:var(--mono); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); margin-top:3px}
+
+/* ================= small verdict indicator ================= */
+.verdict-mini{display:flex; align-items:center; gap:var(--sp-4); background:var(--surface); border:1px solid var(--line); border-radius:var(--r-container); padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-5); box-shadow:var(--sh-low)}
+.vicon{width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 auto}
+.vicon.pursue{background:var(--success-bg)}
+.vicon.negotiate{background:var(--warning-bg)}
+.vicon.pass{background:var(--error-bg)}
+.verdict-mini .vtext{min-width:0}
+.verdict-mini .vsub{color:var(--muted); font-size:var(--fs-body); line-height:1.5; margin-top:3px; max-width:74ch}
+.plotctx{display:flex; gap:var(--sp-5); margin-bottom:var(--sp-3); font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold); flex-wrap:wrap}
+.plotctx b{color:var(--ink); font-weight:var(--fw-bold)}
+.tag{display:inline-block; font-weight:var(--fw-black); font-size:var(--fs-label); letter-spacing:.04em; text-transform:uppercase; padding:5px 12px; border-radius:var(--r-full)}
+.tag.pursue{background:var(--success-bg); color:var(--success)}
+.tag.negotiate{background:var(--warning-bg); color:var(--warning)}
+.tag.pass{background:var(--error-bg); color:var(--error)}
+
+/* ================= development programme strip ================= */
+.devstrip{display:flex; gap:var(--sp-6); flex-wrap:wrap; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-container); padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-5)}
+.devstrip .d{display:flex; flex-direction:column}
+.devstrip .k{font-size:10px; font-weight:var(--fw-semibold); letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.devstrip .v{font-family:var(--mono); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); margin-top:2px}
+
+/* ================= panels / layout ================= */
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-5); align-items:start}
+.panel{background:var(--surface); border:none; border-radius:var(--r-container); padding:var(--sp-5); box-shadow:var(--sh-low); transition:box-shadow var(--dur-fast) var(--ease-std)}
+.panel:hover{box-shadow:var(--sh-med)}
+.panel + .panel{margin-top:var(--sp-5)}
+.panel h2{font-size:var(--fs-body); color:var(--ink); font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:var(--sp-2); margin-bottom:4px}
+.panel h2 .n{font-weight:var(--fw-black); font-size:10px; color:var(--pine); letter-spacing:.05em; opacity:.8}
+.sec-note{color:var(--muted); font-size:var(--fs-label); line-height:1.5; margin:0 0 var(--sp-4)}
+
+/* levers */
+.lever{margin-bottom:var(--sp-4)}
+.lever:last-child{margin-bottom:0}
+.lever .lab{display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2)}
+.lever .lab span{font-size:var(--fs-label); color:var(--ink); font-weight:var(--fw-semibold)}
+.lever .field{display:flex; align-items:center; border:1px solid var(--line); background:var(--surface2); border-radius:var(--r-inner); overflow:hidden; transition:all var(--dur-fast) var(--ease-std)}
+.lever .field:focus-within{border-color:var(--pine); box-shadow:var(--sh-inset-focus); background:var(--surface)}
+.lever .field .pre{padding:0 var(--sp-3); font-weight:var(--fw-semibold); font-size:var(--fs-label); color:var(--muted); border-right:1px solid var(--line)}
+.lever input[type=number],.lever input[type=text]{
+  border:0; background:transparent; font-family:var(--mono); font-weight:var(--fw-semibold); font-size:var(--fs-body); color:var(--ink);
+  padding:11px 14px; width:100%; outline:none;
+}
+.lever textarea{border:0; background:transparent; font-family:var(--sans); font-weight:var(--fw-medium); font-size:var(--fs-body); color:var(--ink); padding:11px 14px; width:100%; outline:none; resize:vertical; min-height:64px}
+.lever .suf{padding:0 14px; font-weight:var(--fw-semibold); font-size:var(--fs-label); color:var(--muted); white-space:nowrap}
+.leverrow{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4)}
+
+/* info icon + popover w/ provenance badges (monochrome) */
+.info{position:relative; width:16px; height:16px; border-radius:50%; border:1.5px solid var(--muted);
+  color:var(--muted); font-weight:var(--fw-bold); font-size:9px; line-height:13px; text-align:center;
+  cursor:pointer; background:transparent; user-select:none; flex:0 0 auto; transition:all .2s}
+.info:hover{border-color:var(--pine); color:var(--pine)}
+.pop{position:absolute; z-index:40; left:22px; top:-4px; width:290px; background:var(--ink); color:#FFFFFF;
+  border-radius:var(--r-inner); padding:var(--sp-4); font-size:var(--fs-label); line-height:1.5; box-shadow:var(--sh-high);
+  display:none; text-align:left; font-weight:var(--fw-medium)}
+.pop.show{display:block; animation:popIn var(--dur-fast) var(--ease-std)}
+@keyframes popIn{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)}}
+.pop .badge{display:inline-block; font-weight:var(--fw-bold); font-size:9px; letter-spacing:.08em; text-transform:uppercase;
+  padding:2px 8px; border-radius:var(--r-full); margin-bottom:8px}
+.pop .badge.sourced{background:color-mix(in srgb, var(--accent-500) 35%, transparent); color:#FFD8BC}
+.pop .badge.modeled{background:rgba(255,255,255,.20); color:#F0EAE4}
+.pop .badge.input{background:rgba(255,255,255,.10); color:#C9C1B9}
+.pop .src{margin-top:var(--sp-2); font-weight:var(--fw-semibold); font-size:10px; color:#B7B2AC; letter-spacing:0}
+.pop a{color:var(--pine-300)}
+
+/* unit programme rows — middle path: track + two handles, no fill/marker/animation */
+.prog-row{padding:14px 0; border-top:1px solid var(--line)}
+.prog-row:first-of-type{border-top:0; padding-top:0}
+.prog-head{display:flex; align-items:center; gap:12px}
+.dot{width:11px; height:11px; border-radius:var(--r-full); flex:0 0 auto}
+.prog-name{font-size:var(--fs-body); font-weight:var(--fw-bold); flex:1}
+.switch{width:38px; height:22px; border-radius:11px; border:0; background:var(--line-strong); position:relative; cursor:pointer; transition:background .2s}
+.switch::after{content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:left .2s; box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.switch.on{background:var(--pine)}
+.switch.on::after{left:19px}
+.range{margin-top:var(--sp-3); opacity:1; transition:opacity .2s}
+.prog-row.off .range{opacity:.32; pointer-events:none}
+.prog-row.off .prog-name{color:var(--muted)}
+.range-track{position:relative; height:3px; border-radius:var(--r-full); background:var(--line); margin:0 2px}
+.range-inputs{position:relative; height:0}
+.range input[type=range]{-webkit-appearance:none; appearance:none; position:absolute; top:-14px; left:0; width:100%; height:18px; background:transparent; pointer-events:none; margin:0}
+.range input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; pointer-events:auto; width:16px; height:16px; border-radius:50%; background:var(--surface); border:2px solid var(--pine); cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.range input[type=range]::-moz-range-thumb{pointer-events:auto; width:16px; height:16px; border-radius:50%; background:var(--surface); border:2px solid var(--pine); cursor:pointer}
+.range-labels{display:flex; justify-content:space-between; margin-top:12px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted)}
+.range-labels b{color:var(--ink); font-weight:var(--fw-bold)}
+.range-labels .pick b{color:var(--pine)}
+
+/* recommended programme mix bar (used in unit matrix) */
+.mixbar{display:flex; height:32px; border-radius:var(--r-inner); overflow:hidden; border:none; margin-bottom:var(--sp-3)}
+.mixbar .seg{display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-bold); font-size:var(--fs-label); min-width:0; transition:flex var(--dur-med) var(--ease-std)}
+.mixlegend{display:flex; flex-wrap:wrap; gap:var(--sp-4); margin-bottom:var(--sp-5); padding-top:var(--sp-1)}
+.mixlegend .li{display:flex; align-items:center; gap:6px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted)}
+.mixlegend .li b{color:var(--ink); font-weight:var(--fw-bold); font-family:var(--mono)}
+
+/* cost buildup + recommended unit tables (Summary) */
+table.buildup{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
+table.buildup td{padding:9px 0; border-bottom:1px solid var(--line)}
+table.buildup td.lab{color:var(--muted); font-weight:var(--fw-medium); font-size:var(--fs-label)}
+table.buildup td.val{font-family:var(--mono); font-weight:var(--fw-bold); text-align:right; color:var(--ink)}
+table.buildup td.psf{font-family:var(--mono); font-weight:var(--fw-medium); text-align:right; color:var(--muted); font-size:var(--fs-label); padding-left:10px; width:90px}
+table.buildup tr.total td{color:var(--ink); font-weight:var(--fw-black); border-top:2px solid var(--line-strong); border-bottom:0}
+table.buildup tr.profit td{border-bottom:0; padding-top:12px}
+table.buildup tr.profit td.lab{color:var(--pine); font-weight:var(--fw-bold); font-size:var(--fs-label)}
+table.buildup tr.profit td.val{font-size:var(--fs-body); color:var(--pine); font-weight:var(--fw-black)}
+
+table.rectable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
+table.rectable th{text-align:right; font-weight:var(--fw-bold); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:0 0 8px; border-bottom:2px solid var(--line)}
+table.rectable th:first-child{text-align:left}
+table.rectable td{padding:10px 0; text-align:right; border-bottom:1px solid var(--line); font-family:var(--mono); font-weight:var(--fw-semibold); color:var(--ink); font-size:var(--fs-label)}
+table.rectable td:first-child{text-align:left; font-family:var(--sans); font-weight:var(--fw-bold); font-size:var(--fs-body); display:flex; align-items:center; gap:8px}
+table.rectable tr.total td{border-bottom:0; border-top:2px solid var(--line-strong); font-weight:var(--fw-black); padding-top:12px; color:var(--ink)}
+
+.rlv{display:flex; justify-content:space-between; align-items:center; margin-top:var(--sp-4); padding:var(--sp-4) var(--sp-5); background:var(--surface2); border:1.5px dashed var(--line-strong); border-radius:var(--r-container)}
+.rlv .k{font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); max-width:60%}
+.rlv .v{font-family:var(--mono); font-size:var(--fs-body); font-weight:var(--fw-black); color:var(--pine)}
+.cols2{display:grid; grid-template-columns:1fr 1fr; gap:32px}
+
+/* scenario testing */
+.scen{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-3)}
+.scard{border:1px solid var(--line); border-radius:var(--r-container); padding:var(--sp-4); background:var(--surface2); transition:all var(--dur-fast) var(--ease-std)}
+.scard:hover{box-shadow:var(--sh-low); border-color:var(--line-strong)}
+.scard.base{border-color:var(--pine); background:var(--surface); box-shadow:var(--sh-low)}
+.scard .st{display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-2)}
+.scard .st .name{font-size:10px; font-weight:var(--fw-bold); letter-spacing:.05em; text-transform:uppercase; color:var(--ink)}
+.scard .big{font-family:var(--mono); font-size:var(--fs-body); font-weight:var(--fw-black); line-height:1; color:var(--pine)}
+.scard .sm{font-size:var(--fs-label); color:var(--muted); margin-top:var(--sp-2); display:flex; justify-content:space-between; font-weight:var(--fw-medium)}
+.scard .sm b{font-family:var(--mono); color:var(--ink); font-weight:var(--fw-bold)}
+.scard .assume{font-size:10px; color:var(--muted); margin-top:var(--sp-2); font-weight:var(--fw-semibold)}
+.dotv{display:inline-block; padding:3px 8px; border-radius:var(--r-inner); font-weight:var(--fw-bold); font-size:9px; letter-spacing:.05em; text-transform:uppercase}
+.dotv.pursue{background:var(--success-bg); color:var(--success)}
+.dotv.negotiate{background:var(--warning-bg); color:var(--warning)}
+.dotv.pass{background:var(--error-bg); color:var(--error)}
+
+/* expander — quiet "show your work" detail, not competing with the summary */
+.expander{margin-top:var(--sp-5)}
+.exp-btn{width:100%; text-align:left; background:transparent; border:1px dashed var(--line-strong); border-radius:var(--r-inner); padding:var(--sp-3) var(--sp-4);
+  font-size:var(--fs-label); font-weight:var(--fw-semibold); letter-spacing:.01em; color:var(--muted); cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:all var(--dur-fast) var(--ease-std)}
+.exp-btn:hover{border-color:var(--pine); color:var(--pine)}
+.exp-body{display:none; margin-top:var(--sp-2); max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:var(--r-container)}
+.exp-body.show{display:block}
+table.cand{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:var(--fs-label); font-weight:var(--fw-medium)}
+table.cand th{position:sticky; top:0; background:var(--bg); color:var(--muted); font-family:var(--sans); font-weight:var(--fw-bold); padding:10px; text-align:right; font-size:10px; letter-spacing:.05em; text-transform:uppercase}
+table.cand th:first-child{text-align:left}
+table.cand td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--line); color:var(--muted)}
+table.cand td:first-child{text-align:left; color:var(--muted); font-weight:var(--fw-semibold)}
+table.cand tr.win td{background:var(--pine-50); color:var(--ink); font-weight:var(--fw-bold)}
+
+/* assumptions tab + unit matrix: granular cost grid, unit sizes & pricing */
+.fieldgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+.fieldgrid3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+table.utable{width:100%; border-collapse:collapse; font-size:var(--fs-body); margin-top:var(--sp-2)}
+table.utable th{text-align:left; font-weight:var(--fw-bold); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:10px 12px; border-bottom:2px solid var(--line)}
+table.utable td{padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:middle}
+table.utable input[type=number]{width:100%; font-family:var(--mono); font-weight:var(--fw-semibold); font-size:var(--fs-body); border:1px solid var(--line); background:var(--surface2); border-radius:var(--r-inner); padding:9px 12px; outline:none; transition:all .2s}
+table.utable input[type=number]:focus{border-color:var(--pine); background:var(--surface); box-shadow:var(--sh-inset-focus)}
+table.utable .namecell{display:flex; align-items:center; gap:10px; font-weight:var(--fw-bold)}
+table.utable tr.muted{opacity:.4}
+table.utable tr.muted input[type=number]{pointer-events:none; background:var(--line)}
+table.utable tr.muted .namecell::after{content:"off"; margin-left:6px; font-size:9px; font-weight:var(--fw-bold); letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+.avgprice{margin-top:var(--sp-4); padding:14px 18px; background:var(--surface2); border:1.5px dashed var(--line-strong); border-radius:var(--r-container); font-weight:var(--fw-semibold); font-size:var(--fs-label); color:var(--muted); display:flex; justify-content:space-between; align-items:center}
+.avgprice b{font-family:var(--mono); color:var(--pine); font-size:var(--fs-body); font-weight:var(--fw-black)}
+
+footer{margin-top:40px; padding-top:24px; border-top:1px solid var(--line); color:var(--muted); font-size:10px; line-height:1.6; font-weight:var(--fw-medium)}
+footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
+.empty{padding:20px; border:1.5px dashed var(--line-strong); border-radius:var(--r-container); color:var(--brass-deep); font-size:var(--fs-label); font-weight:var(--fw-semibold); background:var(--pine-50); text-align:center}
+
+/* portfolio table */
+.fieldgrid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+.pf-toolbar{display:flex; align-items:center; justify-content:space-between; gap:var(--sp-4); flex-wrap:wrap}
+.pf-search-field{flex:1; min-width:280px; max-width:400px}
+.pf-search-field input{border:1px solid var(--line); border-radius:var(--r-inner); padding:12px 16px; width:100%; font-size:var(--fs-base); outline:none; transition:border .2s; background:var(--surface2); font-weight:var(--fw-medium)}
+.pf-search-field input:focus{border-color:var(--pine); box-shadow:var(--sh-inset-focus); background:var(--surface)}
+.pf-toolbar-right{display:flex; align-items:center; gap:var(--sp-4)}
+table.ptable{width:100%; border-collapse:collapse; font-size:var(--fs-sm)}
+table.ptable th{text-align:left; font-weight:var(--fw-bold); font-size:var(--fs-xs); letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:16px; border-bottom:2px solid var(--line); cursor:pointer; white-space:nowrap; user-select:none; transition:color .2s}
+table.ptable th:hover{color:var(--ink)}
+table.ptable th.sorted{color:var(--pine)}
+table.ptable th .sort-i{display:inline-block; width:12px; font-size:10px}
+table.ptable td{padding:16px; border-bottom:1px solid var(--line); vertical-align:middle; font-weight:var(--fw-medium)}
+table.ptable tr:hover td{background:var(--surface2); cursor:pointer}
+table.ptable td.num{font-family:var(--mono); text-align:right; white-space:nowrap; font-weight:var(--fw-semibold)}
+table.ptable .pname{font-weight:var(--fw-bold); font-size:var(--fs-base); color:var(--ink); margin-bottom:4px}
+table.ptable .ploc{color:var(--muted); font-size:var(--fs-xs); font-weight:var(--fw-semibold)}
+
+/* kebab menu on portfolio rows */
+.kebab-wrap{position:relative; display:inline-block}
+.kebab-btn{width:30px; height:30px; border-radius:8px; border:0; background:transparent; color:var(--muted); font-size:16px; font-weight:var(--fw-bold); cursor:pointer; line-height:1}
+.kebab-btn:hover{background:var(--surface2); color:var(--ink)}
+.kebab-menu{position:absolute; right:0; top:34px; z-index:30; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-inner); box-shadow:var(--sh-high); min-width:140px; display:none; overflow:hidden}
+.kebab-menu.show{display:block}
+.kebab-menu button{display:block; width:100%; text-align:left; background:transparent; border:0; padding:10px 14px; font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--ink); cursor:pointer}
+.kebab-menu button:hover{background:var(--surface2)}
+.kebab-menu button.danger{color:var(--brass-deep)}
+
+/* pdf upload */
+.pdf-drop{border:2px dashed var(--line-strong); border-radius:var(--r-container); padding:32px; background:var(--surface2); text-align:center; transition:border .2s}
+.pdf-drop:hover{border-color:var(--pine)}
+.pdf-drop input[type=file]{font-weight:var(--fw-semibold); font-size:var(--fs-sm); width:100%; cursor:pointer}
+.pdf-tag{display:inline-block; font-weight:var(--fw-bold); font-size:9px; letter-spacing:.05em; text-transform:uppercase; padding:2px 8px; border-radius:var(--r-full); background:var(--pine-100); color:var(--brass-deep); margin-left:8px}
+
+/* modals */
+.modal-overlay{position:fixed; inset:0; background:rgba(26,14,8,.5); display:none; align-items:center; justify-content:center; z-index:100; padding:var(--sp-6); backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex; animation:overlayIn var(--dur-fast) var(--ease-std)}
+@keyframes overlayIn{from{opacity:0} to{opacity:1}}
+.modal{background:var(--surface); border-radius:var(--r-page); padding:40px; width:100%; max-width:540px; max-height:90vh; overflow:auto; box-shadow:var(--sh-high); animation:modalIn var(--dur-med) var(--ease-std)}
+@keyframes modalIn{from{opacity:0; transform:translateY(16px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)}}
+.modal h3{font-size:var(--fs-lg); font-weight:var(--fw-bold); color:var(--ink); margin-bottom:var(--sp-5)}
+.modal .lever{margin-bottom:var(--sp-4)}
+.modal .actions{display:flex; justify-content:flex-end; gap:var(--sp-3); margin-top:var(--sp-6)}
+.pick-list{max-height:340px; overflow:auto; border:1px solid var(--line); border-radius:var(--r-inner); margin-bottom:var(--sp-3)}
+.pick-row{display:flex; align-items:center; gap:var(--sp-3); padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer}
+.pick-row:last-child{border-bottom:0}
+.pick-row:hover{background:var(--surface2)}
+.pick-row .pn{font-weight:var(--fw-bold); flex:1}
+.pick-row .pl{color:var(--muted); font-size:var(--fs-xs); font-weight:var(--fw-semibold)}
+
+/* ================= COMPARE — dedicated view ================= */
+.compare-toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--sp-6)}
+.compare-toolbar h1{font-size:var(--fs-lg); font-weight:var(--fw-bold)}
+.compare-cols{display:grid; gap:var(--sp-5); align-items:start}
+.ccard{background:var(--surface); border-radius:var(--r-container); box-shadow:var(--sh-low); padding:var(--sp-5); min-width:0}
+.ccard .cname{font-size:var(--fs-lg); font-weight:var(--fw-bold); line-height:1.2}
+.ccard .cloc{color:var(--muted); font-size:var(--fs-sm); font-weight:var(--fw-semibold); margin-top:2px; margin-bottom:var(--sp-4)}
+.ccard .ckpis{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); margin-bottom:var(--sp-4)}
+.ccard .ckpi .k{font-size:var(--fs-xs); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em; color:var(--muted)}
+.ccard .ckpi .v{font-family:var(--mono); font-size:var(--fs-lg); font-weight:var(--fw-black); color:var(--ink); margin-top:2px}
+.ccard .ckpi.accent .v{color:var(--pine)}
+.ccard table.buildup{font-size:var(--fs-xs)}
+.ccard table.buildup td{padding:7px 0}
+.ccard h4{font-size:var(--fs-xs); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:var(--sp-4) 0 var(--sp-2)}
+
+/* ================= AI CHATBOT ================= */
+.ai-fab{position:fixed; right:28px; bottom:28px; width:56px; height:56px; border-radius:50%; background:var(--pine); color:#fff; border:0;
+  box-shadow:var(--sh-high); cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:90; transition:all var(--dur-fast) var(--ease-std)}
+.ai-fab:hover{background:var(--pine-soft); transform:translateY(-2px)}
+.ai-panel{position:fixed; right:28px; bottom:96px; width:380px; max-height:min(600px,70vh); background:var(--surface); border-radius:var(--r-page);
+  box-shadow:var(--sh-high); z-index:91; display:none; flex-direction:column; overflow:hidden; border:1px solid var(--line)}
+.ai-panel.show{display:flex; animation:modalIn var(--dur-med) var(--ease-std)}
+.ai-head{padding:var(--sp-4) var(--sp-5); border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between}
+.ai-head .t{font-weight:var(--fw-bold); font-size:var(--fs-base)}
+.ai-head .sub{font-size:var(--fs-xs); color:var(--muted); font-weight:var(--fw-semibold)}
+.ai-close{background:transparent; border:0; color:var(--muted); font-size:18px; cursor:pointer; padding:4px}
+.ai-body{flex:1; overflow-y:auto; padding:var(--sp-4) var(--sp-5); display:flex; flex-direction:column; gap:var(--sp-3)}
+.ai-msg{font-size:var(--fs-sm); line-height:1.5; max-width:88%}
+.ai-msg.user{align-self:flex-end; background:var(--pine); color:#fff; padding:10px 14px; border-radius:14px 14px 3px 14px}
+.ai-msg.assistant{align-self:flex-start; background:var(--surface2); color:var(--ink); padding:10px 14px; border-radius:14px 14px 14px 3px}
+.ai-diff{align-self:flex-start; width:100%; background:var(--surface2); border:1px solid var(--line); border-radius:var(--r-inner); padding:var(--sp-3) var(--sp-4)}
+.ai-diff .dt{font-size:var(--fs-xs); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:8px}
+.ai-diff-row{display:flex; justify-content:space-between; align-items:center; font-size:var(--fs-sm); padding:6px 0; border-bottom:1px solid var(--line)}
+.ai-diff-row:last-child{border-bottom:0}
+.ai-diff-row .lbl{color:var(--ink); font-weight:var(--fw-semibold)}
+.ai-diff-row .change{font-family:var(--mono); font-weight:var(--fw-semibold)}
+.ai-diff-row .change .old{color:var(--muted); text-decoration:line-through}
+.ai-diff-row .change .new{color:var(--pine); margin-left:6px}
+.ai-diff-actions{display:flex; gap:var(--sp-2); margin-top:var(--sp-3)}
+.ai-diff-actions button{flex:1; height:34px; border-radius:8px; font-size:var(--fs-xs); font-weight:var(--fw-bold); cursor:pointer; border:1px solid var(--line-strong); background:var(--surface)}
+.ai-diff-actions button.apply{background:var(--pine); color:#fff; border-color:var(--pine)}
+.ai-diff-actions button.discard{color:var(--muted)}
+.ai-foot{border-top:1px solid var(--line); padding:var(--sp-3); display:flex; gap:var(--sp-2)}
+.ai-foot textarea{flex:1; resize:none; border:1px solid var(--line); background:var(--surface2); border-radius:var(--r-inner); padding:10px 12px; font-family:var(--sans); font-size:var(--fs-sm); outline:none; height:40px; line-height:1.3}
+.ai-foot textarea:focus{border-color:var(--pine); background:var(--surface)}
+.ai-foot button{width:40px; height:40px; border-radius:var(--r-inner); border:0; background:var(--pine); color:#fff; font-weight:var(--fw-bold); cursor:pointer; flex:0 0 auto}
+.ai-foot button:disabled{opacity:.4; cursor:not-allowed}
+
+/* ================= LOGIN — split screen ================= */
+#loginScreen{min-height:100vh; display:grid; grid-template-columns:1fr 1fr}
+.login-side{display:flex; align-items:center; justify-content:center; padding:var(--sp-6); background:var(--surface)}
+.login-card{width:100%; max-width:380px; animation:loginIn var(--dur-med) var(--ease-std)}
+@keyframes loginIn{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)}}
+.login-brand{display:flex; flex-direction:column; align-items:flex-start; margin-bottom:32px}
+.login-brand .word{font-weight:var(--fw-black); font-size:1.625rem; letter-spacing:-.01em; color:var(--ink); margin-top:14px}
+.login-brand .sub{font-weight:var(--fw-bold); font-size:var(--fs-label); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:4px}
+.login-demo{margin-bottom:24px}
+.login-demo .lbl{font-weight:var(--fw-bold); font-size:var(--fs-label); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px}
+.login-field{margin-bottom:12px}
+.login-field label{display:block; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); margin-bottom:6px}
+.login-field .box{display:flex; align-items:center; height:44px; border:1px solid var(--line-strong); background:var(--surface); border-radius:var(--r-inner); padding:0 14px; font-family:var(--sans); font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink)}
+.login-field .box.pw{letter-spacing:3px}
+.btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--r-inner); border:none; background:var(--pine); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:22px; margin-top:20px}
+.btn-login:hover{background:var(--pine-soft); box-shadow:var(--sh-med); transform:translateY(-2px)}
+.btn-login:active{transform:translateY(0)}
+.login-divider{display:flex; align-items:center; gap:14px; margin-bottom:22px; color:var(--muted); font-size:var(--fs-label); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em}
+.login-divider::before,.login-divider::after{content:""; flex:1; height:1px; background:var(--line)}
+.btn-sso{width:100%; height:var(--size-el-lg); border-radius:var(--r-inner); border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:12px; transition:all var(--dur-fast) var(--ease-std); margin-bottom:14px}
+.btn-sso:hover{border-color:var(--pine); color:var(--pine); box-shadow:var(--sh-low)}
+.login-foot{margin-top:32px; font-size:var(--fs-xs); font-weight:var(--fw-semibold); color:var(--muted); line-height:1.6}
+
+.login-visual{
+  position:relative; overflow:hidden; background:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+}
+.login-visual::before{
+  content:""; position:absolute; inset:0; opacity:.5;
+  background-image:
+    repeating-radial-gradient(circle at 30% 70%, transparent 0, transparent 34px, color-mix(in srgb, var(--accent-500) 10%, transparent) 35px, transparent 36px, transparent 74px, color-mix(in srgb, var(--accent-500) 7%, transparent) 75px, transparent 76px);
+}
+.login-visual .mark{position:relative; z-index:1; opacity:.94}
+.login-visual .caption{position:absolute; left:44px; bottom:44px; z-index:2; max-width:340px}
+.login-visual .caption .t{color:#fff; font-weight:var(--fw-black); font-size:var(--fs-lg); line-height:1.3}
+.login-visual .caption .s{color:rgba(255,255,255,.55); font-size:var(--fs-sm); font-weight:var(--fw-medium); margin-top:10px; line-height:1.6}
+.login-visual .grid-lines{position:absolute; inset:0; z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size:56px 56px;
+}
+
+@media (max-width:920px){
+  #loginScreen{grid-template-columns:1fr}
+  .login-visual{display:none}
+  .appbody{flex-direction:column; height:auto; overflow:visible}
+  .leftnav{width:100%; flex-direction:row; overflow-x:auto; padding:var(--sp-3)}
+  .leftnav-foot{display:none}
+  .grid{grid-template-columns:1fr}
+  .kpistrip{grid-template-columns:1fr 1fr}
+  .cols2{grid-template-columns:1fr}
+  .scen{grid-template-columns:1fr}
+  .fieldgrid{grid-template-columns:1fr 1fr}
+  .fieldgrid3{grid-template-columns:1fr}
+  .compare-cols{grid-template-columns:1fr !important}
+  .wrap{padding:var(--sp-5)}
+  .ai-panel{width:calc(100vw - 32px); right:16px}
+}
+:focus-visible{outline:2px solid var(--pine); outline-offset:2px}
+</style>
+</head>
+<body class="pre-login view-plot">
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen">
+  <div class="login-side">
+    <div class="login-card">
+      <div class="login-brand">
+        <svg width="38" height="38" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <path d="M7 7 H27 L33 13 V33 H7 Z" stroke="var(--accent-500)" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M5 7 h4 M7 5 v4" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M5 33 h4 M7 31 v4" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M31 33 h4 M33 31 v4" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="27" cy="7" r="2.1" fill="var(--ink)"/>
+        </svg>
+        <div class="word">SOLUM</div>
+        <div class="sub">Land Feasibility Console · Al Mizan</div>
+      </div>
+
+      <div class="login-demo">
+        <div class="lbl">Demo access — already filled in</div>
+        <div class="login-field">
+          <label for="loginUser">Username</label>
+          <div class="box" id="loginUser">demo@almizan.ae</div>
+        </div>
+        <div class="login-field">
+          <label for="loginPass">Password</label>
+          <div class="box pw" id="loginPass">••••••••</div>
+        </div>
+      </div>
+
+      <button class="btn-login" id="btnLogin">Log in</button>
+
+      <div class="login-divider">or continue with</div>
+
+      <button class="btn-sso" id="btnGoogle">
+        <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+        Continue with Google
+      </button>
+      <button class="btn-sso" id="btnMicrosoft">
+        <svg width="15" height="15" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Continue with Microsoft
+      </button>
+
+      <div class="login-foot">Demo environment · indicative feasibility tool<br>not a lender-grade appraisal</div>
+    </div>
+  </div>
+  <div class="login-visual">
+    <div class="grid-lines"></div>
+    <svg class="mark" width="380" height="380" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      <path d="M40 40 H140 L160 60 V160 H40 Z" stroke="var(--accent-500)" stroke-width="2.5" stroke-linejoin="round" opacity=".9"/>
+      <path d="M60 60 H120 L136 76 V140 H60 Z" stroke="var(--accent-500)" stroke-width="1.4" stroke-linejoin="round" opacity=".45"/>
+      <path d="M34 40 h9 M40 34 v9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>
+      <path d="M34 160 h9 M40 154 v9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>
+      <path d="M154 160 h9 M160 154 v9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>
+      <circle cx="140" cy="40" r="3.2" fill="#fff" opacity=".85"/>
+    </svg>
+    <div class="caption">
+      <div class="t">Every plot, one verdict.</div>
+      <div class="s">Land price, unit mix, and margin — resolved live against your hurdle, before you make an offer.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <div class="brand-mini" id="brandHome">
+    <svg width="26" height="26" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <path d="M7 7 H27 L33 13 V33 H7 Z" stroke="var(--accent-500)" stroke-width="2.6" stroke-linejoin="round"/>
+      <circle cx="27" cy="7" r="2.2" fill="var(--ink)"/>
+    </svg>
+    <span class="word">SOLUM</span>
+  </div>
+  <div class="divider-v"></div>
+  <div class="topbar-plot" id="topbarPlot">
+    <span class="nm" id="topbarPlotName">—</span>
+    <span class="loc" id="topbarPlotLoc">—</span>
+  </div>
+  <button class="btn-export" id="btnExportPdf">
+    <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 15v2h12v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="btnExportPdfLabel">Export PDF</span>
+  </button>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-actions">
+    <span class="savechip" id="saveChip" style="margin-right:8px"></span>
+    <button class="btn" id="btnAllPlots">All plots</button>
+    <button class="btn" id="btnCompareTop">Compare</button>
+    <button class="btn primary" id="btnNewTop">+ New plot</button>
+  </div>
+</div>
+
+<!-- ============ APP BODY ============ -->
+<div class="appbody">
+
+  <nav class="leftnav" id="leftnav">
+    <div class="leftnav-eyebrow">This plot</div>
+    <button class="leftnav-item active" data-tab="summary">Summary</button>
+    <button class="leftnav-item" data-tab="mix">Unit Matrix</button>
+    <button class="leftnav-item" data-tab="assumptions">Assumptions</button>
+    <button class="leftnav-item" data-tab="details">Plot Details</button>
+    <div class="leftnav-foot">
+      <span class="savechip" id="saveChipNav"></span>
+      <button class="delete-link" id="btnDelete">Delete this plot</button>
+    </div>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- ============ PORTFOLIO VIEW ============ -->
+    <div id="portfolioView">
+      <div class="panel" style="margin-bottom:var(--sp-6)">
+        <div class="pf-toolbar">
+          <div class="pf-search-field"><input type="text" id="pf-search" placeholder="Search by name, community, plot #…"></div>
+          <div class="pf-toolbar-right">
+            <span class="sec-note" id="pf-selcount" style="margin:0; font-weight:600;"></span>
+            <button class="btn" id="pf-compare" disabled>Compare selected</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>All plots</h2>
+        <p class="sec-note">One row per saved plot. Sort by margin to see what's worth chasing this week. Select 2–4 to compare side by side, or click a row to open it.</p>
+        <div style="overflow-x:auto">
+          <table class="ptable" id="ptable">
+            <thead>
+              <tr>
+                <th></th>
+                <th data-sort="name">Plot <span class="sort-i"></span></th>
+                <th data-sort="location">Location <span class="sort-i"></span></th>
+                <th data-sort="land">Land tested <span class="sort-i"></span></th>
+                <th data-sort="margin">ROI vs hurdle <span class="sort-i"></span></th>
+                <th data-sort="verdict">Verdict <span class="sort-i"></span></th>
+                <th data-sort="rlv">RLV <span class="sort-i"></span></th>
+                <th data-sort="headroom">Headroom <span class="sort-i"></span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ptable-body"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="pf-empty" style="display:none; margin-top:24px">No plots match your search.</div>
+      </div>
+    </div>
+
+    <!-- ============ COMPARE VIEW (dedicated) ============ -->
+    <div id="compareView">
+      <div class="compare-toolbar">
+        <h1>Compare plots</h1>
+        <button class="btn" id="compare-back">← Back to all plots</button>
+      </div>
+      <div class="compare-cols" id="compareCols"></div>
+    </div>
+
+    <!-- ============ SINGLE PLOT VIEW ============ -->
+    <div id="plotView">
+
+      <!-- ===== SUMMARY ===== -->
+      <div class="tabpanel-x" id="tab-summary">
+
+        <!-- headline KPIs — decision-first, JD vocabulary -->
+        <div class="kpistrip">
+          <div class="kpicell accent"><div class="k">Return on investment</div><div class="v" id="vm-roi">—</div></div>
+          <div class="kpicell"><div class="k">Return on project</div><div class="v" id="vm-rop">—</div></div>
+          <div class="kpicell"><div class="k">Net profit</div><div class="v" id="vm-profit">—</div></div>
+          <div class="kpicell"><div class="k">Verdict</div><div class="v" id="vm-verdict-cell">—</div></div>
+        </div>
+        <!-- side metrics — supporting derivation, JD-style -->
+        <div class="kpiside">
+          <div class="sc"><div class="k">Total investment</div><div class="v" id="sm-inv">—</div></div>
+          <div class="sc"><div class="k">Gross sales</div><div class="v" id="sm-gross">—</div></div>
+          <div class="sc"><div class="k">Avg. price / sqft</div><div class="v" id="sm-avgprice">—</div></div>
+          <div class="sc"><div class="k">Cost / sqft (with land)</div><div class="v" id="sm-cpsf-w">—</div></div>
+          <div class="sc"><div class="k">Cost / sqft (no land)</div><div class="v" id="sm-cpsf-n">—</div></div>
+        </div>
+
+        <!-- development programme — total units / sellable area / avg size -->
+        <div class="devstrip" id="devstrip"></div>
+
+        <!-- small icon-scale verdict indicator -->
+        <div class="verdict-mini">
+          <div class="vicon" id="vicon">
+            <svg id="viconSvg" width="18" height="18" viewBox="0 0 20 20" fill="none"></svg>
+          </div>
+          <div class="vtext">
+            <div class="plotctx" id="plotctx"></div>
+            <span class="tag" id="vtag">—</span>
+            <div class="vsub" id="vsub"></div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <div class="panel">
+              <h2><span class="n">01</span> Cost buildup</h2>
+              <p class="sec-note">Full cost stack behind the recommended mix, at today's land price. AED/sqft is of total saleable area.</p>
+              <table class="buildup" id="buildupTable"></table>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h2><span class="n">02</span> Recommended unit mix</h2>
+              <p class="sec-note">The profit-maximising mix inside your bands on Unit Matrix, re-solved live.</p>
+              <table class="rectable">
+                <thead><tr><th>Type</th><th>Size</th><th>Units</th><th>Total size</th><th>Price/sqft</th><th>Total value</th></tr></thead>
+                <tbody id="rectable-body"></tbody>
+                <tfoot id="rectable-foot"></tfoot>
+              </table>
+              <div class="rlv">
+                <div class="k">Residual land value — most you can pay and still hit your hurdle <button class="info" data-pop="rlv">i</button></div>
+                <div class="v" id="rlv">—</div>
+              </div>
+            </div>
+            <div class="panel">
+              <h2><span class="n">03</span> Land &amp; hurdle</h2>
+              <p class="sec-note">The two live levers you flex most when negotiating this specific plot.</p>
+              <div class="leverrow">
+                <div class="lever">
+                  <div class="lab"><span>Land price you're testing</span><button class="info" data-pop="land">i</button></div>
+                  <div class="field"><span class="pre">AED</span><input type="number" id="in-land" value="30000000" step="500000"><span class="suf">total</span></div>
+                </div>
+                <div class="lever">
+                  <div class="lab"><span>Your margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
+                  <div class="field"><input type="number" id="in-hurdle" value="20" step="1"><span class="suf">% on cost</span></div>
+                </div>
+              </div>
+              <div class="rlv" style="margin-top:var(--sp-4)">
+                <div class="k">Price/sqft needed to hit your hurdle at this land price <button class="info" data-pop="breakeven">i</button></div>
+                <div class="v" id="breakeven">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="n">04</span> Scenario testing</h2>
+          <p class="sec-note">Same recommended programme, flexing sale price &amp; construction cost by the amounts set on Assumptions.</p>
+          <div class="scen" id="scen"></div>
+        </div>
+      </div>
+
+      <!-- ===== UNIT MATRIX ===== -->
+      <div class="tabpanel-x" id="tab-mix" style="display:none">
+        <div class="grid">
+          <div>
+            <div class="panel">
+              <h2><span class="n">01</span> Unit programme</h2>
+              <p class="sec-note">Set a min–max band per type, or turn a type off entirely. <button class="info" data-pop="prog" style="vertical-align:middle">i</button></p>
+              <div id="prog"></div>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h2><span class="n">02</span> Optimiser output</h2>
+              <p class="sec-note">The mix the optimiser is currently recommending, as a share of saleable area. Full P&amp;L is on Summary.</p>
+              <div id="mixbar" class="mixbar"></div>
+              <div id="mixlegend" class="mixlegend"></div>
+            </div>
+            <div class="expander">
+              <button class="exp-btn" id="expbtn">▸ Show every mix the optimiser weighed <span id="candcount"></span></button>
+              <div class="exp-body" id="expbody"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2><span class="n">03</span> Unit types, sizes &amp; pricing <button class="info" data-pop="unitprice">i</button></h2>
+          <p class="sec-note">Size and sales price per sq ft set separately for each type. A row mutes automatically when that type is switched off above.</p>
+          <table class="utable">
+            <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th></tr></thead>
+            <tbody id="utable-body"></tbody>
+          </table>
+          <div class="avgprice"><span>Blended average price, at recommended mix</span><b id="avgprice-val">—</b></div>
+        </div>
+      </div>
+
+      <!-- ===== ASSUMPTIONS ===== -->
+      <div class="tabpanel-x" id="tab-assumptions" style="display:none">
+        <div class="panel">
+          <h2><span class="n">01</span> Construction &amp; soft costs</h2>
+          <p class="sec-note">Everything below feeds the cost buildup on Summary. Every value is editable — the info icon shows where the default came from.</p>
+          <div class="fieldgrid">
+            <div class="lever"><div class="lab"><span>Construction cost</span><button class="info" data-pop="cost">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-cost" value="500" step="10"><span class="suf">/ sqft GFA</span></div></div>
+            <div class="lever"><div class="lab"><span>Architect — design &amp; approvals</span><button class="info" data-pop="archd">i</button></div>
+              <div class="field"><input type="number" id="in-archdesign" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
+            <div class="lever"><div class="lab"><span>Architect — supervision to completion</span><button class="info" data-pop="archs">i</button></div>
+              <div class="field"><input type="number" id="in-archsuper" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
+            <div class="lever"><div class="lab"><span>Contingency</span><button class="info" data-pop="cont">i</button></div>
+              <div class="field"><input type="number" id="in-cont" value="10" step="1"><span class="suf">% of hard cost</span></div></div>
+            <div class="lever"><div class="lab"><span>DEWA, RTA, DDA &amp; authorities</span><button class="info" data-pop="auth">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-authorities" value="2000000" step="100000"><span class="suf">total</span></div></div>
+            <div class="lever"><div class="lab"><span>Variations, landscape &amp; amenities</span><button class="info" data-pop="landsc">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-landscape" value="1000000" step="100000"><span class="suf">total</span></div></div>
+            <div class="lever"><div class="lab"><span>Miscellaneous</span><button class="info" data-pop="misc">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-misc" value="500000" step="50000"><span class="suf">total</span></div></div>
+            <div class="lever"><div class="lab"><span>Parking cost</span><button class="info" data-pop="park">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-park" value="55000" step="1000"><span class="suf">/ bay</span></div></div>
+            <div class="lever"><div class="lab"><span>Marketing &amp; sales</span><button class="info" data-pop="mkt">i</button></div>
+              <div class="field"><input type="number" id="in-mkt" value="4" step="0.5"><span class="suf">% of GDV</span></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="n">02</span> Scenario stress-test</h2>
+          <p class="sec-note">Controls how far the Scenario testing cards on Summary flex sale price and construction cost.</p>
+          <div class="fieldgrid3">
+            <div class="lever"><div class="lab"><span>Price flex</span></div>
+              <div class="field"><input type="number" id="in-scen-price" value="10" min="0" max="50"><span class="suf">%</span></div></div>
+            <div class="lever"><div class="lab"><span>Cost flex</span></div>
+              <div class="field"><input type="number" id="in-scen-cost" value="10" min="0" max="50"><span class="suf">%</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PLOT DETAILS ===== -->
+      <div class="tabpanel-x" id="tab-details" style="display:none">
+        <div class="panel">
+          <h2><span class="n">A</span> Plot geometry</h2>
+          <p class="sec-note">The hard limits for this plot. Edit if the plot document says otherwise.</p>
+          <div class="fieldgrid">
+            <div class="lever"><div class="lab"><span>Plot name</span></div>
+              <div class="field"><input type="text" id="in-name" value="Plot 6488595"></div></div>
+            <div class="lever"><div class="lab"><span>Plot number</span></div>
+              <div class="field"><input type="text" id="in-plotnumber" value="6488595"></div></div>
+            <div class="lever"><div class="lab"><span>Community</span><button class="info" data-pop="loc">i</button></div>
+              <div class="field"><input type="text" id="in-community" value="Wadi Al Safa 5"></div></div>
+            <div class="lever"><div class="lab"><span>Sub-community</span></div>
+              <div class="field"><input type="text" id="in-subcommunity" value=""></div></div>
+            <div class="lever"><div class="lab"><span>Max GFA</span><button class="info" data-pop="gfa">i</button></div>
+              <div class="field"><input type="number" id="in-gfa" value="150131.47"><span class="suf">sqft</span></div></div>
+            <div class="lever"><div class="lab"><span>Plot area</span></div>
+              <div class="field"><input type="number" id="in-plotarea" value="33362.57"><span class="suf">sqft</span></div></div>
+            <div class="lever"><div class="lab"><span>FAR</span></div>
+              <div class="field"><input type="number" id="in-far" value="4.5" step="0.1"></div></div>
+            <div class="lever"><div class="lab"><span>Floors (G+..)</span></div>
+              <div class="field"><input type="number" id="in-floors" value="14" step="1"><span class="suf">levels</span></div></div>
+            <div class="lever"><div class="lab"><span>Usage / designation</span></div>
+              <div class="field"><input type="text" id="in-usage" value="Residential"></div></div>
+            <div class="lever"><div class="lab"><span>Basement levels</span></div>
+              <div class="field"><input type="number" id="in-basement" value="1" step="1"><span class="suf">levels</span></div></div>
+            <div class="lever"><div class="lab"><span>Podium levels</span></div>
+              <div class="field"><input type="number" id="in-podium" value="2" step="1"><span class="suf">levels</span></div></div>
+            <div class="lever"><div class="lab"><span>Coverage</span><button class="info" data-pop="coverage">i</button></div>
+              <div class="field"><input type="text" id="in-coverage" readonly></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2><span class="n">B</span> Notes</h2>
+          <p class="sec-note">Anything from the plot document that doesn't fit a field above.</p>
+          <div class="lever"><div class="field"><textarea id="in-notes" rows="4" placeholder="e.g. corner plot, setback restriction on north boundary, master-developer NOC pending…"></textarea></div></div>
+        </div>
+      </div>
+
+    </div><!-- /plotView -->
+
+    <footer>
+      Indicative demo model for the land-buy screen — not a lender-grade appraisal. Each plot you create is saved to your account so you can revisit, or compare it against others.
+      <div class="srcs">Sources · DLD transactions via Propsearch &amp; Property Finder · construction cost: Knight Frank Q2-2025, Engel &amp; Völkers · plot &amp; parking rule: DDA Plot Details.</div>
+    </footer>
+  </main>
+</div>
+
+<!-- new plot modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>New plot</h3>
+
+    <div class="lever">
+      <div class="lab"><span>Upload plot PDF (optional)</span></div>
+      <div class="pdf-drop"><input type="file" id="m-pdf" accept="application/pdf"></div>
+      <div class="sec-note" id="m-pdf-status" style="margin:8px 0 0; font-weight:600;"></div>
+    </div>
+
+    <div class="fieldgrid2">
+      <div class="lever"><div class="lab"><span>Community</span></div>
+        <div class="field"><input type="text" id="m-community" value=""></div></div>
+      <div class="lever"><div class="lab"><span>Sub-community</span></div>
+        <div class="field"><input type="text" id="m-subcommunity" value=""></div></div>
+    </div>
+
+    <div class="lever"><div class="lab"><span>Plot name</span></div>
+      <div class="field"><input type="text" id="m-name" value="Untitled plot"></div></div>
+    <div class="lever"><div class="lab"><span>Plot number</span></div>
+      <div class="field"><input type="text" id="m-plotnumber" value=""></div></div>
+
+    <div class="fieldgrid2">
+      <div class="lever"><div class="lab"><span>Plot area (sqft)</span></div>
+        <div class="field"><input type="number" id="m-plotarea" value="20000"></div></div>
+      <div class="lever"><div class="lab"><span>Max GFA (sqft)</span></div>
+        <div class="field"><input type="number" id="m-gfa" value="100000"></div></div>
+    </div>
+    <div class="fieldgrid2">
+      <div class="lever"><div class="lab"><span>FAR</span></div>
+        <div class="field"><input type="number" id="m-far" value="4.5" step="0.1"></div></div>
+      <div class="lever"><div class="lab"><span>Floors</span></div>
+        <div class="field"><input type="number" id="m-floors" value="10"></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="m-cancel">Cancel</button>
+      <button class="btn primary" id="m-create">Create plot</button>
+    </div>
+  </div>
+</div>
+
+<!-- delete confirm modal -->
+<div class="modal-overlay" id="deleteOverlay">
+  <div class="modal" style="max-width:420px">
+    <h3>Delete this plot?</h3>
+    <p class="sec-note" id="deleteMsg">This cannot be undone.</p>
+    <div class="actions">
+      <button class="btn" id="delete-cancel">Cancel</button>
+      <button class="btn danger" id="delete-confirm" style="border-color:var(--brass-deep)">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- quick compare picker (from top bar / portfolio) -->
+<div class="modal-overlay" id="pickOverlay">
+  <div class="modal">
+    <h3>Compare plots</h3>
+    <p class="sec-note">Select 2–4 plots to compare side by side.</p>
+    <div class="pick-list" id="pickList"></div>
+    <div class="actions">
+      <button class="btn" id="pick-cancel">Cancel</button>
+      <button class="btn primary" id="pick-compare" disabled>Compare selected</button>
+    </div>
+  </div>
+</div>
+
+<div id="pophost"></div>
+
+<!-- ============ SOLUM AI ============ -->
+<button class="ai-fab" id="aiFab" title="Solum AI" aria-label="Open Solum AI">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3 L14 9 L20 11 L14 13 L12 19 L10 13 L4 11 L10 9 Z" fill="#fff"/></svg>
+</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-head">
+    <div>
+      <div class="t">Solum AI</div>
+      <div class="sub">Ask it to change assumptions, bands, or hurdle</div>
+    </div>
+    <button class="ai-close" id="aiClose">✕</button>
+  </div>
+  <div class="ai-body" id="aiBody"></div>
+  <div class="ai-foot">
+    <textarea id="aiInput" placeholder="e.g. raise the hurdle to 22% and widen the 2BR band to 10–45%"></textarea>
+    <button id="aiSend" aria-label="Send">➤</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- default project state ---------------- */
+function defaultState(){
+  return {
+    name:'Plot 6488595', plotNumber:'6488595', community:'Wadi Al Safa 5', subcommunity:'',
+    plot:{gfa:150131.47, plotArea:33362.57, far:4.5, floors:14, usage:'Residential', basement:1, podium:2, notes:''},
+    market:{cost:500, land:30000000, hurdle:20},
+    assumptions:{archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000},
+    scenarioFlex:{price:10, cost:10},
+    types:[
+      {key:'s', name:'Studio', size:430,  price:1550, hex:'var(--u-studio)', on:true, min:10, max:30},
+      {key:'a', name:'1BR',    size:750,  price:1460, hex:'var(--u-1br)',    on:true, min:20, max:50},
+      {key:'b', name:'2BR',    size:1150, price:1350, hex:'var(--u-2br)',    on:true, min:10, max:40},
+      {key:'c', name:'3BR',    size:1600, price:1280, hex:'var(--u-3br)',    on:true, min:0,  max:30},
+    ]
+  };
+}
+/* solid hex fallbacks for contexts that can't resolve CSS vars (jsPDF, inline svg fill) */
+/* ---------------- THEME BRIDGE ----------------
+   JS reads design tokens from :root at runtime, so colours used in
+   canvas/SVG/PDF contexts (which can't resolve `var(--x)`) always
+   track the single source of truth in the <style> :root block.
+   Nothing below hardcodes a brand colour. To restyle, edit :root only. */
+const THEME = (()=>{
+  const cs = getComputedStyle(document.documentElement);
+  const g = name => cs.getPropertyValue(name).trim();
+  const hex = v => {                       /* resolve a token to a solid hex/rgb */
+    if(!v) return v;
+    if(v.startsWith('var(')){ const inner=v.slice(4,-1).trim(); return hex(g(inner)); }
+    return v;
+  };
+  const toRgb = h => {                      /* '#RRGGBB' or 'rgb(...)' → [r,g,b] for jsPDF */
+    h = hex(h);
+    if(h && h[0]==='#'){
+      const n = h.length===4
+        ? [h[1]+h[1], h[2]+h[2], h[3]+h[3]]
+        : [h.slice(1,3), h.slice(3,5), h.slice(5,7)];
+      return n.map(x=>parseInt(x,16));
+    }
+    const m = (h||'').match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+    return m ? [+m[1],+m[2],+m[3]] : [0,0,0];
+  };
+  return {
+    get:  name => g(name),
+    color: name => hex(g(name)),           /* solid colour for a token, e.g. THEME.color('--accent-500') */
+    resolveVar: v => hex(v),               /* resolve a raw 'var(--x)' string, e.g. a unit-type .hex */
+    rgb:  name => toRgb(g(name)),          /* [r,g,b] for a token — used by PDF export */
+  };
+})();
+/* legacy helper name kept for existing call-sites */
+function solidHex(h){ return THEME.resolveVar(h); }
+
+const EFF={emax:0.86, uref:8, kc:0.004};
+const SLIDER_MAX=60;
+let STATE=defaultState();
+let PROJECTS=[];
+let CURRENT_ID=null;
+let saveTimer=null;
+let PENDING_DELETE_ID=null;
+
+const POPS = {
+  land:{t:"The plot acquisition price you're testing.", s:"Compare it against the Residual Land Value — the most you can pay and still clear your hurdle.", tier:'input'},
+  hurdle:{t:"Your minimum acceptable profit, measured against total cost.", s:"Dubai residual-style feasibility typically targets 20%+ on cost.", tier:'input'},
+  prog:{t:"Off means the type isn't built at all. When on, the optimiser keeps its share inside your min–max band.", s:"Min is the guideline floor; max reflects what the community can absorb and any master-developer cap.", tier:'modeled'},
+  rlv:{t:"Residual land value.", s:"The maximum you could pay for the land and still hit your margin hurdle on the recommended programme.", tier:null},
+  gfa:{t:"Maximum gross floor area — the hard cap on what you can build.", s:"Set this from your plot document (e.g. DDA Plot Details), or auto-filled if you uploaded a PDF.", tier:'input'},
+  loc:{t:"Community drives comparable pricing and absorption once DLD data is wired in.", s:"Set this from your plot document. Governs which comps this plot is benchmarked against.", tier:'input'},
+  cost:{t:"Hard construction cost per sq ft of GFA, mid-market apartment spec.", s:"Knight Frank Q2-2025 apartments AED 400–880/sqft; Engel & Völkers AED 350–700/sqft. Excludes land & fit-out.", tier:'sourced'},
+  archd:{t:"Architect's design and authority-approval fee, as a share of hard construction cost.", s:"No external benchmark wired in yet — edit to match your own fee schedule.", tier:'modeled'},
+  archs:{t:"Architect's site-supervision fee through to building completion certificate, as a share of hard construction cost.", s:"No external benchmark wired in yet — edit to match your own fee schedule.", tier:'modeled'},
+  cont:{t:"Buffer against construction cost overruns, as a share of hard cost.", s:"No external benchmark wired in yet — 10% is a common planning-stage default.", tier:'modeled'},
+  auth:{t:"DEWA, RTA, DDA and other authority connection and NOC fees, as a fixed total.", s:"No external benchmark wired in yet — edit to match your own cost data for this plot.", tier:'modeled'},
+  landsc:{t:"Variation orders, landscaping, and amenity fit-out, as a fixed total.", s:"No external benchmark wired in yet — edit to match your own cost data for this plot.", tier:'modeled'},
+  misc:{t:"Miscellaneous project costs not captured elsewhere, as a fixed total.", s:"No external benchmark wired in yet — edit to match your own cost data for this plot.", tier:'modeled'},
+  park:{t:"Cost to build one parking bay, added per bay required by the unit mix.", s:"No external benchmark wired in yet — edit to match your own cost data.", tier:'modeled'},
+  mkt:{t:"Marketing, agent commission, and sales cost as a share of gross development value.", s:"No external benchmark wired in yet — 3–5% of GDV is typical for Dubai off-plan.", tier:'modeled'},
+  unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption — no DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
+  breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix — if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
+  coverage:{t:"Building footprint as a share of plot area, implied by GFA, floor count, podium and basement levels.", s:"A rough planning check, not a substitute for the DDA plot document.", tier:'modeled'},
+};
+
+/* ---------------- storage / project management ---------------- */
+async function loadIndex(){ try{ const r=await window.storage.get('plot-index'); return r? JSON.parse(r.value):[]; }catch(e){ return []; } }
+async function saveIndex(){ try{ await window.storage.set('plot-index', JSON.stringify(PROJECTS)); }catch(e){} }
+async function loadProject(id){ try{ const r=await window.storage.get('plot:'+id); return r? JSON.parse(r.value):null; }catch(e){ return null; } }
+async function saveLastOpened(id){ try{ await window.storage.set('last-opened-id', id); }catch(e){} }
+async function loadLastOpened(){ try{ const r=await window.storage.get('last-opened-id'); return r? r.value:null; }catch(e){ return null; } }
+async function saveProject(){
+  if(!CURRENT_ID) return;
+  setSaveChip('Saving…');
+  try{
+    await window.storage.set('plot:'+CURRENT_ID, JSON.stringify(STATE));
+    const idx=PROJECTS.find(p=>p.id===CURRENT_ID);
+    if(idx){ idx.name=STATE.name; idx.community=STATE.community; await saveIndex(); }
+    setSaveChip('Saved');
+  }catch(e){
+    /* stay neutral — no alarming failure state in a demo; retry once quietly */
+    setTimeout(()=>{ saveProject(); }, 2000);
+  }
+}
+function setSaveChip(txt){
+  document.getElementById('saveChip').textContent=txt;
+  document.getElementById('saveChipNav').textContent=txt;
+}
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveProject,700); }
+function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+async function initProjects(){
+  PROJECTS=await loadIndex();
+  if(PROJECTS.length===0){
+    const id=newId();
+    PROJECTS=[{id,name:'Plot 6488595',community:'Wadi Al Safa 5'}];
+    await saveIndex();
+    STATE=defaultState(); CURRENT_ID=id;
+    await saveProject(); await saveLastOpened(id);
+  } else {
+    const last=await loadLastOpened();
+    CURRENT_ID = (last && PROJECTS.some(p=>p.id===last)) ? last : PROJECTS[0].id;
+    STATE=await loadProject(CURRENT_ID)||defaultState();
+  }
+  hydrateFromState();
+}
+async function openPlot(id){
+  CURRENT_ID=id;
+  STATE=await loadProject(id)||defaultState();
+  await saveLastOpened(id);
+  hydrateFromState();
+  switchView('plot');
+  document.querySelectorAll('.leftnav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tabpanel-x').forEach(x=>x.style.display='none');
+  const summaryBtn=document.querySelector('.leftnav-item[data-tab="summary"]');
+  if(summaryBtn) summaryBtn.classList.add('active');
+  document.getElementById('tab-summary').style.display='block';
+}
+document.getElementById('btnNewTop').addEventListener('click',()=>{
+  document.getElementById('m-name').value='Untitled plot';
+  document.getElementById('m-plotnumber').value='';
+  document.getElementById('m-community').value='';
+  document.getElementById('m-subcommunity').value='';
+  document.getElementById('m-plotarea').value=20000;
+  document.getElementById('m-gfa').value=100000;
+  document.getElementById('m-far').value=4.5;
+  document.getElementById('m-floors').value=10;
+  clearPdfState();
+  document.getElementById('modalOverlay').classList.add('show');
+});
+document.getElementById('m-cancel').addEventListener('click',()=>document.getElementById('modalOverlay').classList.remove('show'));
+document.getElementById('m-create').addEventListener('click', async ()=>{
+  const id=newId();
+  const far=+document.getElementById('m-far').value||4.5;
+  const gfa=+document.getElementById('m-gfa').value||100000;
+  const floors=+document.getElementById('m-floors').value||10;
+  const plotArea=+document.getElementById('m-plotarea').value||(gfa/far);
+  const name=document.getElementById('m-name').value||'Untitled plot';
+  const plotNumber=document.getElementById('m-plotnumber').value||'';
+  const community=document.getElementById('m-community').value||'';
+  const subcommunity=document.getElementById('m-subcommunity').value||'';
+  const ns=defaultState();
+  ns.name=name; ns.plotNumber=plotNumber; ns.community=community; ns.subcommunity=subcommunity;
+  ns.plot={gfa, plotArea, far, floors};
+  PROJECTS.push({id,name,community}); await saveIndex();
+  CURRENT_ID=id; STATE=ns; await saveProject(); await saveLastOpened(id);
+  hydrateFromState();
+  document.getElementById('modalOverlay').classList.remove('show');
+  switchView('plot');
+});
+
+/* ---------------- delete plot (demoted, always confirms via modal) ---------------- */
+document.getElementById('btnDelete').addEventListener('click', ()=>{
+  if(PROJECTS.length<=1){ alert("You need at least one plot — create another before deleting this one."); return; }
+  PENDING_DELETE_ID=CURRENT_ID;
+  document.getElementById('deleteMsg').textContent=`Delete "${STATE.name}"? This cannot be undone.`;
+  document.getElementById('deleteOverlay').classList.add('show');
+});
+document.getElementById('delete-cancel').addEventListener('click', ()=>{ PENDING_DELETE_ID=null; document.getElementById('deleteOverlay').classList.remove('show'); });
+document.getElementById('delete-confirm').addEventListener('click', async ()=>{
+  const id=PENDING_DELETE_ID; if(!id) return;
+  try{ await window.storage.delete('plot:'+id); }catch(e){}
+  PROJECTS=PROJECTS.filter(p=>p.id!==id); await saveIndex();
+  if(id===CURRENT_ID){
+    CURRENT_ID=PROJECTS[0].id;
+    STATE=await loadProject(CURRENT_ID)||defaultState();
+    await saveLastOpened(CURRENT_ID);
+    hydrateFromState();
+  }
+  document.getElementById('deleteOverlay').classList.remove('show');
+  PENDING_DELETE_ID=null;
+  if(document.body.classList.contains('view-portfolio')){ await loadPortfolioRows(); renderPortfolio(); }
+});
+
+/* ---------------- leftnav switching ---------------- */
+document.querySelectorAll('.leftnav-item').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.leftnav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tabpanel-x').forEach(x=>x.style.display='none');
+  t.classList.add('active');
+  document.getElementById('tab-'+t.dataset.tab).style.display='block';
+}));
+
+/* ---------------- hydrate DOM from STATE ---------------- */
+function hydrateFromState(){
+  document.getElementById('in-name').value=STATE.name;
+  document.getElementById('in-plotnumber').value=STATE.plotNumber||'';
+  document.getElementById('in-community').value=STATE.community;
+  document.getElementById('in-subcommunity').value=STATE.subcommunity||'';
+  document.getElementById('in-gfa').value=STATE.plot.gfa;
+  document.getElementById('in-plotarea').value=STATE.plot.plotArea;
+  document.getElementById('in-far').value=STATE.plot.far;
+  document.getElementById('in-floors').value=STATE.plot.floors;
+  document.getElementById('in-usage').value=STATE.plot.usage||'';
+  document.getElementById('in-basement').value=STATE.plot.basement||0;
+  document.getElementById('in-podium').value=STATE.plot.podium||0;
+  document.getElementById('in-notes').value=STATE.plot.notes||'';
+  document.getElementById('in-cost').value=STATE.market.cost;
+  document.getElementById('in-land').value=STATE.market.land;
+  document.getElementById('in-hurdle').value=STATE.market.hurdle;
+  document.getElementById('in-archdesign').value=STATE.assumptions.archDesign;
+  document.getElementById('in-archsuper').value=STATE.assumptions.archSuper;
+  document.getElementById('in-cont').value=STATE.assumptions.cont;
+  document.getElementById('in-authorities').value=STATE.assumptions.authorities;
+  document.getElementById('in-landscape').value=STATE.assumptions.landscape;
+  document.getElementById('in-misc').value=STATE.assumptions.misc;
+  document.getElementById('in-park').value=STATE.assumptions.bay;
+  document.getElementById('in-mkt').value=STATE.assumptions.mkt;
+  document.getElementById('in-scen-price').value=STATE.scenarioFlex.price;
+  document.getElementById('in-scen-cost').value=STATE.scenarioFlex.cost;
+  updateTopbarPlot();
+  updateCoverage();
+  buildUnitTable();
+  buildProg();
+  render();
+  bindPops();
+}
+function updateTopbarPlot(){
+  document.getElementById('topbarPlotName').textContent=STATE.name||'Untitled plot';
+  document.getElementById('topbarPlotLoc').textContent=[STATE.community,STATE.subcommunity].filter(Boolean).join(' · ')||'No community set';
+}
+function updateCoverage(){
+  const p=STATE.plot;
+  const totalLevels=(p.floors||0)+(p.podium||0)+(p.basement||0);
+  const footprint = totalLevels>0 ? p.gfa/totalLevels : 0;
+  const pct = p.plotArea>0 ? (footprint/p.plotArea*100) : 0;
+  const el=document.getElementById('in-coverage');
+  if(el) el.value = (pct>0? pct.toFixed(0)+'% of plot area (implied)':'—');
+}
+
+/* ---------------- top-level field bindings ---------------- */
+function bindTop(){
+  const map=[
+    ['in-name','name','text'],['in-plotnumber','plotNumber','text'],['in-community','community','text'],['in-subcommunity','subcommunity','text'],
+    ['in-gfa','plot.gfa','num'],['in-plotarea','plot.plotArea','num'],['in-far','plot.far','num'],['in-floors','plot.floors','num'],
+    ['in-usage','plot.usage','text'],['in-basement','plot.basement','num'],['in-podium','plot.podium','num'],['in-notes','plot.notes','text'],
+    ['in-cost','market.cost','num'],['in-land','market.land','num'],['in-hurdle','market.hurdle','num'],
+    ['in-archdesign','assumptions.archDesign','num'],['in-archsuper','assumptions.archSuper','num'],['in-cont','assumptions.cont','num'],
+    ['in-authorities','assumptions.authorities','num'],['in-landscape','assumptions.landscape','num'],['in-misc','assumptions.misc','num'],
+    ['in-park','assumptions.bay','num'],['in-mkt','assumptions.mkt','num'],
+    ['in-scen-price','scenarioFlex.price','num'],['in-scen-cost','scenarioFlex.cost','num'],
+  ];
+  map.forEach(([id,path,type])=>{
+    document.getElementById(id).addEventListener('input',()=>{
+      const v=type==='num'? (+document.getElementById(id).value||0) : document.getElementById(id).value;
+      const parts=path.split('.');
+      if(parts.length===1) STATE[parts[0]]=v; else STATE[parts[0]][parts[1]]=v;
+      render(); scheduleSave();
+      if(id==='in-name'||id==='in-community'||id==='in-subcommunity') updateTopbarPlot();
+      if(id==='in-gfa'||id==='in-plotarea'||id==='in-floors'||id==='in-basement'||id==='in-podium') updateCoverage();
+    });
+  });
+}
+bindTop();
+
+/* ---------------- unit type table ---------------- */
+function buildUnitTable(){
+  const body=document.getElementById('utable-body'); body.innerHTML='';
+  STATE.types.forEach(t=>{
+    const tr=document.createElement('tr'); tr.dataset.k=t.key;
+    tr.className = t.on ? '' : 'muted';
+    tr.innerHTML=`<td><div class="namecell"><span class="dot" style="background:${t.hex}"></span>${t.name}</div></td>
+      <td><input type="number" class="u-size" value="${t.size}" step="10" ${t.on?'':'tabindex="-1"'}></td>
+      <td><input type="number" class="u-price" value="${t.price}" step="10" ${t.on?'':'tabindex="-1"'}></td>`;
+    body.appendChild(tr);
+    tr.querySelector('.u-size').addEventListener('input',e=>{ t.size=+e.target.value||1; render(); scheduleSave(); });
+    tr.querySelector('.u-price').addEventListener('input',e=>{ t.price=+e.target.value||0; render(); scheduleSave(); });
+  });
+}
+/* keep the sizing/pricing table's muted rows in sync with the programme on/off switches */
+function syncUnitTableMute(){
+  document.querySelectorAll('#utable-body tr').forEach(tr=>{
+    const t=STATE.types.find(x=>x.key===tr.dataset.k); if(!t) return;
+    tr.classList.toggle('muted', !t.on);
+    tr.querySelectorAll('input').forEach(inp=>{ if(t.on) inp.removeAttribute('tabindex'); else inp.setAttribute('tabindex','-1'); });
+  });
+}
+
+/* ---------------- optimiser ---------------- */
+function marketInputs(state){ return { cost:state.market.cost, land:state.market.land, hurdle:state.market.hurdle/100 }; }
+function evalMix(fracs,mk,state){
+  const T=state.types, avg=T.reduce((s,t,i)=>s+fracs[i]*t.size,0);
+  const upf=(state.plot.gfa/state.plot.floors)*EFF.emax/avg;
+  const eff=EFF.emax-EFF.kc*Math.max(0,upf-EFF.uref);
+  const sal=state.plot.gfa*eff;
+  const u=T.map((t,i)=> sal*fracs[i]/t.size);
+  const bays=T.reduce((s,t,i)=> s+u[i]*(t.size>1615?2:1),0);
+  const gdv=sal*T.reduce((s,t,i)=> s+fracs[i]*t.price,0);
+  const A=state.assumptions;
+  const hard=state.plot.gfa*mk.cost;
+  const archd=hard*(A.archDesign/100), archs=hard*(A.archSuper/100), cont=hard*(A.cont/100);
+  const auth=A.authorities, landsc=A.landscape, misc=A.misc;
+  const park=bays*A.bay, mkt=gdv*(A.mkt/100);
+  const nonland=hard+archd+archs+cont+auth+landsc+misc+park+mkt;
+  const total=mk.land+nonland, profit=gdv-total;
+  const rlv=gdv/(1+mk.hurdle)-nonland;
+  /* mcost = ROI (net profit ÷ total investment); mgdv = Return on Project (net profit ÷ gross sales) — JD vocabulary */
+  const avgPricePsf = sal>0? gdv/sal : 0;
+  const cpsfWith = sal>0? total/sal : 0;
+  const cpsfNo = sal>0? nonland/sal : 0;
+  const breakevenPsf = sal>0? (1+mk.hurdle)*total/sal : 0;
+  const out={avg,upf,eff,sal,u,bays,gdv,hard,archd,archs,cont,auth,landsc,misc,park,mkt,nonland,total,profit,
+    mcost:profit/total,mgdv:profit/gdv,rlv,avgPricePsf,cpsfWith,cpsfNo,breakevenPsf,
+    totalUnits:u.reduce((a,b)=>a+b,0)};
+  T.forEach((t,i)=> out[t.key]=fracs[i]);
+  return out;
+}
+function bandOf(t){ return t.on?[t.min,t.max]:[0,0]; }
+function optimise(mk,state){
+  const T=state.types, step=5;
+  const rng=t=>{const[lo,hi]=bandOf(t); const out=[]; for(let v=lo; v<=hi+1e-9; v+=step) out.push(v); return out;};
+  const cand=[]; let best=null;
+  const last=T[T.length-1], [llo,lhi]=bandOf(last), lastOn=last.on;
+  function rec(i,acc,used){
+    if(i===T.length-1){
+      let C=100-used; C=Math.round(C*100)/100;
+      if(lastOn){ if(C<llo-1e-9||C>lhi+1e-9) return; } else { if(Math.abs(C)>1e-9) return; }
+      if(C<-1e-9) return;
+      const fracs=[...acc,C/100];
+      const m=evalMix(fracs,mk,state); cand.push(m); if(!best||m.mcost>best.mcost) best=m;
+      return;
+    }
+    for(const v of rng(T[i])) rec(i+1,[...acc,v/100],used+v);
+  }
+  rec(0,[],0);
+  cand.sort((x,y)=>y.mcost-x.mcost);
+  return {best,cand};
+}
+function computePlotSummary(state){
+  const mk=marketInputs(state);
+  const {best}=optimise(mk,state);
+  if(!best) return {ok:false};
+  const verdict=verdictOf(best.mcost,mk.hurdle);
+  return {ok:true, verdict, mcost:best.mcost, mgdv:best.mgdv, profit:best.profit, rlv:best.rlv, land:mk.land,
+    headroom:best.rlv-mk.land, gdv:best.gdv, total:best.total, avgPricePsf:best.avgPricePsf};
+}
+
+/* ---------------- formatting ----------------
+   Full figures with commas everywhere a table shows a number; abbreviated
+   "M" only inside tight KPI cells. One rule, applied consistently (incl. PDF). */
+const fA=n=> (n<0?'-':'')+'AED '+Math.round(Math.abs(n)).toLocaleString('en-US');
+const fN=n=> Math.round(n).toLocaleString('en-US');
+const fM=n=> 'AED '+(Math.abs(n)/1e6).toFixed(1)+'M';
+const fP=n=> (n*100).toFixed(1)+'%';
+const verdictOf=(m,h)=> m>=h?'PURSUE':(m>=0.8*h?'NEGOTIATE':'PASS');
+
+const VICON_SVG=(()=>{
+  const ok=THEME.color('--success'), warn=THEME.color('--warning'), bad=THEME.color('--error');
+  return {
+    PURSUE:`<path d="M4 10.5 L8 14.5 L16 5.5" stroke="${ok}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`,
+    NEGOTIATE:`<circle cx="10" cy="10" r="7.2" stroke="${warn}" stroke-width="2"/><path d="M10 6 v5" stroke="${warn}" stroke-width="2.2" stroke-linecap="round"/><circle cx="10" cy="14" r="1.1" fill="${warn}"/>`,
+    PASS:`<path d="M5 5 L15 15 M15 5 L5 15" stroke="${bad}" stroke-width="2.4" stroke-linecap="round"/>`,
+  };
+})();
+
+/* ---------------- render ---------------- */
+function render(){
+  const mk=marketInputs(STATE);
+  const {best,cand}=optimise(mk,STATE);
+
+  document.getElementById('plotctx').innerHTML =
+    `<span>Plot <b>${STATE.plotNumber||'—'}</b></span><span><b>${STATE.community||'No community set'}</b></span><span>Max GFA <b>${fN(STATE.plot.gfa)} sqft</b></span>`;
+
+  if(!best){
+    document.getElementById('vtag').className='tag pass'; document.getElementById('vtag').textContent='check bands';
+    document.getElementById('vsub').innerHTML='<span class="empty">No unit mix fits these min–max bands. Widen a range or turn a type on.</span>';
+    ['vm-roi','vm-rop','vm-profit','sm-inv','sm-gross','sm-avgprice','sm-cpsf-w','sm-cpsf-n','breakeven'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('vm-verdict-cell').innerHTML='<span class="tag pass">no mix</span>';
+    document.getElementById('vicon').className='vicon';
+    document.getElementById('viconSvg').innerHTML=VICON_SVG.PASS;
+    document.getElementById('devstrip').innerHTML='';
+    document.getElementById('buildupTable').innerHTML='';
+    document.getElementById('rectable-body').innerHTML='';
+    document.getElementById('rectable-foot').innerHTML='';
+    return;
+  }
+
+  const v=verdictOf(best.mcost,mk.hurdle);
+  const tag=document.getElementById('vtag');
+  tag.className='tag '+v.toLowerCase(); tag.textContent=v;
+  document.getElementById('vicon').className='vicon '+v.toLowerCase();
+  document.getElementById('viconSvg').innerHTML=VICON_SVG[v];
+  const head=best.rlv-mk.land;
+  const sub = v==='PURSUE'
+    ? `Clears your ${fP(mk.hurdle)} hurdle at ${fM(mk.land)} land, with ${fM(head)} of headroom on price.`
+    : v==='NEGOTIATE'
+    ? `Just under your ${fP(mk.hurdle)} hurdle — works if land drops to about ${fM(best.rlv)}.`
+    : `Below your ${fP(mk.hurdle)} hurdle at ${fM(mk.land)} land — needs to land nearer ${fM(best.rlv)}.`;
+  document.getElementById('vsub').textContent=sub;
+
+  /* headline KPIs — ROI-first, JD vocabulary */
+  document.getElementById('vm-roi').innerHTML=fP(best.mcost)+' <span class="u">net ÷ investment</span>';
+  document.getElementById('vm-rop').innerHTML=fP(best.mgdv)+' <span class="u">net ÷ sales</span>';
+  document.getElementById('vm-profit').textContent=fM(best.profit);
+  document.getElementById('vm-verdict-cell').innerHTML=`<span class="tag ${v.toLowerCase()}">${v}</span>`;
+
+  /* side metrics */
+  document.getElementById('sm-inv').textContent=fM(best.total);
+  document.getElementById('sm-gross').textContent=fM(best.gdv);
+  document.getElementById('sm-avgprice').textContent=fN(best.avgPricePsf);
+  document.getElementById('sm-cpsf-w').textContent=fN(best.cpsfWith);
+  document.getElementById('sm-cpsf-n').textContent=fN(best.cpsfNo);
+  document.getElementById('breakeven').textContent=fN(best.breakevenPsf)+' AED/sqft';
+
+  /* development programme strip */
+  document.getElementById('devstrip').innerHTML=
+    `<div class="d"><div class="k">Total units</div><div class="v">${Math.round(best.totalUnits)}</div></div>
+     <div class="d"><div class="k">Total sellable area</div><div class="v">${fN(best.sal)} sqft</div></div>
+     <div class="d"><div class="k">Avg. unit size</div><div class="v">${fN(best.avg)} sqft</div></div>
+     <div class="d"><div class="k">Efficiency</div><div class="v">${fP(best.eff)}</div></div>`;
+
+  const mixbar=document.getElementById('mixbar'); mixbar.innerHTML='';
+  STATE.types.forEach(t=>{ const pct=best[t.key]; if(pct<=0) return;
+    const d=document.createElement('div'); d.className='seg'; d.style.background=t.hex; d.style.flex=pct;
+    d.textContent=(pct*100).toFixed(0)+'%'; if(pct<0.08) d.textContent=''; mixbar.appendChild(d); });
+  /* mix legend — every type identified regardless of segment width */
+  const legend=document.getElementById('mixlegend');
+  if(legend){
+    legend.innerHTML=STATE.types.map(t=>{
+      const pct=best[t.key]*100;
+      return `<div class="li"><span class="dot" style="background:${t.hex}"></span>${t.name} <b>${pct.toFixed(0)}%</b></div>`;
+    }).join('');
+  }
+
+  /* cost buildup table (Summary) — AED total + AED/sqft of saleable area */
+  const bt=document.getElementById('buildupTable');
+  const psf=n=> best.sal>0? fN(n/best.sal) : '—';
+  bt.innerHTML=
+    row2('GDV (sales revenue)',fA(best.gdv),psf(best.gdv))+
+    row2('Land (tested)',fA(mk.land),psf(mk.land))+
+    row2('Construction (hard)',fA(best.hard),psf(best.hard))+
+    row2('Architect — design',fA(best.archd),psf(best.archd))+
+    row2('Architect — supervision',fA(best.archs),psf(best.archs))+
+    row2('Contingency',fA(best.cont),psf(best.cont))+
+    row2('Authorities',fA(best.auth),psf(best.auth))+
+    row2('Landscape & variations',fA(best.landsc),psf(best.landsc))+
+    row2('Miscellaneous',fA(best.misc),psf(best.misc))+
+    row2('Parking bays',fA(best.park),psf(best.park))+
+    row2('Marketing & sales',fA(best.mkt),psf(best.mkt))+
+    rowc2('Total investment',fA(best.total),psf(best.total),'total')+
+    rowc2('Net profit',fA(best.profit),psf(best.profit),'profit');
+
+  /* recommended unit mix table (Summary) — with total size column + summed row */
+  const rb=document.getElementById('rectable-body');
+  let sumSize=0, sumVal=0, sumUnits=0;
+  rb.innerHTML=STATE.types.map((t,i)=>{
+    const n=Math.round(best.u[i]); const totalSize=n*t.size; const val=totalSize*t.price;
+    sumSize+=totalSize; sumVal+=val; sumUnits+=n;
+    return `<tr><td><span class="dot" style="background:${t.hex}"></span>${t.name}</td><td>${fN(t.size)} sqft</td><td>${n}</td><td>${fN(totalSize)} sqft</td><td>${fN(t.price)}</td><td>${fA(val)}</td></tr>`;
+  }).join('');
+  document.getElementById('rectable-foot').innerHTML=
+    `<tr class="total"><td>Total</td><td></td><td>${sumUnits}</td><td>${fN(sumSize)} sqft</td><td></td><td>${fA(sumVal)}</td></tr>`;
+  document.getElementById('rlv').textContent=fA(best.rlv);
+  bindPops();
+
+  renderScen(best,mk);
+  renderCands(cand,best);
+  document.getElementById('candcount').textContent='('+cand.length+' mixes)';
+  afterRenderMarkers(best);
+
+  document.getElementById('avgprice-val').textContent=fN(best.avgPricePsf)+' / sqft';
+}
+function row(l,v){return `<tr><td class="lab">${l}</td><td class="val">${v}</td></tr>`;}
+function rowc(l,v,c){return `<tr class="${c}"><td class="lab">${l}</td><td class="val">${v}</td></tr>`;}
+function row2(l,v,psf){return `<tr><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;}
+function rowc2(l,v,psf,c){return `<tr class="${c}"><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;}
+
+function renderScen(best,mk){
+  const pf=STATE.scenarioFlex.price/100, cf=STATE.scenarioFlex.cost/100;
+  const A=STATE.assumptions;
+  const scen=[['Base',1,1],['Downside',1-pf,1+cf],['Upside',1+pf,1-cf]];
+  const host=document.getElementById('scen'); host.innerHTML='';
+  scen.forEach(([name,pm,cm],idx)=>{
+    const gdv=best.gdv*pm, hard=best.hard*cm,
+          archd=hard*(A.archDesign/100), archs=hard*(A.archSuper/100), cont=hard*(A.cont/100),
+          park=best.park*cm, mkt=gdv*(A.mkt/100),
+          nonland=hard+archd+archs+cont+A.authorities+A.landscape+A.misc+park+mkt,
+          total=mk.land+nonland, profit=gdv-total, mcost=profit/total,
+          rlv=gdv/(1+mk.hurdle)-nonland, v=verdictOf(mcost,mk.hurdle);
+    host.insertAdjacentHTML('beforeend',
+      `<div class="scard ${idx===0?'base':''}">
+        <div class="st"><span class="name">${name}</span><span class="dotv ${v.toLowerCase()}">${v}</span></div>
+        <div class="big">${fP(mcost)}</div>
+        <div class="sm"><span>profit</span><b>${fM(profit)}</b></div>
+        <div class="sm"><span>max land</span><b>${fM(rlv)}</b></div>
+        <div class="assume">price ${(pm*100-100).toFixed(0)>=0?'+':''}${(pm*100-100).toFixed(0)}% · cost ${(cm*100-100).toFixed(0)>=0?'+':''}${(cm*100-100).toFixed(0)}%</div>
+      </div>`);
+  });
+}
+
+function renderCands(cand,best){
+  const host=document.getElementById('expbody');
+  const heads=STATE.types.map(t=>t.name[0]).join('/');
+  const rows=cand.slice(0,120).map(m=>{
+    const win=(m===best)?' class="win"':'';
+    const mixStr=STATE.types.map(t=>(m[t.key]*100).toFixed(0)).join('/');
+    return `<tr${win}><td>${mixStr}</td>
+      <td>${Math.round(m.u.reduce((a,b)=>a+b,0))}</td><td>${fP(m.eff)}</td><td>${fM(m.gdv)}</td>
+      <td>${fM(m.profit)}</td><td>${fP(m.mcost)}</td><td>${fM(m.rlv)}</td></tr>`;}).join('');
+  host.innerHTML=`<table class="cand"><thead><tr>
+    <th>${heads} %</th><th>Units</th><th>Effic.</th><th>GDV</th><th>Profit</th><th>ROI</th><th>RLV</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ---------------- programme controls ---------------- */
+function buildProg(){
+  const host=document.getElementById('prog'); host.innerHTML='';
+  STATE.types.forEach(t=>{
+    const el=document.createElement('div'); el.className='prog-row'+(t.on?'':' off'); el.dataset.k=t.key;
+    el.innerHTML=`
+      <div class="prog-head">
+        <span class="dot" style="background:${t.hex}"></span>
+        <span class="prog-name">${t.name}</span>
+        <button class="switch ${t.on?'on':''}" role="switch" aria-checked="${t.on}" aria-label="Build ${t.name}"></button>
+      </div>
+      <div class="range">
+        <div class="range-track"></div>
+        <div class="range-inputs">
+          <input type="range" class="r-min" min="0" max="${SLIDER_MAX}" step="5" value="${t.min}">
+          <input type="range" class="r-max" min="0" max="${SLIDER_MAX}" step="5" value="${t.max}">
+        </div>
+        <div class="range-labels"><span>min <b class="lmin">${t.min}%</b></span>
+          <span class="pick">chosen <b class="lpick">–</b></span>
+          <span>max <b class="lmax">${t.max}%</b></span></div>
+      </div>`;
+    host.appendChild(el);
+    const sw=el.querySelector('.switch'), rmin=el.querySelector('.r-min'), rmax=el.querySelector('.r-max');
+    sw.addEventListener('click',()=>{ t.on=!t.on; sw.classList.toggle('on',t.on); sw.setAttribute('aria-checked',t.on);
+      el.classList.toggle('off',!t.on); syncUnitTableMute(); render(); scheduleSave(); });
+    function clamp(){ let mn=+rmin.value, mx=+rmax.value; if(mn>mx){ if(document.activeElement===rmin) mx=mn, rmax.value=mx; else mn=mx, rmin.value=mn; }
+      t.min=mn; t.max=mx; el.querySelector('.lmin').textContent=mn+'%'; el.querySelector('.lmax').textContent=mx+'%'; }
+    rmin.addEventListener('input',()=>{clamp(); render(); scheduleSave();});
+    rmax.addEventListener('input',()=>{clamp(); render(); scheduleSave();});
+  });
+}
+function afterRenderMarkers(best){
+  document.querySelectorAll('.prog-row').forEach(el=>{
+    const k=el.dataset.k; const t=STATE.types.find(x=>x.key===k); const pct=best[k]*100;
+    el.querySelector('.lpick').textContent=t.on?pct.toFixed(0)+'%':'off';
+  });
+}
+
+/* ---------------- info popovers w/ provenance badges ---------------- */
+function bindPops(){
+  document.querySelectorAll('.info').forEach(b=>{
+    if(b._bound) return; b._bound=true;
+    b.addEventListener('click',e=>{ e.stopPropagation(); openPop(b); });
+  });
+}
+let curPop=null;
+const TIER_LABEL={sourced:'Market-sourced', modeled:'Modeled assumption', input:'Your input'};
+function openPop(btn){
+  closePop();
+  const key=btn.dataset.pop; const d=POPS[key]; if(!d) return;
+  const pop=document.createElement('div'); pop.className='pop show';
+  const badge = d.tier ? `<span class="badge ${d.tier}">${TIER_LABEL[d.tier]}</span><br>` : '';
+  pop.innerHTML=`${badge}<div>${d.t}</div><div class="src">${d.s}${d.url?` · <a href="${d.url}" target="_blank" rel="noopener">source</a>`:''}</div>`;
+  btn.style.position='relative'; btn.appendChild(pop); curPop=pop;
+  const r=pop.getBoundingClientRect(); if(r.right>window.innerWidth-10){ pop.style.left='auto'; pop.style.right='22px'; }
+}
+function closePop(){ if(curPop){ curPop.remove(); curPop=null; } }
+document.addEventListener('click',closePop);
+
+document.getElementById('expbtn').addEventListener('click',()=>{
+  const b=document.getElementById('expbody'); const open=b.classList.toggle('show');
+  document.getElementById('expbtn').firstChild.textContent=(open?'▾':'▸')+' Show every mix the optimiser weighed ';
+});
+
+/* ---------------- view switching ---------------- */
+function switchView(mode){
+  document.body.classList.toggle('view-portfolio', mode==='portfolio');
+  document.body.classList.toggle('view-plot', mode==='plot');
+  document.body.classList.toggle('view-compare', mode==='compare');
+  if(mode==='portfolio'){ loadPortfolioRows().then(renderPortfolio); }
+}
+document.getElementById('btnAllPlots').addEventListener('click', ()=>switchView('portfolio'));
+document.getElementById('brandHome').addEventListener('click', ()=>switchView('portfolio'));
+
+/* ---------------- portfolio / all-plots view ---------------- */
+let PORTFOLIO_ROWS=[];
+let PF_SORT={key:'margin', dir:'desc'};
+let PF_SELECTED=new Set();
+
+async function loadPortfolioRows(){
+  const rows=[];
+  for(const p of PROJECTS){
+    const st = (p.id===CURRENT_ID) ? STATE : await loadProject(p.id);
+    if(!st) continue;
+    const summary=computePlotSummary(st);
+    rows.push({
+      id:p.id, name: st.name || p.name || 'Untitled plot', community: st.community || p.community || '',
+      subcommunity: st.subcommunity || '', plotNumber: st.plotNumber || '', gfa: (st.plot && st.plot.gfa) || 0,
+      ...summary
+    });
+  }
+  PORTFOLIO_ROWS=rows;
+}
+const VERDICT_RANK={PURSUE:2, NEGOTIATE:1, PASS:0};
+function renderPortfolio(){
+  const q=(document.getElementById('pf-search').value||'').toLowerCase().trim();
+  let rows=PORTFOLIO_ROWS.filter(r=> !q || [r.name,r.community,r.subcommunity,r.plotNumber].join(' ').toLowerCase().includes(q));
+  const {key,dir}=PF_SORT, mul=dir==='asc'?1:-1;
+  rows=rows.slice().sort((a,b)=>{
+    let av,bv;
+    switch(key){
+      case 'name': av=a.name.toLowerCase(); bv=b.name.toLowerCase(); break;
+      case 'location': av=(a.community+a.subcommunity).toLowerCase(); bv=(b.community+b.subcommunity).toLowerCase(); break;
+      case 'land': av=a.ok?a.land:-Infinity; bv=b.ok?b.land:-Infinity; break;
+      case 'margin': av=a.ok?a.mcost:-Infinity; bv=b.ok?b.mcost:-Infinity; break;
+      case 'verdict': av=a.ok?VERDICT_RANK[a.verdict]:-1; bv=b.ok?VERDICT_RANK[b.verdict]:-1; break;
+      case 'rlv': av=a.ok?a.rlv:-Infinity; bv=b.ok?b.rlv:-Infinity; break;
+      case 'headroom': av=a.ok?a.headroom:-Infinity; bv=b.ok?b.headroom:-Infinity; break;
+      default: av=0; bv=0;
+    }
+    if(av<bv) return -1*mul; if(av>bv) return 1*mul; return 0;
+  });
+  document.querySelectorAll('#ptable th[data-sort]').forEach(th=>{
+    th.classList.toggle('sorted', th.dataset.sort===key);
+    th.querySelector('.sort-i').textContent = th.dataset.sort===key ? (dir==='asc'?'▲':'▼') : '';
+  });
+  const body=document.getElementById('ptable-body'); body.innerHTML='';
+  document.getElementById('pf-empty').style.display = rows.length ? 'none' : 'block';
+  rows.forEach(r=>{
+    const loc=[r.community,r.subcommunity].filter(Boolean).join(' · ')||'—';
+    const checked=PF_SELECTED.has(r.id)?'checked':'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><input type="checkbox" class="pf-check" data-id="${r.id}" ${checked}></td>
+      <td><div class="pname">${r.name}</div>${r.plotNumber?`<div class="ploc">#${r.plotNumber}</div>`:''}</td>
+      <td class="ploc">${loc}</td>
+      <td class="num">${r.ok?fM(r.land):'—'}</td>
+      <td class="num">${r.ok?fP(r.mcost):'—'}</td>
+      <td>${r.ok?`<span class="dotv ${r.verdict.toLowerCase()}">${r.verdict}</span>`:'<span class="dotv pass">NO MIX</span>'}</td>
+      <td class="num">${r.ok?fM(r.rlv):'—'}</td>
+      <td class="num">${r.ok?((r.headroom>=0?'+':'')+fM(r.headroom)):'—'}</td>
+      <td>
+        <div class="kebab-wrap">
+          <button class="kebab-btn" data-act="kebab" data-id="${r.id}" aria-label="More actions">⋮</button>
+          <div class="kebab-menu" data-menu-id="${r.id}">
+            <button data-act="dup" data-id="${r.id}">Duplicate</button>
+            <button class="danger" data-act="del" data-id="${r.id}">Delete</button>
+          </div>
+        </div>
+      </td>`;
+    body.appendChild(tr);
+  });
+  updateCompareBtn();
+}
+function updateCompareBtn(){
+  const n=PF_SELECTED.size;
+  document.getElementById('pf-compare').disabled = n<2;
+  document.getElementById('pf-selcount').textContent = n>0 ? n+' selected (max 4)' : '';
+}
+document.getElementById('pf-search').addEventListener('input', renderPortfolio);
+document.querySelectorAll('#ptable th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const k=th.dataset.sort;
+    if(PF_SORT.key===k) PF_SORT.dir = PF_SORT.dir==='asc'?'desc':'asc';
+    else PF_SORT={key:k, dir:(k==='name'||k==='location')?'asc':'desc'};
+    renderPortfolio();
+  });
+});
+function closeAllKebabs(){ document.querySelectorAll('.kebab-menu.show').forEach(m=>m.classList.remove('show')); }
+document.addEventListener('click', e=>{ if(!e.target.closest('.kebab-wrap')) closeAllKebabs(); });
+
+document.getElementById('ptable-body').addEventListener('click', async e=>{
+  const kebabBtn=e.target.closest('button[data-act="kebab"]');
+  if(kebabBtn){
+    e.stopPropagation();
+    const id=kebabBtn.dataset.id, menu=document.querySelector(`.kebab-menu[data-menu-id="${id}"]`);
+    const wasOpen=menu.classList.contains('show');
+    closeAllKebabs();
+    if(!wasOpen) menu.classList.add('show');
+    return;
+  }
+  const btn=e.target.closest('button[data-act]');
+  if(btn){
+    e.stopPropagation();
+    const id=btn.dataset.id, act=btn.dataset.act;
+    closeAllKebabs();
+    if(act==='dup'){
+      const src=await loadProject(id); if(!src) return;
+      const clone=JSON.parse(JSON.stringify(src));
+      clone.name=(clone.name||'Untitled plot')+' (copy)';
+      const nid=newId();
+      PROJECTS.push({id:nid, name:clone.name, community:clone.community}); await saveIndex();
+      try{ await window.storage.set('plot:'+nid, JSON.stringify(clone)); }catch(e){}
+      await loadPortfolioRows(); renderPortfolio();
+    } else if(act==='del'){
+      if(PROJECTS.length<=1){ alert("You need at least one plot — create another before deleting this one."); return; }
+      const row=PORTFOLIO_ROWS.find(r=>r.id===id);
+      PENDING_DELETE_ID=id;
+      document.getElementById('deleteMsg').textContent=`Delete "${row?row.name:'this plot'}"? This cannot be undone.`;
+      document.getElementById('deleteOverlay').classList.add('show');
+    }
+    return;
+  }
+  const chk=e.target.closest('input.pf-check');
+  if(chk){ e.stopPropagation();
+    const id=chk.dataset.id;
+    if(chk.checked){ if(PF_SELECTED.size>=4){ chk.checked=false; return; } PF_SELECTED.add(id); }
+    else { PF_SELECTED.delete(id); }
+    updateCompareBtn();
+    return;
+  }
+  const tr=e.target.closest('tr');
+  if(tr && !e.target.closest('button') && !e.target.closest('input')){
+    const idCell=tr.querySelector('.pf-check');
+    if(idCell) await openPlot(idCell.dataset.id);
+  }
+});
+
+/* ---------------- compare — dedicated view ---------------- */
+function ccardHtml(r){
+  const loc=[r.community,r.subcommunity].filter(Boolean).join(' · ')||'—';
+  if(!r.ok){
+    return `<div class="ccard"><div class="cname">${r.name}</div><div class="cloc">${loc}</div><div class="empty">No valid mix fits the saved bands.</div></div>`;
+  }
+  return `<div class="ccard">
+    <div class="cname">${r.name}</div>
+    <div class="cloc">${loc}</div>
+    <span class="dotv ${r.verdict.toLowerCase()}">${r.verdict}</span>
+    <div class="ckpis" style="margin-top:14px">
+      <div class="ckpi accent"><div class="k">ROI</div><div class="v">${fP(r.mcost)}</div></div>
+      <div class="ckpi"><div class="k">Profit</div><div class="v">${fM(r.profit)}</div></div>
+      <div class="ckpi"><div class="k">RLV</div><div class="v">${fM(r.rlv)}</div></div>
+      <div class="ckpi"><div class="k">Headroom</div><div class="v">${(r.headroom>=0?'+':'')+fM(r.headroom)}</div></div>
+    </div>
+    <h4>Land tested</h4>
+    <table class="buildup"><tr><td class="lab">Land price</td><td class="val">${fM(r.land)}</td></tr>
+    <tr><td class="lab">Gross development value</td><td class="val">${fM(r.gdv)}</td></tr>
+    <tr><td class="lab">Max GFA</td><td class="val">${r.gfa?Math.round(r.gfa).toLocaleString('en-US')+' sqft':'—'}</td></tr></table>
+  </div>`;
+}
+async function renderCompareView(ids){
+  const rows=[];
+  for(const id of ids){
+    const st = (id===CURRENT_ID) ? STATE : await loadProject(id);
+    const p=PROJECTS.find(x=>x.id===id);
+    if(!st) continue;
+    const summary=computePlotSummary(st);
+    rows.push({ id, name: st.name||(p&&p.name)||'Untitled plot', community: st.community||(p&&p.community)||'',
+      subcommunity: st.subcommunity||'', gfa:(st.plot&&st.plot.gfa)||0, ...summary });
+  }
+  const host=document.getElementById('compareCols');
+  host.style.gridTemplateColumns=`repeat(${Math.max(rows.length,1)}, 1fr)`;
+  host.innerHTML=rows.map(ccardHtml).join('');
+  switchView('compare');
+}
+document.getElementById('compare-back').addEventListener('click', ()=>switchView('portfolio'));
+document.getElementById('pf-compare').addEventListener('click', ()=>{
+  if(PF_SELECTED.size<2) return;
+  renderCompareView(Array.from(PF_SELECTED));
+});
+
+/* ---------------- quick compare picker (top bar) ---------------- */
+let PICK_SELECTED=new Set();
+document.getElementById('btnCompareTop').addEventListener('click', async ()=>{
+  await loadPortfolioRows();
+  PICK_SELECTED=new Set(CURRENT_ID?[CURRENT_ID]:[]);
+  renderPickList();
+  document.getElementById('pickOverlay').classList.add('show');
+});
+function renderPickList(){
+  const host=document.getElementById('pickList'); host.innerHTML='';
+  PORTFOLIO_ROWS.forEach(r=>{
+    const row=document.createElement('div'); row.className='pick-row'; row.dataset.id=r.id;
+    row.innerHTML=`<input type="checkbox" class="pick-check" ${PICK_SELECTED.has(r.id)?'checked':''}>
+      <div><div class="pn">${r.name}</div><div class="pl">${[r.community,r.subcommunity].filter(Boolean).join(' · ')||'—'}</div></div>`;
+    host.appendChild(row);
+  });
+  document.getElementById('pick-compare').disabled = PICK_SELECTED.size<2;
+}
+document.getElementById('pickList').addEventListener('click', e=>{
+  const row=e.target.closest('.pick-row'); if(!row) return;
+  const id=row.dataset.id, chk=row.querySelector('.pick-check');
+  if(e.target!==chk){ chk.checked=!chk.checked; }
+  if(chk.checked){ if(PICK_SELECTED.size>=4 && !PICK_SELECTED.has(id)){ chk.checked=false; return; } PICK_SELECTED.add(id); }
+  else { PICK_SELECTED.delete(id); }
+  document.getElementById('pick-compare').disabled = PICK_SELECTED.size<2;
+});
+document.getElementById('pick-cancel').addEventListener('click', ()=>document.getElementById('pickOverlay').classList.remove('show'));
+document.getElementById('pick-compare').addEventListener('click', ()=>{
+  if(PICK_SELECTED.size<2) return;
+  document.getElementById('pickOverlay').classList.remove('show');
+  renderCompareView(Array.from(PICK_SELECTED));
+});
+
+/* ---------------- pdf upload auto-extract (new plot modal) ---------------- */
+let PDFJS_LOADING=null;
+function ensurePdfJs(){
+  if(window.pdfjsLib) return Promise.resolve();
+  if(PDFJS_LOADING) return PDFJS_LOADING;
+  PDFJS_LOADING=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js';
+    s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js'; }catch(e){} resolve(); };
+    s.onerror=()=>reject(new Error('Could not load PDF reader'));
+    document.head.appendChild(s);
+  });
+  return PDFJS_LOADING;
+}
+async function extractPdfText(file){
+  await ensurePdfJs();
+  const buf=await file.arrayBuffer();
+  const doc=await window.pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=doc.numPages;i++){
+    const page=await doc.getPage(i);
+    const content=await page.getTextContent();
+    text += content.items.map(it=>it.str).join(' ') + '\n';
+  }
+  return text;
+}
+function markFromPdf(id){
+  const input=document.getElementById(id);
+  const lab=input && input.closest('.lever') && input.closest('.lever').querySelector('.lab span');
+  if(lab && !lab.querySelector('.pdf-tag')) lab.insertAdjacentHTML('beforeend','<span class="pdf-tag">from PDF</span>');
+}
+function clearPdfState(){
+  document.querySelectorAll('#modalOverlay .pdf-tag').forEach(t=>t.remove());
+  document.getElementById('m-pdf-status').textContent='';
+  document.getElementById('m-pdf').value='';
+}
+function applyPdfExtraction(rawText){
+  let text=rawText, hits=0;
+  const subRe=/Sub[\s\-]?Community\s*[:\-]?\s*([A-Za-z0-9 &\-\.'’]{2,40})/i;
+  const subM=text.match(subRe);
+  if(subM){ document.getElementById('m-subcommunity').value=subM[1].trim(); markFromPdf('m-subcommunity'); hits++; text=text.replace(subRe,''); }
+  const patterns=[
+    {id:'m-plotnumber', re:/Plot\s*(?:No\.?|Number)\s*[:\-]?\s*([A-Za-z0-9\-\/]{1,20})/i},
+    {id:'m-community', re:/\bCommunity\s*[:\-]?\s*([A-Za-z0-9 &\-\.'’]{2,40})/i},
+    {id:'m-plotarea', re:/Plot\s*(?:Area|Size)\s*[:\-]?\s*([\d,]+\.?\d*)/i, num:true},
+    {id:'m-gfa', re:/(?:Permissible\s*)?G\.?\s?F\.?\s?A\.?\s*[:\-]?\s*([\d,]+\.?\d*)/i, num:true},
+    {id:'m-far', re:/\bF\.?\s?A\.?\s?R\.?\s*[:\-]?\s*(\d+\.?\d*)/i, num:true},
+    {id:'m-floors', re:/(?:No\.?\s*of\s*Floors|Building\s*Height)\s*[:\-]?\s*G?\+?\s*(\d+)/i, num:true},
+  ];
+  patterns.forEach(p=>{
+    const m=text.match(p.re);
+    if(m && m[1]){ let val=m[1].trim(); if(p.num) val=val.replace(/,/g,''); document.getElementById(p.id).value=val; markFromPdf(p.id); hits++; }
+  });
+  return hits;
+}
+document.getElementById('m-pdf').addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const status=document.getElementById('m-pdf-status');
+  status.textContent='Reading PDF…';
+  try{
+    const text=await extractPdfText(file);
+    const hits=applyPdfExtraction(text);
+    status.textContent = hits>0
+      ? `Extracted ${hits} field${hits>1?'s':''} — check the highlighted fields and correct anything that looks off.`
+      : `Couldn't confidently match any fields in this PDF — enter details manually below.`;
+  }catch(err){ status.textContent='Could not read this PDF — enter details manually below.'; }
+});
+
+/* ---------------- PDF export (investor-grade Summary export) ---------------- */
+let JSPDF_LOADING=null;
+function ensureJsPdf(){
+  if(window.jspdf && window.jspdf.jsPDF && window.jspdfAutotableReady) return Promise.resolve();
+  if(JSPDF_LOADING) return JSPDF_LOADING;
+  JSPDF_LOADING=new Promise((resolve,reject)=>{
+    const s1=document.createElement('script');
+    s1.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s1.onload=()=>{
+      const s2=document.createElement('script');
+      s2.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+      s2.onload=()=>{ window.jspdfAutotableReady=true; resolve(); };
+      s2.onerror=()=>reject(new Error('Could not load table plugin'));
+      document.head.appendChild(s2);
+    };
+    s1.onerror=()=>reject(new Error('Could not load PDF writer'));
+    document.head.appendChild(s1);
+  });
+  return JSPDF_LOADING;
+}
+async function exportPDF(){
+  const btn=document.getElementById('btnExportPdf');
+  const label=document.getElementById('btnExportPdfLabel');
+  const origLabel=label.textContent; label.textContent='Preparing…'; btn.disabled=true;
+  try{
+    await ensureJsPdf();
+    const mk=marketInputs(STATE);
+    const {best}=optimise(mk,STATE);
+    if(!best){ alert('No valid mix — fix the unit programme bands on Unit Matrix before exporting.'); return; }
+    const v=verdictOf(best.mcost,mk.hurdle);
+    if(!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF library did not load');
+    const { jsPDF } = window.jspdf;
+    const doc=new jsPDF({unit:'pt', format:'a4'});
+    if(typeof doc.autoTable !== 'function') throw new Error('jsPDF-autotable plugin did not load');
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=40;
+    const INK=THEME.rgb('--ink'), MUTE=THEME.rgb('--muted'), PINE=THEME.rgb('--accent-500'),
+          PINE_D=THEME.rgb('--accent-700'), LINE=THEME.rgb('--line'), SOFT=THEME.rgb('--surface-2');
+    const VCOLOR={PURSUE:THEME.rgb('--success'), NEGOTIATE:THEME.rgb('--warning'), PASS:THEME.rgb('--error')};
+    const vcol=VCOLOR[v];
+
+    doc.setFillColor(INK[0],INK[1],INK[2]); doc.rect(0,0,W,76,'F');
+    doc.setFillColor(PINE[0],PINE[1],PINE[2]); doc.rect(0,76,W,3,'F');
+    doc.setDrawColor(255); doc.setLineWidth(1.4); doc.roundedRect(M,22,34,34,6,6,'S');
+    doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('S', M+17, 44, {align:'center'});
+    doc.setFontSize(18); doc.text('Solum — Land Feasibility', M+48, 40);
+    doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(220,210,200);
+    doc.text((STATE.name||'Untitled plot')+'    ·    '+([STATE.community,STATE.subcommunity].filter(Boolean).join(', ')||'No community set')+'    ·    '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), M+48, 57);
+
+    const kpis=[
+      ['VERDICT', v, best.mcost>=mk.hurdle?'clears hurdle':'below hurdle', vcol],
+      ['ROI', fP(best.mcost), 'net profit ÷ investment', INK],
+      ['RETURN ON PROJECT', fP(best.mgdv), 'net profit ÷ gross sales', INK],
+      ['NET PROFIT', fM(best.profit), 'at recommended mix', PINE_D],
+    ];
+    const ky=94, kh=54, kw=(W-2*M)/kpis.length;
+    doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setFillColor(255); doc.roundedRect(M,ky,W-2*M,kh,4,4,'FD');
+    kpis.forEach(function(k,i){
+      const x=M+i*kw;
+      if(i>0){ doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(.5); doc.line(x,ky+8,x,ky+kh-8); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]); doc.text(k[0],x+9,ky+15);
+      doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(k[3][0],k[3][1],k[3][2]); doc.text(String(k[1]),x+9,ky+34);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.6); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]); doc.text(k[2],x+9,ky+46);
+    });
+
+    const sy=ky+kh+14, sh=32, sw2=(W-2*M)/5;
+    const sideMetrics=[
+      ['Total investment', fM(best.total)], ['Gross sales', fM(best.gdv)], ['Avg price/sqft', nf(best.avgPricePsf)],
+      ['Cost/sqft w/ land', nf(best.cpsfWith)], ['Cost/sqft no land', nf(best.cpsfNo)],
+    ];
+    doc.setFillColor(SOFT[0],SOFT[1],SOFT[2]); doc.rect(M,sy,W-2*M,sh,'F');
+    sideMetrics.forEach(function(k,i){
+      const x=M+i*sw2+9;
+      doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]); doc.text(k[0].toUpperCase(),x,sy+13);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(INK[0],INK[1],INK[2]); doc.text(k[1],x,sy+25);
+    });
+
+    const base={theme:'grid',
+      headStyles:{fillColor:INK, textColor:[255,255,255], halign:'right', fontStyle:'bold', fontSize:8.5, cellPadding:5},
+      bodyStyles:{fontSize:9, cellPadding:4.5, textColor:INK, lineColor:LINE, lineWidth:.5},
+      alternateRowStyles:{fillColor:SOFT},
+      columnStyles:{0:{halign:'left'}},
+      margin:{left:M, right:M}};
+    const sectionTitle=function(t,yy){
+      doc.setFillColor(PINE[0],PINE[1],PINE[2]); doc.rect(M,yy,3,12,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK[0],INK[1],INK[2]);
+      doc.text(t.toUpperCase(), M+9, yy+10);
+      return yy+18;
+    };
+
+    let y=sy+sh+22;
+    y=sectionTitle('Cost buildup', y);
+    const buildupRows=[
+      ['GDV (sales revenue)', fA(best.gdv)], ['Land (tested)', fA(mk.land)], ['Construction (hard)', fA(best.hard)],
+      ['Architect — design', fA(best.archd)], ['Architect — supervision', fA(best.archs)], ['Contingency', fA(best.cont)],
+      ['Authorities', fA(best.auth)], ['Landscape & variations', fA(best.landsc)], ['Miscellaneous', fA(best.misc)],
+      ['Parking bays', fA(best.park)], ['Marketing & sales', fA(best.mkt)], ['Total investment', fA(best.total)], ['Net profit', fA(best.profit)],
+    ];
+    doc.autoTable(Object.assign({startY:y, head:[['Item','AED']], body:buildupRows, columnStyles:{0:{halign:'left'},1:{halign:'right'}}}, base));
+
+    y=sectionTitle('Recommended unit mix', doc.lastAutoTable.finalY+18);
+    const unitRows=STATE.types.map((t,i)=>{ const n=Math.round(best.u[i]); const totalSize=n*t.size; return [t.name, nf(t.size)+' sqft', n, nf(totalSize)+' sqft', nf(t.price), fA(totalSize*t.price)]; });
+    const totalUnits=Math.round(best.u.reduce((a,b)=>a+b,0));
+    doc.autoTable(Object.assign({}, base, {startY:y,
+      head:[['Type','Size','Units','Total size','Price/sqft','Total value']],
+      body:unitRows,
+      foot:[[{content:'Total'},'',{content:String(totalUnits)},'','',{content:fA(best.gdv)}]],
+      footStyles:{fillColor:SOFT, textColor:INK, fontStyle:'bold', halign:'right', fontSize:9},
+      columnStyles:{0:{halign:'left'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'}}}));
+
+    y=sectionTitle('Land & hurdle', doc.lastAutoTable.finalY+18);
+    doc.autoTable(Object.assign({}, base, {startY:y, head:[['Item','Value']],
+      body:[['Land price tested', fA(mk.land)], ['Margin hurdle', fP(mk.hurdle)], ['Residual land value', fA(best.rlv)],
+        ['Headroom vs tested land', (best.rlv-mk.land>=0?'+':'')+fA(best.rlv-mk.land)],
+        ['Breakeven price/sqft', nf(best.breakevenPsf)]],
+      columnStyles:{0:{halign:'left'},1:{halign:'right'}}}));
+
+    const pages=doc.internal.getNumberOfPages();
+    for(let p=1;p<=pages;p++){
+      doc.setPage(p);
+      doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(.5); doc.line(M,H-32,W-M,H-32);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]);
+      doc.text('Solum · indicative feasibility model, not a lender-grade appraisal', M, H-20);
+      doc.text('Page '+p+' of '+pages, W-M, H-20, {align:'right'});
+    }
+    doc.save((STATE.name||'plot').replace(/[^\w]+/g,'_')+'_feasibility.pdf');
+  }catch(err){
+    console.error('Solum PDF export failed:', err);
+    alert('Could not generate the PDF: '+(err && err.message ? err.message : 'unknown error')+'. Check your connection and try again.');
+  }finally{
+    label.textContent=origLabel; btn.disabled=false;
+  }
+}
+const nf=n=> Math.round(n).toLocaleString('en-US');
+document.getElementById('btnExportPdf').addEventListener('click', exportPDF);
+
+/* ---------------- Solum AI — natural-language edits with diff preview ---------------- */
+const ANTHROPIC_KEY = '';
+const AI_FIELD_SCHEMA = [
+  {path:'market.hurdle', label:'Margin hurdle', unit:'% on cost'},
+  {path:'market.land', label:'Land price tested', unit:'AED'},
+  {path:'assumptions.archDesign', label:'Architect — design %', unit:'% of hard cost'},
+  {path:'assumptions.archSuper', label:'Architect — supervision %', unit:'% of hard cost'},
+  {path:'assumptions.cont', label:'Contingency %', unit:'% of hard cost'},
+  {path:'assumptions.authorities', label:'Authorities total', unit:'AED'},
+  {path:'assumptions.landscape', label:'Landscape & variations total', unit:'AED'},
+  {path:'assumptions.misc', label:'Miscellaneous total', unit:'AED'},
+  {path:'assumptions.bay', label:'Parking cost per bay', unit:'AED'},
+  {path:'assumptions.mkt', label:'Marketing %', unit:'% of GDV'},
+  {path:'market.cost', label:'Construction cost', unit:'AED/sqft'},
+  {path:'scenarioFlex.price', label:'Scenario price flex', unit:'%'},
+  {path:'scenarioFlex.cost', label:'Scenario cost flex', unit:'%'},
+];
+function getByPath(obj,path){ return path.split('.').reduce((o,k)=>(o==null?undefined:o[k]), obj); }
+function setByPath(obj,path,val){ const parts=path.split('.'); let o=obj; for(let i=0;i<parts.length-1;i++) o=o[parts[i]]; o[parts[parts.length-1]]=val; }
+
+function aiToggle(open){ document.getElementById('aiPanel').classList.toggle('show', open); }
+document.getElementById('aiFab').addEventListener('click', ()=>aiToggle(true));
+document.getElementById('aiClose').addEventListener('click', ()=>aiToggle(false));
+
+function aiAppendMsg(role,text){
+  const body=document.getElementById('aiBody');
+  const el=document.createElement('div'); el.className='ai-msg '+role; el.textContent=text;
+  body.appendChild(el); body.scrollTop=body.scrollHeight;
+  return el;
+}
+function aiAppendDiff(changes){
+  const body=document.getElementById('aiBody');
+  const wrap=document.createElement('div'); wrap.className='ai-diff';
+  const rowsHtml=changes.map(c=>{
+    const field=AI_FIELD_SCHEMA.find(f=>f.path===c.path);
+    const label=field?field.label:c.path;
+    const unit=field?field.unit:'';
+    return `<div class="ai-diff-row"><span class="lbl">${label}</span><span class="change"><span class="old">${c.oldValue}${unit?' '+unit:''}</span><span class="new">${c.newValue}${unit?' '+unit:''}</span></span></div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="dt">Proposed changes</div>${rowsHtml}
+    <div class="ai-diff-actions">
+      <button class="discard">Discard</button>
+      <button class="apply">Apply</button>
+    </div>`;
+  wrap.querySelector('.discard').addEventListener('click', ()=>{ wrap.remove(); aiAppendMsg('assistant','Discarded — nothing changed.'); });
+  wrap.querySelector('.apply').addEventListener('click', ()=>{
+    changes.forEach(c=> setByPath(STATE, c.path, c.newValue));
+    hydrateFromState(); scheduleSave();
+    wrap.querySelectorAll('.ai-diff-actions button').forEach(b=>b.disabled=true);
+    aiAppendMsg('assistant','Applied. The model is updated.');
+  });
+  body.appendChild(wrap); body.scrollTop=body.scrollHeight;
+}
+
+async function aiSend(){
+  const input=document.getElementById('aiInput');
+  const text=input.value.trim(); if(!text) return;
+  input.value=''; document.getElementById('aiSend').disabled=true;
+  aiAppendMsg('user',text);
+
+  if(!ANTHROPIC_KEY){
+    aiAppendMsg('assistant','Solum AI needs an Anthropic API key to run live edits. Paste one into the ANTHROPIC_KEY constant near the top of the script to enable this for a demo. In the meantime you can make the same changes directly on the Assumptions or Summary tabs.');
+    document.getElementById('aiSend').disabled=false;
+    return;
+  }
+  const thinking=aiAppendMsg('assistant','Thinking…');
+  try{
+    const stateSnapshot=AI_FIELD_SCHEMA.map(f=>`${f.path} = ${getByPath(STATE,f.path)} (${f.label}, ${f.unit})`).join('\n');
+    const sys=`You are Solum AI, embedded in a land-feasibility tool. Given the current model state and a user's natural-language request, propose field-level changes only from this exact set of editable paths:\n${AI_FIELD_SCHEMA.map(f=>f.path).join(', ')}\n\nCurrent state:\n${stateSnapshot}\n\nRespond with ONLY minified JSON, no markdown fences, no prose outside the JSON, in this exact shape:\n{"reply":"one short sentence describing what you'd change and why","changes":[{"path":"assumptions.cont","oldValue":10,"newValue":12}]}\nIf the request is read-only (a question), return an empty changes array and answer in reply. Never invent a path outside the list above.`;
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:1000,
+        messages:[{role:'user', content: sys+'\n\nUser request: '+text}]
+      })
+    });
+    const data=await resp.json();
+    const textBlocks=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const cleaned=textBlocks.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(cleaned);
+    thinking.textContent=parsed.reply||'Here is what I found.';
+    if(parsed.changes && parsed.changes.length){
+      const validated=parsed.changes.filter(c=>AI_FIELD_SCHEMA.some(f=>f.path===c.path));
+      if(validated.length) aiAppendDiff(validated);
+    }
+  }catch(err){
+    thinking.textContent='Something went wrong reaching Solum AI. Try again, or make the change directly on Assumptions.';
+  }finally{
+    document.getElementById('aiSend').disabled=false;
+  }
+}
+document.getElementById('aiSend').addEventListener('click', aiSend);
+document.getElementById('aiInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); aiSend(); }
+});
+
+/* ---------------- login gate (demo — presentational only, not real auth) ---------------- */
+function enterApp(){
+  document.body.classList.remove('pre-login');
+  document.getElementById('loginScreen').style.display='none'; /* root cause of the old scroll bug: this was never hidden */
+  switchView('plot');
+  window.scrollTo(0,0);
+}
+['btnLogin','btnGoogle','btnMicrosoft'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', enterApp);
+});
+
+/* ---------------- boot ---------------- */
+initProjects();
+</script>
+</body>
+</html>
