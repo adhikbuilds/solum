@@ -30,4 +30,10 @@ Reconciled the pre-existing Astryx framing in that doc against the Path B decisi
 `Update (2026-07-18)` annotations rather than rewriting its history. `SOLUM_CONTEXT.md` is
 authoritative where the two docs differ on current build state.
 
+## 2026-07-18 — Collaboration protocol: brainstorm by default, gate all writes
+Established a working agreement (`docs/WORKING_AGREEMENT.md`): default mode is brainstorm;
+reading is always allowed; Claude asks before building (any file write) and separately before
+touching git (commit/push/pull). Decisions are flagged, not filed, until "lock it". Signal
+words defined ("build it", "commit it", "lock it", "brainstorm only", etc.).
+
 <!-- Add new entries above this line. Newest first. -->
