@@ -211,6 +211,11 @@ body.view-compare #portfolioView{display:none}
 .lever .lab span{font-size:var(--fs-label); color:var(--ink); font-weight:var(--fw-semibold)}
 .lever .field{display:flex; align-items:center; border:1px solid var(--line); background:var(--surface-2); border-radius:var(--radius-sm); overflow:hidden; transition:all var(--dur-fast) var(--ease-std)}
 .lever .field:focus-within{border-color:var(--accent-500); box-shadow:var(--sh-inset-focus); background:var(--surface)}
+/* calculated (read-only) field: keeps a box, but drops the fill and mutes the value
+   so it reads as an output the tool works out, not something to fill in */
+.lever .field.calc{background:transparent; border-style:dashed; border-color:var(--line-strong)}
+.lever .field.calc:focus-within{border-color:var(--line-strong); box-shadow:none; background:transparent}
+.lever .field.calc input{color:var(--muted); font-weight:var(--fw-semibold); cursor:default}
 .lever .field .pre{padding:0 var(--sp-3); font-weight:var(--fw-semibold); font-size:var(--fs-label); color:var(--muted); border-right:1px solid var(--line)}
 .lever input[type=number],.lever input[type=text]{
   border:0; background:transparent; font-family:var(--font-mono); font-weight:var(--fw-semibold); font-size:var(--fs-body); color:var(--ink);
@@ -908,7 +913,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <div class="lever"><div class="lab"><span>Podium levels</span></div>
               <div class="field"><input type="number" id="in-podium" value="2" step="1"><span class="suf">levels</span></div></div>
             <div class="lever"><div class="lab"><span>Coverage</span><button class="info" data-pop="coverage">i</button></div>
-              <div class="field"><input type="text" id="in-coverage" readonly></div></div>
+              <div class="field calc"><input type="text" id="in-coverage" readonly></div></div>
           </div>
         </div>
         <div class="panel">
