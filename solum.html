@@ -495,6 +495,8 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .empty-card .ec-sub{font-size:var(--fs-body); color:var(--muted); line-height:1.55; margin-bottom:var(--sp-5)}
 .empty-card .btn{margin:0 auto}
 .pdf-tag{display:inline-block; margin-left:8px; font-size:10px; font-weight:var(--fw-black); letter-spacing:.06em; text-transform:uppercase; color:var(--accent-700); background:var(--accent-50); border-radius:var(--radius-pill); padding:1px 7px; vertical-align:middle}
+.cost-group{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.08em; text-transform:uppercase; color:var(--accent-700); margin:var(--sp-6) 0 var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid var(--line)}
+.cost-group:first-of-type{margin-top:var(--sp-2)}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -638,7 +640,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
     <div class="leftnav-eyebrow">This plot</div>
     <button class="leftnav-item active" data-tab="summary">Summary</button>
     <button class="leftnav-item" data-tab="mix">Unit Matrix</button>
-    <button class="leftnav-item" data-tab="assumptions">Assumptions</button>
+    <button class="leftnav-item" data-tab="assumptions">Cost assumptions</button>
     <button class="leftnav-item" data-tab="details">Plot Details</button>
     <div class="leftnav-eyebrow leftnav-section2">Market</div>
     <button class="leftnav-item" data-tab="market">Market Insights</button>
@@ -809,25 +811,39 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
       <!-- ===== ASSUMPTIONS ===== -->
       <div class="tabpanel-x" id="tab-assumptions" style="display:none">
         <div class="panel">
-          <h2><span class="n">01</span> Construction &amp; soft costs</h2>
+          <h2><span class="n">01</span> Cost assumptions</h2>
           <p class="sec-note">Everything below feeds the cost buildup on Summary. Every value is editable — the info icon shows where the default came from.</p>
+
+          <h3 class="cost-group">Land cost</h3>
+          <div class="fieldgrid">
+            <div class="lever"><div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-land-a" value="30000000" step="500000"><span class="suf">total</span></div></div>
+            <div class="lever"><div class="lab"><span>DLD transfer fee</span><button class="info" data-pop="dldfee">i</button></div>
+              <div class="field"><input type="number" id="in-dldfee" value="4" step="0.5"><span class="suf">% of land</span></div></div>
+          </div>
+
+          <h3 class="cost-group">Construction (hard) cost</h3>
           <div class="fieldgrid">
             <div class="lever"><div class="lab"><span>Construction cost</span><button class="info" data-pop="cost">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-cost" value="500" step="10"><span class="suf">/ sqft GFA</span></div></div>
+            <div class="lever"><div class="lab"><span>Contingency</span><button class="info" data-pop="cont">i</button></div>
+              <div class="field"><input type="number" id="in-cont" value="10" step="1"><span class="suf">% of hard cost</span></div></div>
+            <div class="lever"><div class="lab"><span>Parking cost</span><button class="info" data-pop="park">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-park" value="55000" step="1000"><span class="suf">/ bay</span></div></div>
+          </div>
+
+          <h3 class="cost-group">Soft cost</h3>
+          <div class="fieldgrid">
             <div class="lever"><div class="lab"><span>Architect — design &amp; approvals</span><button class="info" data-pop="archd">i</button></div>
               <div class="field"><input type="number" id="in-archdesign" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
             <div class="lever"><div class="lab"><span>Architect — supervision to completion</span><button class="info" data-pop="archs">i</button></div>
               <div class="field"><input type="number" id="in-archsuper" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
-            <div class="lever"><div class="lab"><span>Contingency</span><button class="info" data-pop="cont">i</button></div>
-              <div class="field"><input type="number" id="in-cont" value="10" step="1"><span class="suf">% of hard cost</span></div></div>
             <div class="lever"><div class="lab"><span>DEWA, RTA, DDA &amp; authorities</span><button class="info" data-pop="auth">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-authorities" value="2000000" step="100000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Variations, landscape &amp; amenities</span><button class="info" data-pop="landsc">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-landscape" value="1000000" step="100000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Miscellaneous</span><button class="info" data-pop="misc">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-misc" value="500000" step="50000"><span class="suf">total</span></div></div>
-            <div class="lever"><div class="lab"><span>Parking cost</span><button class="info" data-pop="park">i</button></div>
-              <div class="field"><span class="pre">AED</span><input type="number" id="in-park" value="55000" step="1000"><span class="suf">/ bay</span></div></div>
             <div class="lever"><div class="lab"><span>Marketing &amp; sales</span><button class="info" data-pop="mkt">i</button></div>
               <div class="field"><input type="number" id="in-mkt" value="4" step="0.5"><span class="suf">% of GDV</span></div></div>
           </div>
@@ -870,6 +886,8 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
               <div class="field"><input type="number" id="in-far" value="4.5" step="0.1"></div></div>
             <div class="lever"><div class="lab"><span>Floors (G+..)</span></div>
               <div class="field"><input type="number" id="in-floors" value="14" step="1"><span class="suf">levels</span></div></div>
+            <div class="lever"><div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-land-d" value="30000000" step="500000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Usage / designation</span></div>
               <div class="field"><input type="text" id="in-usage" value="Residential"></div></div>
             <div class="lever"><div class="lab"><span>Basement levels</span></div>
@@ -1018,7 +1036,7 @@ function defaultState(){
     name:'Plot 6488595', plotNumber:'6488595', community:'Wadi Al Safa 5', subcommunity:'',
     plot:{gfa:150131.47, plotArea:33362.57, far:4.5, floors:14, usage:'Residential', basement:1, podium:2, notes:''},
     market:{cost:500, land:30000000, hurdle:20},
-    assumptions:{archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000},
+    assumptions:{dldFee:4, archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000},
     scenarioFlex:{price:10, cost:10},
     types:[
       {key:'s', name:'Studio', size:430,  price:1550, hex:'var(--u-studio)', on:true, min:10, max:30},
@@ -1090,6 +1108,7 @@ let PENDING_DELETE_ID=null;
 const POPS = {
   land:{t:"The plot acquisition price you're testing.", s:"Compare it against the Residual Land Value — the most you can pay and still clear your hurdle.", tier:'input'},
   hurdle:{t:"Your minimum acceptable profit, measured against total cost.", s:"Dubai residual-style feasibility typically targets 20%+ on cost.", tier:'input'},
+  dldfee:{t:"Dubai Land Department transfer fee on the land purchase.", s:"Standard DLD transfer fee is 4% of the land price. Adjust if your deal differs.", tier:'sourced'},
   prog:{t:"Off means the type isn't built at all. When on, the optimiser keeps its share inside your min–max band.", s:"Min is the guideline floor; max reflects what the community can absorb and any master-developer cap.", tier:'modeled'},
   rlv:{t:"Residual land value.", s:"The maximum you could pay for the land and still hit your margin hurdle on the recommended programme.", tier:null},
   gfa:{t:"Maximum gross floor area — the hard cap on what you can build.", s:"Set this from your plot document (e.g. DDA Plot Details), or auto-filled if you uploaded a PDF.", tier:'input'},
@@ -1247,8 +1266,9 @@ function hydrateFromState(){
   document.getElementById('in-podium').value=STATE.plot.podium||0;
   document.getElementById('in-notes').value=STATE.plot.notes||'';
   document.getElementById('in-cost').value=STATE.market.cost;
-  document.getElementById('in-land').value=STATE.market.land;
+  ['in-land','in-land-a','in-land-d'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=STATE.market.land; });
   document.getElementById('in-hurdle').value=STATE.market.hurdle;
+  { const e=document.getElementById('in-dldfee'); if(e) e.value=(STATE.assumptions.dldFee!=null?STATE.assumptions.dldFee:4); }
   document.getElementById('in-archdesign').value=STATE.assumptions.archDesign;
   document.getElementById('in-archsuper').value=STATE.assumptions.archSuper;
   document.getElementById('in-cont').value=STATE.assumptions.cont;
@@ -1285,20 +1305,31 @@ function bindTop(){
     ['in-name','name','text'],['in-plotnumber','plotNumber','text'],['in-community','community','text'],['in-subcommunity','subcommunity','text'],
     ['in-gfa','plot.gfa','num'],['in-plotarea','plot.plotArea','num'],['in-far','plot.far','num'],['in-floors','plot.floors','num'],
     ['in-usage','plot.usage','text'],['in-basement','plot.basement','num'],['in-podium','plot.podium','num'],['in-notes','plot.notes','text'],
-    ['in-cost','market.cost','num'],['in-land','market.land','num'],['in-hurdle','market.hurdle','num'],
+    ['in-cost','market.cost','num'],['in-hurdle','market.hurdle','num'],['in-dldfee','assumptions.dldFee','num'],
     ['in-archdesign','assumptions.archDesign','num'],['in-archsuper','assumptions.archSuper','num'],['in-cont','assumptions.cont','num'],
     ['in-authorities','assumptions.authorities','num'],['in-landscape','assumptions.landscape','num'],['in-misc','assumptions.misc','num'],
     ['in-park','assumptions.bay','num'],['in-mkt','assumptions.mkt','num'],
     ['in-scen-price','scenarioFlex.price','num'],['in-scen-cost','scenarioFlex.cost','num'],
   ];
   map.forEach(([id,path,type])=>{
-    document.getElementById(id).addEventListener('input',()=>{
+    const el0=document.getElementById(id); if(!el0) return;
+    el0.addEventListener('input',()=>{
       const v=type==='num'? (+document.getElementById(id).value||0) : document.getElementById(id).value;
       const parts=path.split('.');
       if(parts.length===1) STATE[parts[0]]=v; else STATE[parts[0]][parts[1]]=v;
       render(); scheduleSave();
       if(id==='in-name'||id==='in-community'||id==='in-subcommunity') updateTopbarPlot();
       if(id==='in-gfa'||id==='in-plotarea'||id==='in-floors'||id==='in-basement'||id==='in-podium') updateCoverage();
+    });
+  });
+  /* land price appears on Summary, Cost assumptions, and Plot Details — keep all three synced */
+  const LAND_IDS=['in-land','in-land-a','in-land-d'];
+  LAND_IDS.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.addEventListener('input',()=>{
+      const v=+el.value||0; STATE.market.land=v;
+      LAND_IDS.forEach(o=>{ if(o!==id){ const e=document.getElementById(o); if(e) e.value=v; } });
+      render(); scheduleSave();
     });
   });
 }
@@ -1342,15 +1373,17 @@ function evalMix(fracs,mk,state){
   const archd=hard*(A.archDesign/100), archs=hard*(A.archSuper/100), cont=hard*(A.cont/100);
   const auth=A.authorities, landsc=A.landscape, misc=A.misc;
   const park=bays*A.bay, mkt=gdv*(A.mkt/100);
+  const f=(A.dldFee||0)/100, dld=mk.land*f;   /* DLD land transfer fee (% of land) */
   const nonland=hard+archd+archs+cont+auth+landsc+misc+park+mkt;
-  const total=mk.land+nonland, profit=gdv-total;
-  const rlv=gdv/(1+mk.hurdle)-nonland;
+  const total=mk.land+dld+nonland, profit=gdv-total;
+  /* max land such that (gdv-total)/total = hurdle, with total = land*(1+f) + nonland */
+  const rlv=(gdv/(1+mk.hurdle)-nonland)/(1+f);
   /* mcost = ROI (net profit ÷ total investment); mgdv = Return on Project (net profit ÷ gross sales) — JD vocabulary */
   const avgPricePsf = sal>0? gdv/sal : 0;
   const cpsfWith = sal>0? total/sal : 0;
   const cpsfNo = sal>0? nonland/sal : 0;
   const breakevenPsf = sal>0? (1+mk.hurdle)*total/sal : 0;
-  const out={avg,upf,eff,sal,u,bays,gdv,hard,archd,archs,cont,auth,landsc,misc,park,mkt,nonland,total,profit,
+  const out={avg,upf,eff,sal,u,bays,gdv,hard,archd,archs,cont,auth,landsc,misc,park,mkt,dld,nonland,total,profit,
     mcost:profit/total,mgdv:profit/gdv,rlv,avgPricePsf,cpsfWith,cpsfNo,breakevenPsf,
     totalUnits:u.reduce((a,b)=>a+b,0)};
   T.forEach((t,i)=> out[t.key]=fracs[i]);
@@ -1461,6 +1494,7 @@ function render(){
   bt.innerHTML=
     row2('GDV (sales revenue)',fA(best.gdv),psf(best.gdv))+
     row2('Land (tested)',fA(mk.land),psf(mk.land))+
+    row2('DLD transfer fee',fA(best.dld),psf(best.dld))+
     row2('Construction (hard)',fA(best.hard),psf(best.hard))+
     row2('Architect — design',fA(best.archd),psf(best.archd))+
     row2('Architect — supervision',fA(best.archs),psf(best.archs))+
