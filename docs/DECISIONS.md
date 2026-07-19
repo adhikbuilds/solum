@@ -66,4 +66,13 @@ v1 = 3 high-signal charts (price trend, velocity heatmap, off-plan share) in two
 (no inventory data), as-of dating, thin-slice suppression, outlier trim. Geo choropleth is a
 flagged optional upgrade (needs boundary GeoJSON). Ships after Phase 2. Spec: docs/prd/market-insights.md.
 
+## 2026-07-19 — Plots persist in Supabase (retire browser-only storage)
+Plots now live in a `plots` table (migration `0004_plots.sql`) keyed to the signed-in
+user via RLS, instead of only in the browser's localStorage. A client's plots follow
+them across devices and refreshes. Chose a **single `jsonb` blob per plot** (matches the
+app's in-memory state, ships fastest; normalize to typed columns later if reporting needs
+it). localStorage stays as an offline cache + fallback so the demo never hard-fails on a
+network blip. Plot loading moved into `enterApp` (post-auth) so the per-user query runs
+with a session. `last-opened` stays local (per-device UI preference).
+
 <!-- Add new entries above this line. Newest first. -->
