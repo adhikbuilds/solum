@@ -497,6 +497,7 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .pdf-tag{display:inline-block; margin-left:8px; font-size:10px; font-weight:var(--fw-black); letter-spacing:.06em; text-transform:uppercase; color:var(--accent-700); background:var(--accent-50); border-radius:var(--radius-pill); padding:1px 7px; vertical-align:middle}
 .cost-group{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.08em; text-transform:uppercase; color:var(--accent-700); margin:var(--sp-6) 0 var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid var(--line)}
 .cost-group:first-of-type{margin-top:var(--sp-2)}
+.tab-next{display:flex; justify-content:flex-end; margin-top:var(--sp-6)}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -1180,6 +1181,27 @@ async function openPlot(id){
   if(summaryBtn) summaryBtn.classList.add('active');
   document.getElementById('tab-summary').style.display='block';
 }
+/* central tab switch (used by the sidebar, the guided Next-flow, and new-plot entry) */
+function goToTab(tab){
+  document.querySelectorAll('.leftnav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tabpanel-x').forEach(x=>x.style.display='none');
+  const btn=document.querySelector('.leftnav-item[data-tab="'+tab+'"]'); if(btn) btn.classList.add('active');
+  const panel=document.getElementById('tab-'+tab); if(panel) panel.style.display='block';
+  if(tab==='market') loadMarket();
+  window.scrollTo(0,0);
+}
+/* guided entry: a "Next →" button at the foot of each input tab, walking the
+   user input→output (Plot Details → Cost assumptions → Unit Matrix → Summary) */
+(function addTabNav(){
+  [['details','Cost assumptions','assumptions'],['assumptions','Unit Matrix','mix'],['mix','See the verdict','summary']]
+   .forEach(([from,label,to])=>{
+    const panel=document.getElementById('tab-'+from); if(!panel) return;
+    const nav=document.createElement('div'); nav.className='tab-next';
+    const btn=document.createElement('button'); btn.className='btn primary'; btn.textContent='Next: '+label+' →';
+    btn.addEventListener('click',()=>goToTab(to));
+    nav.appendChild(btn); panel.appendChild(nav);
+  });
+})();
 document.getElementById('btnNewTop').addEventListener('click',()=>{
   document.getElementById('m-name').value='Untitled plot';
   document.getElementById('m-plotnumber').value='';
@@ -1211,6 +1233,7 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   hydrateFromState();
   document.getElementById('modalOverlay').classList.remove('show');
   switchView('plot');
+  goToTab('details');   /* guided entry: start a new plot at Plot Details */
 });
 
 /* ---------------- delete plot (demoted, always confirms via modal) ---------------- */
