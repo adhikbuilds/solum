@@ -1905,9 +1905,11 @@ function ensurePdfJs(){
   if(PDFJS_LOADING) return PDFJS_LOADING;
   PDFJS_LOADING=new Promise((resolve,reject)=>{
     const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js';
-    s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js'; }catch(e){} resolve(); };
-    s.onerror=()=>reject(new Error('Could not load PDF reader'));
+    /* jsdelivr, not cdnjs — corporate networks that allowlist jsdelivr (for supabase-js)
+       often block cdnjs. v3 UMD exposes window.pdfjsLib for the <script> approach. */
+    s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+    s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }catch(e){} resolve(); };
+    s.onerror=()=>reject(new Error('PDF reader blocked (cdn.jsdelivr.net unreachable)'));
     document.head.appendChild(s);
   });
   return PDFJS_LOADING;
@@ -1916,19 +1918,30 @@ function ensurePdfJs(){
    render page 1, crop the fixed left title block, and OCR it with Tesseract.js —
    non-LLM, no API key. */
 let TESS_LOADING=null;
+/* All Tesseract runtime assets pinned to jsdelivr too — its defaults pull the
+   language data from tessdata.projectnaptha.com, which corporate networks block.
+   Routing lang data through jsdelivr/gh keeps everything on one reachable host. */
+const TESS_PATHS={
+  workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+  corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5',
+  langPath:'https://cdn.jsdelivr.net/gh/naptha/tessdata@main/4.0.0'
+};
 function ensureTesseract(){
   if(window.Tesseract) return Promise.resolve();
   if(TESS_LOADING) return TESS_LOADING;
   TESS_LOADING=new Promise((resolve,reject)=>{
     const s=document.createElement('script');
     s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload=()=>resolve(); s.onerror=()=>reject(new Error('Could not load OCR'));
+    s.onload=()=>resolve(); s.onerror=()=>reject(new Error('OCR engine blocked (cdn.jsdelivr.net unreachable)'));
     document.head.appendChild(s);
   });
   return TESS_LOADING;
 }
+function pdfStatus(msg){ const el=document.getElementById('m-pdf-status'); if(el) el.textContent=msg; }
 async function ocrPlotPdf(file){
+  pdfStatus('Loading PDF reader…');
   await ensurePdfJs();
+  pdfStatus('Rendering the plot sheet…');
   const buf=await file.arrayBuffer();
   const doc=await window.pdfjsLib.getDocument({data:buf}).promise;
   const page=await doc.getPage(1);
@@ -1939,8 +1952,11 @@ async function ocrPlotPdf(file){
   const cw=Math.round(vp.width*0.33), ch=Math.round(vp.height*0.68);
   const crop=document.createElement('canvas'); crop.width=cw; crop.height=ch;
   crop.getContext('2d').drawImage(full, 0,0, cw,ch, 0,0, cw,ch);
+  pdfStatus('Loading text recognition (first run downloads ~5 MB)…');
   await ensureTesseract();
-  const {data}=await window.Tesseract.recognize(crop, 'eng');
+  const {data}=await window.Tesseract.recognize(crop, 'eng', Object.assign({}, TESS_PATHS, {
+    logger:m=>{ if(m && m.status==='recognizing text'){ pdfStatus('Reading the plot details… '+Math.round((m.progress||0)*100)+'%'); } }
+  }));
   return (data && data.text) || '';
 }
 function markFromPdf(id){
@@ -1974,15 +1990,20 @@ function applyPdfExtraction(text){
 }
 document.getElementById('m-pdf').addEventListener('change', async e=>{
   const file=e.target.files[0]; if(!file) return;
-  const status=document.getElementById('m-pdf-status');
-  status.textContent='Reading PDF (OCR)… this can take a few seconds on first use.';
+  pdfStatus('Starting…');
   try{
     const text=await ocrPlotPdf(file);
     const hits=applyPdfExtraction(text);
-    status.textContent = hits>0
+    pdfStatus(hits>0
       ? `Extracted ${hits} field${hits>1?'s':''} — check the highlighted fields and correct anything that looks off.`
-      : `Couldn't confidently read this PDF — enter details manually below.`;
-  }catch(err){ console.error(err); status.textContent='Could not read this PDF — enter details manually below.'; }
+      : `Couldn't confidently read this PDF — enter the details manually below.`);
+  }catch(err){
+    console.error(err);
+    const msg=(err&&err.message&&/blocked|unreachable/i.test(err.message))
+      ? `Couldn't load the reader — ${err.message}. Enter the details manually below.`
+      : 'Could not read this PDF — enter the details manually below.';
+    pdfStatus(msg);
+  }
 });
 
 /* ---------------- PDF export (investor-grade Summary export) ---------------- */
@@ -1992,10 +2013,10 @@ function ensureJsPdf(){
   if(JSPDF_LOADING) return JSPDF_LOADING;
   JSPDF_LOADING=new Promise((resolve,reject)=>{
     const s1=document.createElement('script');
-    s1.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s1.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
     s1.onload=()=>{
       const s2=document.createElement('script');
-      s2.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+      s2.src='https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
       s2.onload=()=>{ window.jspdfAutotableReady=true; resolve(); };
       s2.onerror=()=>reject(new Error('Could not load table plugin'));
       document.head.appendChild(s2);
