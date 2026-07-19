@@ -1926,8 +1926,11 @@ let TESS_LOADING=null;
 const TESS_PATHS={
   workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
   corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5',
-  langPath:'https://cdn.jsdelivr.net/gh/naptha/tessdata@main/4.0.0'
+  /* the language data — jsdelivr's npm mirror of @tesseract.js-data/eng, which
+     actually has 4.0.0/eng.traineddata.gz (the old gh path 404'd and hung here). */
+  langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0'
 };
+const TESS_STEP={'loading tesseract core':'Loading the OCR engine','initializing tesseract':'Starting the OCR engine','loading language traineddata':'Downloading language data (one-time)','initializing api':'Preparing','recognizing text':'Reading the plot details'};
 function ensureTesseract(){
   if(window.Tesseract) return Promise.resolve();
   if(TESS_LOADING) return TESS_LOADING;
@@ -1957,7 +1960,8 @@ async function ocrPlotPdf(file){
   pdfStatus('Loading text recognition (first run downloads ~5 MB)…');
   await ensureTesseract();
   const {data}=await window.Tesseract.recognize(crop, 'eng', Object.assign({}, TESS_PATHS, {
-    logger:m=>{ if(m && m.status==='recognizing text'){ pdfStatus('Reading the plot details… '+Math.round((m.progress||0)*100)+'%'); } }
+    logger:m=>{ if(!m||!m.status) return; const label=TESS_STEP[m.status]; if(!label) return;
+      const pct=(m.progress!=null)?' '+Math.round(m.progress*100)+'%':''; pdfStatus(label+'…'+pct); }
   }));
   return (data && data.text) || '';
 }
