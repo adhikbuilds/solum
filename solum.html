@@ -641,6 +641,8 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <button class="btn" id="btnAllPlots">All plots</button>
     <button class="btn" id="btnCompareTop">Compare</button>
     <button class="btn primary" id="btnNewTop">+ New plot</button>
+    <span class="divider-v" style="margin:0 4px"></span>
+    <button class="btn" id="btnSignoutTop">Sign out</button>
   </div>
 </div>
 
@@ -2430,6 +2432,7 @@ async function doLogout(){ try{ if(sb) await sb.auth.signOut(); }catch(e){} loca
 });
 document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('btnSignout').addEventListener('click', doLogout);
+document.getElementById('btnSignoutTop').addEventListener('click', doLogout);
 document.getElementById('btnPullComps').addEventListener('click', pullComps);
 initCommunityTypeahead();
 
