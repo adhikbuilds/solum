@@ -345,16 +345,26 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 .pf-search-field input{border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 16px; width:100%; font-size:var(--fs-body); outline:none; transition:border .2s; background:var(--surface-2); font-weight:var(--fw-medium)}
 .pf-search-field input:focus{border-color:var(--accent-500); box-shadow:var(--sh-inset-focus); background:var(--surface)}
 .pf-toolbar-right{display:flex; align-items:center; gap:var(--sp-4)}
-table.ptable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
-table.ptable th{text-align:left; font-weight:var(--fw-bold); font-size:var(--fs-label); letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:16px; border-bottom:2px solid var(--line); cursor:pointer; white-space:nowrap; user-select:none; transition:color .2s}
-table.ptable th:hover{color:var(--ink)}
-table.ptable th.sorted{color:var(--accent-500)}
-table.ptable th .sort-i{display:inline-block; width:12px; font-size:10px}
-table.ptable td{padding:16px; border-bottom:1px solid var(--line); vertical-align:middle; font-weight:var(--fw-medium)}
-table.ptable tr:hover td{background:var(--surface-2); cursor:pointer}
-table.ptable td.num{font-family:var(--font-mono); text-align:right; white-space:nowrap; font-weight:var(--fw-semibold)}
-table.ptable .pname{font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--ink); margin-bottom:4px}
-table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:var(--fw-semibold)}
+.pf-head{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-4); flex-wrap:wrap}
+.pf-sort{display:flex; align-items:center; gap:var(--sp-2); flex:0 0 auto}
+.pf-sort label{font-size:var(--fs-label); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em; color:var(--muted)}
+.pf-sort select{border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface-2); padding:9px 12px; font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink); cursor:pointer; outline:none}
+.pf-sort select:focus{border-color:var(--accent-500)}
+.pf-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--sp-4); margin-top:var(--sp-5)}
+.pf-card{position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); box-shadow:var(--sh-low); padding:var(--sp-5); cursor:pointer; transition:box-shadow var(--dur-fast) var(--ease-std), border-color var(--dur-fast) var(--ease-std); min-width:0}
+.pf-card:hover{box-shadow:var(--sh-high); border-color:var(--line-strong)}
+.pf-card.selected{border-color:var(--accent-500); box-shadow:var(--sh-inset-focus)}
+.pf-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-3); margin-bottom:var(--sp-3)}
+.pf-card-id{display:flex; align-items:center; gap:10px; min-width:0}
+.pf-card-id input{flex:0 0 auto; cursor:pointer}
+.pf-card-actions{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.pf-card .pname{font-weight:var(--fw-bold); font-size:var(--fs-data); color:var(--ink); line-height:1.2; overflow-wrap:anywhere}
+.pf-card .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:var(--fw-semibold); margin-top:2px}
+.pf-card-loc{color:var(--muted); font-size:var(--fs-body); font-weight:var(--fw-semibold); margin-bottom:var(--sp-4)}
+.pf-kpis{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3) var(--sp-4); border-top:1px solid var(--line); padding-top:var(--sp-4)}
+.pf-kpi .k{font-size:var(--fs-label); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+.pf-kpi .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-black); color:var(--ink); margin-top:2px; white-space:nowrap}
+.pf-kpi.accent .v{color:var(--accent-500)}
 
 /* kebab menu on portfolio rows */
 .kebab-wrap{position:relative; display:inline-block}
@@ -666,26 +676,26 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
         </div>
       </div>
       <div class="panel">
-        <h2>All plots</h2>
-        <p class="sec-note">One row per saved plot. Sort by margin to see what's worth chasing this week. Select 2–4 to compare side by side, or click a row to open it.</p>
-        <div style="overflow-x:auto">
-          <table class="ptable" id="ptable">
-            <thead>
-              <tr>
-                <th></th>
-                <th data-sort="name">Plot <span class="sort-i"></span></th>
-                <th data-sort="location">Location <span class="sort-i"></span></th>
-                <th data-sort="land">Land tested <span class="sort-i"></span></th>
-                <th data-sort="margin">ROI vs hurdle <span class="sort-i"></span></th>
-                <th data-sort="verdict">Verdict <span class="sort-i"></span></th>
-                <th data-sort="rlv">RLV <span class="sort-i"></span></th>
-                <th data-sort="headroom">Headroom <span class="sort-i"></span></th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="ptable-body"></tbody>
-          </table>
+        <div class="pf-head">
+          <div>
+            <h2>All plots</h2>
+            <p class="sec-note">One card per saved plot. Select 2–4 to compare side by side, or click a card to open it.</p>
+          </div>
+          <div class="pf-sort">
+            <label for="pf-sortsel">Sort</label>
+            <select id="pf-sortsel">
+              <option value="margin|desc">ROI vs hurdle — high to low</option>
+              <option value="margin|asc">ROI vs hurdle — low to high</option>
+              <option value="rlv|desc">RLV — high to low</option>
+              <option value="headroom|desc">Headroom — high to low</option>
+              <option value="land|desc">Land tested — high to low</option>
+              <option value="verdict|desc">Verdict — best first</option>
+              <option value="name|asc">Name — A to Z</option>
+              <option value="location|asc">Location — A to Z</option>
+            </select>
+          </div>
         </div>
+        <div class="pf-grid" id="pf-grid"></div>
         <div class="empty" id="pf-empty" style="display:none; margin-top:24px">No plots match your search.</div>
       </div>
     </div>
@@ -1704,41 +1714,50 @@ function renderPortfolio(){
     }
     if(av<bv) return -1*mul; if(av>bv) return 1*mul; return 0;
   });
-  document.querySelectorAll('#ptable th[data-sort]').forEach(th=>{
-    th.classList.toggle('sorted', th.dataset.sort===key);
-    th.querySelector('.sort-i').textContent = th.dataset.sort===key ? (dir==='asc'?'▲':'▼') : '';
-  });
-  const body=document.getElementById('ptable-body'); body.innerHTML='';
-  const empty=document.getElementById('pf-empty'); const tableWrap=document.getElementById('ptable').parentElement;
-  if(rows.length){ empty.style.display='none'; tableWrap.style.display=''; }
+  const sortSel=document.getElementById('pf-sortsel'); if(sortSel) sortSel.value=key+'|'+dir;
+  const body=document.getElementById('pf-grid'); body.innerHTML='';
+  const empty=document.getElementById('pf-empty');
+  if(rows.length){ empty.style.display='none'; body.style.display=''; }
   else if(PORTFOLIO_ROWS.length===0){
-    tableWrap.style.display='none'; empty.style.display='block';
+    body.style.display='none'; empty.style.display='block';
     empty.innerHTML='<div class="empty-card"><div class="ec-title">No plots yet</div><div class="ec-sub">Create your first plot to screen a land opportunity. Upload a DLD plot PDF to auto-fill the details, or enter them manually.</div><button class="btn primary" id="pf-empty-new">+ New plot</button></div>';
     const nb=document.getElementById('pf-empty-new'); if(nb) nb.onclick=()=>document.getElementById('btnNewTop').click();
-  } else { tableWrap.style.display=''; empty.style.display='block'; empty.innerHTML='No plots match your search.'; }
+  } else { body.style.display=''; empty.style.display='block'; empty.innerHTML='No plots match your search.'; }
   rows.forEach(r=>{
     const loc=[r.community,r.subcommunity].filter(Boolean).join(' · ')||'—';
     const checked=PF_SELECTED.has(r.id)?'checked':'';
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td><input type="checkbox" class="pf-check" data-id="${r.id}" ${checked}></td>
-      <td><div class="pname">${r.name}</div>${r.plotNumber?`<div class="ploc">#${r.plotNumber}</div>`:''}</td>
-      <td class="ploc">${loc}</td>
-      <td class="num">${r.ok?fM(r.land):'—'}</td>
-      <td class="num">${r.ok?fP(r.mcost):'—'}</td>
-      <td>${r.ok?`<span class="dotv ${r.verdict.toLowerCase()}">${r.verdict}</span>`:'<span class="dotv pass">NO MIX</span>'}</td>
-      <td class="num">${r.ok?fM(r.rlv):'—'}</td>
-      <td class="num">${r.ok?((r.headroom>=0?'+':'')+fM(r.headroom)):'—'}</td>
-      <td>
-        <div class="kebab-wrap">
-          <button class="kebab-btn" data-act="kebab" data-id="${r.id}" aria-label="More actions">⋮</button>
-          <div class="kebab-menu" data-menu-id="${r.id}">
-            <button data-act="dup" data-id="${r.id}">Duplicate</button>
-            <button class="danger" data-act="del" data-id="${r.id}">Delete</button>
+    const card=document.createElement('div');
+    card.className='pf-card'+(PF_SELECTED.has(r.id)?' selected':'');
+    card.dataset.id=r.id;
+    const verdict=r.ok?`<span class="dotv ${r.verdict.toLowerCase()}">${r.verdict}</span>`:'<span class="dotv pass">NO MIX</span>';
+    card.innerHTML=`
+      <div class="pf-card-top">
+        <div class="pf-card-id">
+          <input type="checkbox" class="pf-check" data-id="${r.id}" ${checked} aria-label="Select for compare">
+          <div style="min-width:0">
+            <div class="pname">${r.name}</div>
+            ${r.plotNumber?`<div class="ploc">#${r.plotNumber}</div>`:''}
           </div>
         </div>
-      </td>`;
-    body.appendChild(tr);
+        <div class="pf-card-actions">
+          ${verdict}
+          <div class="kebab-wrap">
+            <button class="kebab-btn" data-act="kebab" data-id="${r.id}" aria-label="More actions">⋮</button>
+            <div class="kebab-menu" data-menu-id="${r.id}">
+              <button data-act="dup" data-id="${r.id}">Duplicate</button>
+              <button class="danger" data-act="del" data-id="${r.id}">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pf-card-loc">${loc}</div>
+      <div class="pf-kpis">
+        <div class="pf-kpi accent"><div class="k">ROI vs hurdle</div><div class="v">${r.ok?fP(r.mcost):'—'}</div></div>
+        <div class="pf-kpi"><div class="k">Land tested</div><div class="v">${r.ok?fM(r.land):'—'}</div></div>
+        <div class="pf-kpi"><div class="k">RLV</div><div class="v">${r.ok?fM(r.rlv):'—'}</div></div>
+        <div class="pf-kpi"><div class="k">Headroom</div><div class="v">${r.ok?((r.headroom>=0?'+':'')+fM(r.headroom)):'—'}</div></div>
+      </div>`;
+    body.appendChild(card);
   });
   updateCompareBtn();
 }
@@ -1748,18 +1767,15 @@ function updateCompareBtn(){
   document.getElementById('pf-selcount').textContent = n>0 ? n+' selected (max 4)' : '';
 }
 document.getElementById('pf-search').addEventListener('input', renderPortfolio);
-document.querySelectorAll('#ptable th[data-sort]').forEach(th=>{
-  th.addEventListener('click', ()=>{
-    const k=th.dataset.sort;
-    if(PF_SORT.key===k) PF_SORT.dir = PF_SORT.dir==='asc'?'desc':'asc';
-    else PF_SORT={key:k, dir:(k==='name'||k==='location')?'asc':'desc'};
-    renderPortfolio();
-  });
+document.getElementById('pf-sortsel').addEventListener('change', e=>{
+  const [key,dir]=e.target.value.split('|');
+  PF_SORT={key, dir};
+  renderPortfolio();
 });
 function closeAllKebabs(){ document.querySelectorAll('.kebab-menu.show').forEach(m=>m.classList.remove('show')); }
 document.addEventListener('click', e=>{ if(!e.target.closest('.kebab-wrap')) closeAllKebabs(); });
 
-document.getElementById('ptable-body').addEventListener('click', async e=>{
+document.getElementById('pf-grid').addEventListener('click', async e=>{
   const kebabBtn=e.target.closest('button[data-act="kebab"]');
   if(kebabBtn){
     e.stopPropagation();
@@ -1796,13 +1812,13 @@ document.getElementById('ptable-body').addEventListener('click', async e=>{
     const id=chk.dataset.id;
     if(chk.checked){ if(PF_SELECTED.size>=4){ chk.checked=false; return; } PF_SELECTED.add(id); }
     else { PF_SELECTED.delete(id); }
+    const card=e.target.closest('.pf-card'); if(card) card.classList.toggle('selected', chk.checked);
     updateCompareBtn();
     return;
   }
-  const tr=e.target.closest('tr');
-  if(tr && !e.target.closest('button') && !e.target.closest('input')){
-    const idCell=tr.querySelector('.pf-check');
-    if(idCell) await openPlot(idCell.dataset.id);
+  const card=e.target.closest('.pf-card');
+  if(card && !e.target.closest('button') && !e.target.closest('input')){
+    await openPlot(card.dataset.id);
   }
 });
 
