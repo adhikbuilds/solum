@@ -1144,17 +1144,47 @@ const POPS = {
   coverage:{t:"Building footprint as a share of plot area, implied by GFA, floor count, podium and basement levels.", s:"A rough planning check, not a substitute for the DDA plot document.", tier:'modeled'},
 };
 
-/* ---------------- storage / project management ---------------- */
-async function loadIndex(){ try{ const r=await window.storage.get('plot-index'); return r? JSON.parse(r.value):[]; }catch(e){ return []; } }
-async function saveIndex(){ try{ await window.storage.set('plot-index', JSON.stringify(PROJECTS)); }catch(e){} }
-async function loadProject(id){ try{ const r=await window.storage.get('plot:'+id); return r? JSON.parse(r.value):null; }catch(e){ return null; } }
+/* ---------------- storage / project management ----------------
+   Plots persist in Supabase (table `plots`, RLS per user) so a client's plots
+   follow them across devices. localStorage stays as an offline cache + fallback
+   so the demo never hard-fails on a network blip. last-opened is a per-device UI
+   preference and stays local. */
+async function lsGet(k){ try{ const r=await window.storage.get(k); return r? JSON.parse(r.value):null; }catch(e){ return null; } }
+async function lsSet(k,v){ try{ await window.storage.set(k, JSON.stringify(v)); }catch(e){} }
+async function lsDel(k){ try{ await window.storage.delete(k); }catch(e){} }
+
+async function loadIndex(){
+  if(sb){ try{
+    const {data,error}=await sb.from('plots').select('id,name,community').order('updated_at',{ascending:false});
+    if(!error && Array.isArray(data)) return data.map(r=>({id:r.id, name:r.name, community:r.community}));
+  }catch(e){} }
+  return (await lsGet('plot-index'))||[];
+}
+async function saveIndex(){ await lsSet('plot-index', PROJECTS); }   /* local cache; in Supabase the table is the index */
+async function loadProject(id){
+  if(sb){ try{
+    const {data,error}=await sb.from('plots').select('data').eq('id',id).maybeSingle();
+    if(!error && data && data.data){ await lsSet('plot:'+id, data.data); return data.data; }
+  }catch(e){} }
+  return await lsGet('plot:'+id);
+}
+async function putProject(id,state){
+  await lsSet('plot:'+id, state);   /* cache locally first, always */
+  if(sb){ try{
+    await sb.from('plots').upsert({id, name:state.name||'', community:state.community||'', data:state, updated_at:new Date().toISOString()}, {onConflict:'id'});
+  }catch(e){} }
+}
+async function removeProject(id){
+  await lsDel('plot:'+id);
+  if(sb){ try{ await sb.from('plots').delete().eq('id',id); }catch(e){} }
+}
 async function saveLastOpened(id){ try{ await window.storage.set('last-opened-id', id); }catch(e){} }
 async function loadLastOpened(){ try{ const r=await window.storage.get('last-opened-id'); return r? r.value:null; }catch(e){ return null; } }
 async function saveProject(){
   if(!CURRENT_ID) return;
   setSaveChip('Saving…');
   try{
-    await window.storage.set('plot:'+CURRENT_ID, JSON.stringify(STATE));
+    await putProject(CURRENT_ID, STATE);
     const idx=PROJECTS.find(p=>p.id===CURRENT_ID);
     if(idx){ idx.name=STATE.name; idx.community=STATE.community; await saveIndex(); }
     setSaveChip('Saved');
@@ -1263,7 +1293,7 @@ document.getElementById('btnDelete').addEventListener('click', ()=>{
 document.getElementById('delete-cancel').addEventListener('click', ()=>{ PENDING_DELETE_ID=null; document.getElementById('deleteOverlay').classList.remove('show'); });
 document.getElementById('delete-confirm').addEventListener('click', async ()=>{
   const id=PENDING_DELETE_ID; if(!id) return;
-  try{ await window.storage.delete('plot:'+id); }catch(e){}
+  await removeProject(id);
   PROJECTS=PROJECTS.filter(p=>p.id!==id); await saveIndex();
   if(id===CURRENT_ID){
     CURRENT_ID=PROJECTS[0].id;
@@ -1803,7 +1833,7 @@ document.getElementById('pf-grid').addEventListener('click', async e=>{
       clone.name=(clone.name||'Untitled plot')+' (copy)';
       const nid=newId();
       PROJECTS.push({id:nid, name:clone.name, community:clone.community}); await saveIndex();
-      try{ await window.storage.set('plot:'+nid, JSON.stringify(clone)); }catch(e){}
+      await putProject(nid, clone);
       await loadPortfolioRows(); renderPortfolio();
     } else if(act==='del'){
       if(PROJECTS.length<=1){ alert("You need at least one plot — create another before deleting this one."); return; }
@@ -2266,9 +2296,10 @@ document.getElementById('aiInput').addEventListener('keydown', e=>{
 });
 
 /* ---------------- login gate (demo — presentational only, not real auth) ---------------- */
-function enterApp(){
+async function enterApp(){
   document.body.classList.remove('pre-login');
   document.getElementById('loginScreen').style.display='none'; /* root cause of the old scroll bug: this was never hidden */
+  await initProjects();   /* load this client's plots from Supabase now that the session exists */
   switchView('portfolio');   /* land on the plots dashboard, not a single plot */
   window.scrollTo(0,0);
   loadLocations();   /* populate the community typeahead from DLD */
@@ -2446,7 +2477,7 @@ async function doLogin(){
   try{
     const {error}=await sb.auth.signInWithPassword({email, password});
     if(error){ err.textContent=error.message||'Sign in failed.'; btn.disabled=false; btn.textContent=orig; return; }
-    enterApp();
+    await enterApp();
   }catch(e){ err.textContent='Sign in failed. Please try again.'; btn.disabled=false; btn.textContent=orig; }
 }
 async function doLogout(){ try{ if(sb) await sb.auth.signOut(); }catch(e){} location.reload(); }
@@ -2460,9 +2491,10 @@ document.getElementById('btnPullComps').addEventListener('click', pullComps);
 initCommunityTypeahead();
 
 /* ---------------- boot ---------------- */
+/* Plots load per-user, so wait until we know there's a session before pulling them
+   (initProjects now runs inside enterApp, after auth). */
 (async()=>{
-  await initProjects();
-  try{ if(sb){ const {data}=await sb.auth.getSession(); if(data && data.session) enterApp(); } }
+  try{ if(sb){ const {data}=await sb.auth.getSession(); if(data && data.session){ await enterApp(); } } }
   catch(e){ console.error(e); }
 })();
 </script>
