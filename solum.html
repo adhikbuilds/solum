@@ -1991,8 +1991,13 @@ function applyPdfExtraction(text){
   return hits;
 }
 document.getElementById('m-pdf').addEventListener('change', async e=>{
-  const file=e.target.files[0]; if(!file) return;
-  pdfStatus('Starting…');
+  pdfStatus('File selected — starting…');   /* immediate proof the picker fired */
+  const file=e.target.files && e.target.files[0];
+  if(!file){
+    pdfStatus('No file actually came through. A secure/isolation browser often blocks the upload from reaching the page — open Solum in a normal browser tab, or just fill the fields in manually below.');
+    return;
+  }
+  pdfStatus('Reading “'+(file.name||'file')+'” ('+Math.round((file.size||0)/1024)+' KB)…');
   try{
     const text=await ocrPlotPdf(file);
     const hits=applyPdfExtraction(text);
