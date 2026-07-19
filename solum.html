@@ -490,6 +490,11 @@ table.ptable .ploc{color:var(--muted); font-size:var(--fs-label); font-weight:va
 .mkt-panel.collapsed .chart,.mkt-panel.collapsed .sec-note{display:none}
 #chart-trend .svgchart{max-height:230px}
 .svgchart .pt{fill:var(--accent-500)}
+.empty-card{max-width:460px; margin:48px auto; text-align:center; padding:var(--sp-8); background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--sh-low)}
+.empty-card .ec-title{font-size:1.25rem; font-weight:var(--fw-black); color:var(--ink); margin-bottom:var(--sp-2)}
+.empty-card .ec-sub{font-size:var(--fs-body); color:var(--muted); line-height:1.55; margin-bottom:var(--sp-5)}
+.empty-card .btn{margin:0 auto}
+.pdf-tag{display:inline-block; margin-left:8px; font-size:10px; font-weight:var(--fw-black); letter-spacing:.06em; text-transform:uppercase; color:var(--accent-700); background:var(--accent-50); border-radius:var(--radius-pill); padding:1px 7px; vertical-align:middle}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
 .btn-login:hover{background:var(--accent-600); box-shadow:var(--sh-med); transform:translateY(-2px)}
 .btn-login:active{transform:translateY(0)}
@@ -1647,7 +1652,13 @@ function renderPortfolio(){
     th.querySelector('.sort-i').textContent = th.dataset.sort===key ? (dir==='asc'?'▲':'▼') : '';
   });
   const body=document.getElementById('ptable-body'); body.innerHTML='';
-  document.getElementById('pf-empty').style.display = rows.length ? 'none' : 'block';
+  const empty=document.getElementById('pf-empty'); const tableWrap=document.getElementById('ptable').parentElement;
+  if(rows.length){ empty.style.display='none'; tableWrap.style.display=''; }
+  else if(PORTFOLIO_ROWS.length===0){
+    tableWrap.style.display='none'; empty.style.display='block';
+    empty.innerHTML='<div class="empty-card"><div class="ec-title">No plots yet</div><div class="ec-sub">Create your first plot to screen a land opportunity. Upload a DLD plot PDF to auto-fill the details, or enter them manually.</div><button class="btn primary" id="pf-empty-new">+ New plot</button></div>';
+    const nb=document.getElementById('pf-empty-new'); if(nb) nb.onclick=()=>document.getElementById('btnNewTop').click();
+  } else { tableWrap.style.display=''; empty.style.display='block'; empty.innerHTML='No plots match your search.'; }
   rows.forEach(r=>{
     const loc=[r.community,r.subcommunity].filter(Boolean).join(' · ')||'—';
     const checked=PF_SELECTED.has(r.id)?'checked':'';
@@ -1828,17 +1839,36 @@ function ensurePdfJs(){
   });
   return PDFJS_LOADING;
 }
-async function extractPdfText(file){
+/* DLD plot PDFs have a broken text layer (renders fine, extracts as junk), so we
+   render page 1, crop the fixed left title block, and OCR it with Tesseract.js —
+   non-LLM, no API key. */
+let TESS_LOADING=null;
+function ensureTesseract(){
+  if(window.Tesseract) return Promise.resolve();
+  if(TESS_LOADING) return TESS_LOADING;
+  TESS_LOADING=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload=()=>resolve(); s.onerror=()=>reject(new Error('Could not load OCR'));
+    document.head.appendChild(s);
+  });
+  return TESS_LOADING;
+}
+async function ocrPlotPdf(file){
   await ensurePdfJs();
   const buf=await file.arrayBuffer();
   const doc=await window.pdfjsLib.getDocument({data:buf}).promise;
-  let text='';
-  for(let i=1;i<=doc.numPages;i++){
-    const page=await doc.getPage(i);
-    const content=await page.getTextContent();
-    text += content.items.map(it=>it.str).join(' ') + '\n';
-  }
-  return text;
+  const page=await doc.getPage(1);
+  const vp=page.getViewport({scale:2.6});
+  const full=document.createElement('canvas'); full.width=Math.ceil(vp.width); full.height=Math.ceil(vp.height);
+  await page.render({canvasContext:full.getContext('2d'), viewport:vp}).promise;
+  /* fixed left title block: ~33% width, top ~68% height (all labeled fields) */
+  const cw=Math.round(vp.width*0.33), ch=Math.round(vp.height*0.68);
+  const crop=document.createElement('canvas'); crop.width=cw; crop.height=ch;
+  crop.getContext('2d').drawImage(full, 0,0, cw,ch, 0,0, cw,ch);
+  await ensureTesseract();
+  const {data}=await window.Tesseract.recognize(crop, 'eng');
+  return (data && data.text) || '';
 }
 function markFromPdf(id){
   const input=document.getElementById(id);
@@ -1850,36 +1880,36 @@ function clearPdfState(){
   document.getElementById('m-pdf-status').textContent='';
   document.getElementById('m-pdf').value='';
 }
-function applyPdfExtraction(rawText){
-  let text=rawText, hits=0;
-  const subRe=/Sub[\s\-]?Community\s*[:\-]?\s*([A-Za-z0-9 &\-\.'’]{2,40})/i;
-  const subM=text.match(subRe);
-  if(subM){ document.getElementById('m-subcommunity').value=subM[1].trim(); markFromPdf('m-subcommunity'); hits++; text=text.replace(subRe,''); }
-  const patterns=[
-    {id:'m-plotnumber', re:/Plot\s*(?:No\.?|Number)\s*[:\-]?\s*([A-Za-z0-9\-\/]{1,20})/i},
-    {id:'m-community', re:/\bCommunity\s*[:\-]?\s*([A-Za-z0-9 &\-\.'’]{2,40})/i},
-    {id:'m-plotarea', re:/Plot\s*(?:Area|Size)\s*[:\-]?\s*([\d,]+\.?\d*)/i, num:true},
-    {id:'m-gfa', re:/(?:Permissible\s*)?G\.?\s?F\.?\s?A\.?\s*[:\-]?\s*([\d,]+\.?\d*)/i, num:true},
-    {id:'m-far', re:/\bF\.?\s?A\.?\s?R\.?\s*[:\-]?\s*(\d+\.?\d*)/i, num:true},
-    {id:'m-floors', re:/(?:No\.?\s*of\s*Floors|Building\s*Height)\s*[:\-]?\s*G?\+?\s*(\d+)/i, num:true},
-  ];
-  patterns.forEach(p=>{
-    const m=text.match(p.re);
-    if(m && m[1]){ let val=m[1].trim(); if(p.num) val=val.replace(/,/g,''); document.getElementById(p.id).value=val; markFromPdf(p.id); hits++; }
-  });
+/* Parse the OCR'd DLD title block. Fixed labels: Plot Number, Plot Area, Maximum
+   GFA, Maximum Height, Community Name. Areas print m² then ft² — we take ft²
+   (Solum works in sqft). FAR is computed from GFA ÷ plot area. */
+function applyPdfExtraction(text){
+  let hits=0;
+  const set=(id,val)=>{ const el=document.getElementById(id); if(el){ el.value=val; markFromPdf(id); hits++; } };
+  const clean=(text||'').replace(/[|]/g,' ');
+  const pn=clean.match(/\b(\d{6,8})\b/);                       // plot number = standalone 6–8 digit integer
+  if(pn) set('m-plotnumber', pn[1]);
+  const fts=[...clean.matchAll(/([\d][\d,]*\.\d+)\s*ft/gi)].map(m=>parseFloat(m[1].replace(/,/g,'')));
+  if(fts[0]) set('m-plotarea', Math.round(fts[0]));            // first ft² = plot area
+  if(fts[1]) set('m-gfa', Math.round(fts[1]));                 // second ft² = GFA
+  if(fts[0] && fts[1]) set('m-far', (fts[1]/fts[0]).toFixed(2));
+  const gh=clean.match(/\bG\s*\+\s*(\d{1,2})\b/i);             // "G+3" → floors
+  if(gh) set('m-floors', String(parseInt(gh[1],10)+1));
+  const cm=clean.match(/Community\s*Name\s*[:\-]?\s*\n?\s*([A-Za-z][A-Za-z0-9 .'&\-]{2,40})/i);
+  if(cm) set('m-community', cm[1].trim().replace(/\s{2,}/g,' '));
   return hits;
 }
 document.getElementById('m-pdf').addEventListener('change', async e=>{
   const file=e.target.files[0]; if(!file) return;
   const status=document.getElementById('m-pdf-status');
-  status.textContent='Reading PDF…';
+  status.textContent='Reading PDF (OCR)… this can take a few seconds on first use.';
   try{
-    const text=await extractPdfText(file);
+    const text=await ocrPlotPdf(file);
     const hits=applyPdfExtraction(text);
     status.textContent = hits>0
       ? `Extracted ${hits} field${hits>1?'s':''} — check the highlighted fields and correct anything that looks off.`
-      : `Couldn't confidently match any fields in this PDF — enter details manually below.`;
-  }catch(err){ status.textContent='Could not read this PDF — enter details manually below.'; }
+      : `Couldn't confidently read this PDF — enter details manually below.`;
+  }catch(err){ console.error(err); status.textContent='Could not read this PDF — enter details manually below.'; }
 });
 
 /* ---------------- PDF export (investor-grade Summary export) ---------------- */
@@ -2119,7 +2149,7 @@ document.getElementById('aiInput').addEventListener('keydown', e=>{
 function enterApp(){
   document.body.classList.remove('pre-login');
   document.getElementById('loginScreen').style.display='none'; /* root cause of the old scroll bug: this was never hidden */
-  switchView('plot');
+  switchView('portfolio');   /* land on the plots dashboard, not a single plot */
   window.scrollTo(0,0);
   loadLocations();   /* populate the community typeahead from DLD */
 }
