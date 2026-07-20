@@ -75,4 +75,15 @@ it). localStorage stays as an offline cache + fallback so the demo never hard-fa
 network blip. Plot loading moved into `enterApp` (post-auth) so the per-user query runs
 with a session. `last-opened` stays local (per-device UI preference).
 
+## 2026-07-19 — Fetch plot details by number from the DDA register (server-side)
+Added "type a plot number → auto-fill" as the primary new-plot path, replacing reliance on
+PDF+OCR (kept as a fallback). Source: the DDA GIS ArcGIS layer
+`DDA/BASIC_LAND_BASE/MapServer/2` ("Plot"), which is public (no token) and returns clean
+attributes by `PLOT_NUMBER` (AREA_SQFT, GFA_SQFT, MAX_HEIGHT_FLOORS, MAIN_LANDUSE, etc.).
+Runs **server-side** via a Vercel function (`api/plot.js`): the browser calls its own origin
+`/api/plot?number=…`, which proxies DDA. This dodges CORS and — critically — works behind the
+client's locked-down / isolation browser, which blocks file uploads and third-party CDNs. GFA
+is a real attribute here, so plots the PDF marked "See Notes" resolve. Unmapped fields
+(project, developer, land-use detail, general notes, frozen status) fold into the plot's notes.
+
 <!-- Add new entries above this line. Newest first. -->

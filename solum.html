@@ -392,6 +392,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 .pdf-drop:hover{border-color:var(--accent-500)}
 .pdf-drop input[type=file]{font-weight:var(--fw-semibold); font-size:var(--fs-body); width:100%; cursor:pointer}
 .pdf-tag{display:inline-block; font-weight:var(--fw-bold); font-size:9px; letter-spacing:.05em; text-transform:uppercase; padding:2px 8px; border-radius:var(--radius-pill); background:var(--accent-100); color:var(--accent-800); margin-left:8px}
+.dda-fetch{display:flex; gap:var(--sp-2); align-items:stretch}
+.dda-fetch .field{flex:1}
+.dda-fetch .btn{flex:0 0 auto; height:auto}
 
 /* modals */
 .modal-overlay{position:fixed; inset:0; background:rgba(26,14,8,.5); display:none; align-items:center; justify-content:center; z-index:100; padding:var(--sp-6); backdrop-filter:blur(4px)}
@@ -973,7 +976,16 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <h3>New plot</h3>
 
     <div class="lever">
-      <div class="lab"><span>Upload plot PDF (optional)</span></div>
+      <div class="lab"><span>Auto-fill from DDA — enter the plot number</span></div>
+      <div class="dda-fetch">
+        <div class="field"><input type="text" id="m-dda-num" placeholder="e.g. 6854394" inputmode="numeric" autocomplete="off"></div>
+        <button class="btn primary" id="m-dda-fetch" type="button">Fetch</button>
+      </div>
+      <div class="sec-note" id="m-dda-status" style="margin:8px 0 0; font-weight:600;"></div>
+    </div>
+
+    <div class="lever">
+      <div class="lab"><span>Or upload the plot PDF</span></div>
       <div class="pdf-drop"><input type="file" id="m-pdf" accept="application/pdf"></div>
       <div class="sec-note" id="m-pdf-status" style="margin:8px 0 0; font-weight:600;"></div>
     </div>
@@ -1285,6 +1297,7 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   const ns=defaultState();
   ns.name=name; ns.plotNumber=plotNumber; ns.community=community; ns.subcommunity=subcommunity;
   ns.plot={...ns.plot, gfa, plotArea, far, floors};   /* keep usage/basement/podium/notes defaults */
+  if(LAST_DDA_USAGE) ns.plot.usage=LAST_DDA_USAGE;
   if(LAST_PDF_NOTES) ns.plot.notes=LAST_PDF_NOTES;
   PROJECTS.push({id,name,community}); await saveIndex();
   CURRENT_ID=id; STATE=ns; await saveProject(); await saveLastOpened(id);
@@ -2019,18 +2032,66 @@ async function ocrPlotPdf(file){
   }));
   return (data && data.text) || '';
 }
-function markFromPdf(id){
+function markFrom(id, label){
   const input=document.getElementById(id);
   const lab=input && input.closest('.lever') && input.closest('.lever').querySelector('.lab span');
-  if(lab && !lab.querySelector('.pdf-tag')) lab.insertAdjacentHTML('beforeend','<span class="pdf-tag">from PDF</span>');
+  if(!lab) return;
+  const ex=lab.querySelector('.pdf-tag'); if(ex) ex.remove();   /* refresh source if re-filled */
+  lab.insertAdjacentHTML('beforeend','<span class="pdf-tag">from '+label+'</span>');
 }
-let LAST_PDF_NOTES='';   /* extra title-block detail from a PDF, folded into the new plot's notes */
+function markFromPdf(id){ markFrom(id,'PDF'); }
+let LAST_PDF_NOTES='';   /* extra detail (PDF or DDA), folded into the new plot's notes */
+let LAST_DDA_USAGE='';   /* land use from DDA → the new plot's usage */
 function clearPdfState(){
   document.querySelectorAll('#modalOverlay .pdf-tag').forEach(t=>t.remove());
   document.getElementById('m-pdf-status').textContent='';
   document.getElementById('m-pdf').value='';
-  LAST_PDF_NOTES='';
+  const dn=document.getElementById('m-dda-num'); if(dn) dn.value='';
+  const ds=document.getElementById('m-dda-status'); if(ds) ds.textContent='';
+  LAST_PDF_NOTES=''; LAST_DDA_USAGE='';
 }
+/* ---- DDA lookup: type a plot number → fetch real plot details via /api/plot ---- */
+const tcase = s => String(s||'').toLowerCase().replace(/\b([a-z])/g, c=>c.toUpperCase());
+function applyDdaExtraction(a){
+  a=a||{}; let hits=0;
+  const set=(id,val)=>{ const el=document.getElementById(id); if(el && val!=null && String(val)!==''){ el.value=val; markFrom(id,'DDA'); hits++; } };
+  set('m-plotnumber', a.PLOT_NUMBER);
+  if(a.AREA_SQFT>0) set('m-plotarea', Math.round(a.AREA_SQFT));
+  if(a.GFA_SQFT>0)  set('m-gfa', Math.round(a.GFA_SQFT));
+  if(a.AREA_SQFT>0 && a.GFA_SQFT>0) set('m-far', (a.GFA_SQFT/a.AREA_SQFT).toFixed(2));
+  const fl=String(a.MAX_HEIGHT_FLOORS||a.MAX_HEIGHT||'').match(/G\s*\+\s*(\d{1,2})/i);
+  if(fl) set('m-floors', String(parseInt(fl[1],10)+1));
+  if(a.ENTITY_NAME) set('m-community', tcase(a.ENTITY_NAME));
+  LAST_DDA_USAGE = a.MAIN_LANDUSE ? tcase(a.MAIN_LANDUSE) : '';
+  /* anything without a field → notes, so nothing from the register is lost */
+  const notes=[]; const push=(l,v)=>{ if(v!=null && String(v).trim()!=='') notes.push(l+': '+String(v).trim()); };
+  push('Land use', a.LANDUSE_DETAILS||a.MAIN_LANDUSE);
+  push('Project', a.PROJECT_NAME);
+  push('Developer', a.DEVELOPER_NAME);
+  push('Old plot no.', a.OLD_PLOT_NUMBERS);
+  push('Max height', a.MAX_HEIGHT);
+  if(a.IS_FROZEN) notes.push('⚠ Plot is FROZEN'+(a.FREEZE_REASON?' — '+a.FREEZE_REASON:''));
+  if(a.GENERAL_NOTES && String(a.GENERAL_NOTES).trim()) notes.push('\nDDA notes:\n'+String(a.GENERAL_NOTES).trim());
+  LAST_PDF_NOTES = notes.length ? 'From DDA register (plot '+(a.PLOT_NUMBER||'')+') —\n'+notes.join('\n') : '';
+  return hits;
+}
+async function fetchDdaPlot(){
+  const num=(document.getElementById('m-dda-num').value||'').trim();
+  const st=document.getElementById('m-dda-status'), btn=document.getElementById('m-dda-fetch');
+  if(!/^\d{4,10}$/.test(num)){ st.textContent='Enter a valid plot number (digits only).'; return; }
+  const orig=btn.textContent; btn.disabled=true; btn.textContent='Fetching…';
+  st.textContent='Looking up plot '+num+' in the DDA register…';
+  try{
+    const r=await fetch('/api/plot?number='+encodeURIComponent(num));
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){ st.textContent=(data && data.error) || 'Could not fetch this plot.'; return; }
+    const n=applyDdaExtraction(data.attributes);
+    st.textContent = n>0 ? ('Filled '+n+' field'+(n>1?'s':'')+' from DDA — review below, then create.') : 'Found the plot, but nothing usable came back.';
+  }catch(e){ st.textContent='Could not reach the lookup service. Try again.'; }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+document.getElementById('m-dda-fetch').addEventListener('click', fetchDdaPlot);
+document.getElementById('m-dda-num').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); fetchDdaPlot(); } });
 /* Parse the OCR'd DLD title block. Fixed labels: Plot Number, Plot Area, Maximum
    GFA, Maximum Height, Community Name. Areas print m² then ft² — we take ft²
    (Solum works in sqft). FAR is computed from GFA ÷ plot area. */
