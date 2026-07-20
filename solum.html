@@ -226,6 +226,7 @@ body.view-compare #portfolioView{display:none}
 }
 .lever textarea{border:0; background:transparent; font-family:var(--font-sans); font-weight:var(--fw-medium); font-size:var(--fs-body); color:var(--ink); padding:11px 14px; width:100%; outline:none; resize:vertical; min-height:64px}
 .lever .suf{padding:0 14px; font-weight:var(--fw-semibold); font-size:var(--fs-label); color:var(--muted); white-space:nowrap}
+.lever .field-chev{padding:0 12px 0 4px; color:var(--muted); display:flex; align-items:center; pointer-events:none; flex:0 0 auto}
 .leverrow{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4)}
 
 /* info icon + popover w/ provenance badges (monochrome) */
@@ -898,8 +899,8 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div class="field"><input type="text" id="in-name" value="Plot 6488595"></div></div>
             <div class="lever"><div class="lab"><span>Plot number</span></div>
               <div class="field"><input type="text" id="in-plotnumber" value="6488595"></div></div>
-            <div class="lever"><div class="lab"><span>Community</span><button class="info" data-pop="loc">i</button></div>
-              <div class="field" style="position:relative"><input type="text" id="in-community" value="Wadi Al Safa 5" autocomplete="off"><div id="communityDrop" class="typeahead-drop"></div></div></div>
+            <div class="lever"><div class="lab"><span>Community / Area</span><button class="info" data-pop="loc">i</button></div>
+              <div class="field" style="position:relative"><input type="text" id="in-community" value="Wadi Al Safa 5" autocomplete="off" placeholder="Search community / area…"><span class="field-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div id="communityDrop" class="typeahead-drop"></div></div></div>
             <div class="lever"><div class="lab"><span>Sub-community</span></div>
               <div class="field"><input type="text" id="in-subcommunity" value=""></div></div>
             <div class="lever" style="grid-column:1/-1">
@@ -991,7 +992,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     </div>
 
     <div class="fieldgrid2">
-      <div class="lever"><div class="lab"><span>Community</span></div>
+      <div class="lever"><div class="lab"><span>Community / Area</span></div>
         <div class="field"><input type="text" id="m-community" value=""></div></div>
       <div class="lever"><div class="lab"><span>Sub-community</span></div>
         <div class="field"><input type="text" id="m-subcommunity" value=""></div></div>
