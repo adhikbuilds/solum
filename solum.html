@@ -107,12 +107,14 @@ body.pre-login .topbar,body.pre-login .appbody{display:none}
 }
 .topbar .brand-mini{display:flex; align-items:center; gap:10px; cursor:pointer; flex:0 0 auto}
 .topbar .brand-mini .word{font-weight:var(--fw-black); font-size:1.1875rem; letter-spacing:-.01em; color:var(--ink)}
-.topbar .ws-brand{font-size:11px; font-weight:var(--fw-bold); letter-spacing:.02em; color:var(--accent-700); background:var(--accent-50); border:1px solid var(--accent-100); padding:3px 9px; border-radius:var(--radius-pill); margin-left:8px; white-space:nowrap}
+/* workspace label — plain text with a hairline, breadcrumb-style (product · workspace) */
+.topbar .ws-brand{font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--muted); margin-left:14px; padding-left:14px; border-left:1px solid var(--line); white-space:nowrap}
 .topbar .divider-v{width:1px; height:24px; background:var(--line); flex:0 0 auto}
 .topbar-plot{display:flex; flex-direction:column; justify-content:center; min-width:0}
 .topbar-plot .nm{font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px}
 .topbar-plot .loc{font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-semibold)}
 body.view-portfolio .topbar-plot,body.view-compare .topbar-plot{display:none}
+body.view-portfolio #brandDivider,body.view-compare #brandDivider{display:none}
 .topbar-spacer{flex:1}
 .topbar-actions{display:flex; align-items:center; gap:var(--sp-2)}
 .btn-export{display:flex; align-items:center; gap:6px; height:var(--size-el-sm); padding:0 var(--sp-3); border-radius:var(--radius-sm); border:1px solid var(--accent-500); background:var(--accent-50); color:var(--accent-700); font-family:var(--font-sans); font-size:var(--fs-label); font-weight:var(--fw-bold); cursor:pointer; transition:all var(--dur-fast) var(--ease-std)}
@@ -636,7 +638,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <span class="word">SOLUM</span>
     <span class="ws-brand">Al Mizan</span>
   </div>
-  <div class="divider-v"></div>
+  <div class="divider-v" id="brandDivider"></div>
   <div class="topbar-plot" id="topbarPlot">
     <span class="nm" id="topbarPlotName">—</span>
     <span class="loc" id="topbarPlotLoc">—</span>
