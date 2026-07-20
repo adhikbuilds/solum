@@ -107,6 +107,7 @@ body.pre-login .topbar,body.pre-login .appbody{display:none}
 }
 .topbar .brand-mini{display:flex; align-items:center; gap:10px; cursor:pointer; flex:0 0 auto}
 .topbar .brand-mini .word{font-weight:var(--fw-black); font-size:1.1875rem; letter-spacing:-.01em; color:var(--ink)}
+.topbar .ws-brand{font-size:11px; font-weight:var(--fw-bold); letter-spacing:.02em; color:var(--accent-700); background:var(--accent-50); border:1px solid var(--accent-100); padding:3px 9px; border-radius:var(--radius-pill); margin-left:8px; white-space:nowrap}
 .topbar .divider-v{width:1px; height:24px; background:var(--line); flex:0 0 auto}
 .topbar-plot{display:flex; flex-direction:column; justify-content:center; min-width:0}
 .topbar-plot .nm{font-weight:var(--fw-bold); font-size:var(--fs-body); color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px}
@@ -334,6 +335,8 @@ table.utable td{padding:10px 12px; border-bottom:1px solid var(--line); vertical
 table.utable input[type=number]{width:100%; font-family:var(--font-mono); font-weight:var(--fw-semibold); font-size:var(--fs-body); border:1px solid var(--line); background:var(--surface-2); border-radius:var(--radius-sm); padding:9px 12px; outline:none; transition:all .2s}
 table.utable input[type=number]:focus{border-color:var(--accent-500); background:var(--surface); box-shadow:var(--sh-inset-focus)}
 table.utable .namecell{display:flex; align-items:center; gap:10px; font-weight:var(--fw-bold)}
+table.utable th.u-col{text-align:right}
+table.utable td.u-count{font-family:var(--font-mono); font-weight:var(--fw-semibold); color:var(--muted); text-align:right; white-space:nowrap}
 table.utable tr.muted{opacity:.4}
 table.utable tr.muted input[type=number]{pointer-events:none; background:var(--line)}
 table.utable tr.muted .namecell::after{content:"off"; margin-left:6px; font-size:9px; font-weight:var(--fw-bold); letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
@@ -631,6 +634,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <circle cx="27" cy="7" r="2.2" fill="var(--ink)"/>
     </svg>
     <span class="word">SOLUM</span>
+    <span class="ws-brand">Al Mizan</span>
   </div>
   <div class="divider-v"></div>
   <div class="topbar-plot" id="topbarPlot">
@@ -803,26 +807,26 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           </div>
           <div>
             <div class="panel">
-              <h2><span class="n">02</span> Optimiser output</h2>
-              <p class="sec-note">The mix the optimiser is currently recommending, as a share of saleable area. Full P&amp;L is on Summary.</p>
-              <div id="mixbar" class="mixbar"></div>
-              <div id="mixlegend" class="mixlegend"></div>
-            </div>
-            <div class="expander">
-              <button class="exp-btn" id="expbtn">▸ Show every mix the optimiser weighed <span id="candcount"></span></button>
-              <div class="exp-body" id="expbody"></div>
+              <h2><span class="n">02</span> Unit types, sizes &amp; pricing <button class="info" data-pop="unitprice">i</button></h2>
+              <p class="sec-note">Size and sales price per sq ft set separately for each type. Units are what the optimiser builds at the recommended mix. A row mutes when that type is switched off.</p>
+              <div id="compsBasisMatrix" class="comps-basis" style="margin:0 0 12px"></div>
+              <table class="utable">
+                <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th><th class="u-col">Units</th></tr></thead>
+                <tbody id="utable-body"></tbody>
+              </table>
+              <div class="avgprice"><span>Blended average price, at recommended mix</span><b id="avgprice-val">—</b></div>
             </div>
           </div>
         </div>
         <div class="panel">
-          <h2><span class="n">03</span> Unit types, sizes &amp; pricing <button class="info" data-pop="unitprice">i</button></h2>
-          <p class="sec-note">Size and sales price per sq ft set separately for each type. A row mutes automatically when that type is switched off above.</p>
-          <div id="compsBasisMatrix" class="comps-basis" style="margin:0 0 12px"></div>
-          <table class="utable">
-            <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th></tr></thead>
-            <tbody id="utable-body"></tbody>
-          </table>
-          <div class="avgprice"><span>Blended average price, at recommended mix</span><b id="avgprice-val">—</b></div>
+          <h2><span class="n">03</span> Optimiser output</h2>
+          <p class="sec-note">The mix the optimiser is currently recommending, as a share of saleable area. Full P&amp;L is on Summary.</p>
+          <div id="mixbar" class="mixbar"></div>
+          <div id="mixlegend" class="mixlegend"></div>
+          <div class="expander" style="margin-top:var(--sp-4)">
+            <button class="exp-btn" id="expbtn">▸ Show every mix the optimiser weighed <span id="candcount"></span></button>
+            <div class="exp-body" id="expbody"></div>
+          </div>
         </div>
       </div>
 
@@ -1418,7 +1422,8 @@ function buildUnitTable(){
     tr.className = t.on ? '' : 'muted';
     tr.innerHTML=`<td><div class="namecell"><span class="dot" style="background:${t.hex}"></span>${t.name}</div></td>
       <td><input type="number" class="u-size" value="${t.size}" step="10" ${t.on?'':'tabindex="-1"'}></td>
-      <td><input type="number" class="u-price" value="${t.price}" step="10" ${t.on?'':'tabindex="-1"'}></td>`;
+      <td><input type="number" class="u-price" value="${t.price}" step="10" ${t.on?'':'tabindex="-1"'}></td>
+      <td class="u-count">—</td>`;
     body.appendChild(tr);
     tr.querySelector('.u-size').addEventListener('input',e=>{ t.size=+e.target.value||1; render(); scheduleSave(); });
     tr.querySelector('.u-price').addEventListener('input',e=>{ t.price=+e.target.value||0; render(); scheduleSave(); });
@@ -1524,10 +1529,17 @@ function render(){
     document.getElementById('buildupTable').innerHTML='';
     document.getElementById('rectable-body').innerHTML='';
     document.getElementById('rectable-foot').innerHTML='';
+    document.querySelectorAll('#utable-body .u-count').forEach(c=>c.textContent='—');
     return;
   }
 
   const v=verdictOf(best.mcost,mk.hurdle);
+
+  /* unit counts per type — the optimiser's build at the recommended mix (calculated, muted) */
+  STATE.types.forEach((t,i)=>{
+    const cell=document.querySelector('#utable-body tr[data-k="'+t.key+'"] .u-count');
+    if(cell) cell.textContent = t.on ? fN(best.u[i]) : '—';
+  });
 
   /* headline KPIs — ROI-first, JD vocabulary */
   document.getElementById('vm-roi').innerHTML=fP(best.mcost)+' <span class="u">net ÷ investment</span>';
