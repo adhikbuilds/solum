@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solum — Land Feasibility Console</title>
+<title>Solum · Land Feasibility Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -205,7 +205,7 @@ body.view-compare #portfolioView{display:none}
 .panel + .panel, .grid + .panel, .panel + .grid, .grid + .grid{margin-top:var(--sp-5)}
 .panel h2{font-size:var(--fs-body); color:var(--ink); font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:var(--sp-2); margin-bottom:4px}
 .panel h2 .n{font-weight:var(--fw-black); font-size:10px; color:var(--accent-500); letter-spacing:.05em; opacity:.8}
-.sec-note{color:var(--muted); font-size:var(--fs-label); line-height:1.5; margin:0 0 var(--sp-4)}
+.sec-note{color:#5E5147; font-size:var(--fs-body); line-height:1.55; margin:0 0 var(--sp-4)}
 
 /* levers */
 .lever{margin-bottom:var(--sp-4)}
@@ -213,6 +213,9 @@ body.view-compare #portfolioView{display:none}
 .lever .lab{display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2)}
 .lever .lab span{font-size:var(--fs-label); color:var(--ink); font-weight:var(--fw-semibold)}
 .lever .field{display:flex; align-items:center; border:1px solid var(--line); background:var(--surface-2); border-radius:var(--radius-sm); overflow:hidden; transition:all var(--dur-fast) var(--ease-std)}
+/* editable fields carry a soft accent border at rest, so it's clear they're editable
+   without clicking; the full accent ring still lands on focus (calc fields opt out) */
+.lever .field:not(.calc){border-color:color-mix(in srgb, var(--accent-500) 28%, var(--line-strong))}
 .lever .field:focus-within{border-color:var(--accent-500); box-shadow:var(--sh-inset-focus); background:var(--surface)}
 /* calculated (read-only) field: keeps a box, but drops the fill and mutes the value
    so it reads as an output the tool works out, not something to fill in */
@@ -701,14 +704,14 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="pf-sort">
             <label for="pf-sortsel">Sort</label>
             <select id="pf-sortsel">
-              <option value="margin|desc">ROI vs hurdle — high to low</option>
-              <option value="margin|asc">ROI vs hurdle — low to high</option>
-              <option value="rlv|desc">RLV — high to low</option>
-              <option value="headroom|desc">Headroom — high to low</option>
-              <option value="land|desc">Land tested — high to low</option>
-              <option value="verdict|desc">Verdict — best first</option>
-              <option value="name|asc">Name — A to Z</option>
-              <option value="location|asc">Location — A to Z</option>
+              <option value="margin|desc">Highest ROI first</option>
+              <option value="margin|asc">Lowest ROI first</option>
+              <option value="rlv|desc">Highest RLV first</option>
+              <option value="headroom|desc">Highest headroom first</option>
+              <option value="land|desc">Highest land tested first</option>
+              <option value="verdict|desc">Best verdict first</option>
+              <option value="name|asc">Name A to Z</option>
+              <option value="location|asc">Location A to Z</option>
             </select>
           </div>
         </div>
@@ -769,7 +772,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
                 <tfoot id="rectable-foot"></tfoot>
               </table>
               <div class="rlv">
-                <div class="k">Residual land value — most you can pay and still hit your hurdle <button class="info" data-pop="rlv">i</button></div>
+                <div class="k">Residual land value: most you can pay and still hit your hurdle <button class="info" data-pop="rlv">i</button></div>
                 <div class="v" id="rlv">—</div>
               </div>
             </div>
@@ -840,7 +843,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <div class="tabpanel-x" id="tab-assumptions" style="display:none">
         <div class="panel">
           <h2><span class="n">01</span> Cost assumptions</h2>
-          <p class="sec-note">Everything below feeds the cost buildup on Summary. Every value is editable — the info icon shows where the default came from.</p>
+          <p class="sec-note">Everything below feeds the cost buildup on Summary. Every value is editable. The info icon shows where the default came from.</p>
 
           <h3 class="cost-group">Land cost</h3>
           <div class="fieldgrid">
@@ -862,9 +865,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
           <h3 class="cost-group">Soft cost</h3>
           <div class="fieldgrid">
-            <div class="lever"><div class="lab"><span>Architect — design &amp; approvals</span><button class="info" data-pop="archd">i</button></div>
+            <div class="lever"><div class="lab"><span>Architect: design &amp; approvals</span><button class="info" data-pop="archd">i</button></div>
               <div class="field"><input type="number" id="in-archdesign" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
-            <div class="lever"><div class="lab"><span>Architect — supervision to completion</span><button class="info" data-pop="archs">i</button></div>
+            <div class="lever"><div class="lab"><span>Architect: supervision to completion</span><button class="info" data-pop="archs">i</button></div>
               <div class="field"><input type="number" id="in-archsuper" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
             <div class="lever"><div class="lab"><span>DEWA, RTA, DDA &amp; authorities</span><button class="info" data-pop="auth">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-authorities" value="2000000" step="100000"><span class="suf">total</span></div></div>
@@ -965,7 +968,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     </div><!-- /plotView -->
 
     <footer>
-      Indicative demo model for the land-buy screen — not a lender-grade appraisal. Each plot you create is saved to your account so you can revisit, or compare it against others.
+      Indicative demo model for the land-buy screen, not a lender-grade appraisal. Each plot you create is saved to your account so you can revisit, or compare it against others.
       <div class="srcs">Sources · DLD transactions via Propsearch &amp; Property Finder · construction cost: Knight Frank Q2-2025, Engel &amp; Völkers · plot &amp; parking rule: DDA Plot Details.</div>
     </footer>
   </main>
@@ -977,7 +980,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <h3>New plot</h3>
 
     <div class="lever">
-      <div class="lab"><span>Auto-fill from DDA — enter the plot number</span></div>
+      <div class="lab"><span>Auto-fill from DDA: enter the plot number</span></div>
       <div class="dda-fetch">
         <div class="field"><input type="text" id="m-dda-num" placeholder="e.g. 6854394" inputmode="numeric" autocomplete="off"></div>
         <button class="btn primary" id="m-dda-fetch" type="button">Fetch</button>
@@ -1147,24 +1150,24 @@ let saveTimer=null;
 let PENDING_DELETE_ID=null;
 
 const POPS = {
-  land:{t:"The plot acquisition price you're testing.", s:"Compare it against the Residual Land Value — the most you can pay and still clear your hurdle.", tier:'input'},
+  land:{t:"The plot acquisition price you're testing.", s:"Compare it against the Residual Land Value, the most you can pay and still clear your hurdle.", tier:'input'},
   hurdle:{t:"Your minimum acceptable profit, measured against total cost.", s:"Dubai residual-style feasibility typically targets 20%+ on cost.", tier:'input'},
   dldfee:{t:"Dubai Land Department transfer fee on the land purchase.", s:"Standard DLD transfer fee is 4% of the land price. Adjust if your deal differs.", tier:'sourced'},
   prog:{t:"Off means the type isn't built at all. When on, the optimiser keeps its share inside your min–max band.", s:"Min is the guideline floor; max reflects what the community can absorb and any master-developer cap.", tier:'modeled'},
   rlv:{t:"Residual land value.", s:"The maximum you could pay for the land and still hit your margin hurdle on the recommended programme.", tier:null},
-  gfa:{t:"Maximum gross floor area — the hard cap on what you can build.", s:"Set this from your plot document (e.g. DDA Plot Details), or auto-filled if you uploaded a PDF.", tier:'input'},
+  gfa:{t:"Maximum gross floor area: the hard cap on what you can build.", s:"Set this from your plot document (e.g. DDA Plot Details), or auto-filled if you uploaded a PDF.", tier:'input'},
   loc:{t:"Community drives comparable pricing and absorption once DLD data is wired in.", s:"Set this from your plot document. Governs which comps this plot is benchmarked against.", tier:'input'},
   cost:{t:"Hard construction cost per sq ft of GFA, mid-market apartment spec.", s:"Knight Frank Q2-2025 apartments AED 400–880/sqft; Engel & Völkers AED 350–700/sqft. Excludes land & fit-out.", tier:'sourced'},
-  archd:{t:"Architect's design and authority-approval fee, as a share of hard construction cost.", s:"No external benchmark wired in yet — edit to match your own fee schedule.", tier:'modeled'},
-  archs:{t:"Architect's site-supervision fee through to building completion certificate, as a share of hard construction cost.", s:"No external benchmark wired in yet — edit to match your own fee schedule.", tier:'modeled'},
-  cont:{t:"Buffer against construction cost overruns, as a share of hard cost.", s:"No external benchmark wired in yet — 10% is a common planning-stage default.", tier:'modeled'},
-  auth:{t:"DEWA, RTA, DDA and other authority connection and NOC fees, as a fixed total.", s:"No external benchmark wired in yet — edit to match your own cost data for this plot.", tier:'modeled'},
-  landsc:{t:"Variation orders, landscaping, and amenity fit-out, as a fixed total.", s:"No external benchmark wired in yet — edit to match your own cost data for this plot.", tier:'modeled'},
-  misc:{t:"Miscellaneous project costs not captured elsewhere, as a fixed total.", s:"No external benchmark wired in yet — edit to match your own cost data for this plot.", tier:'modeled'},
-  park:{t:"Cost to build one parking bay, added per bay required by the unit mix.", s:"No external benchmark wired in yet — edit to match your own cost data.", tier:'modeled'},
-  mkt:{t:"Marketing, agent commission, and sales cost as a share of gross development value.", s:"No external benchmark wired in yet — 3–5% of GDV is typical for Dubai off-plan.", tier:'modeled'},
-  unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption — no DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
-  breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix — if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
+  archd:{t:"Architect's design and authority-approval fee, as a share of hard construction cost.", s:"No external benchmark wired in yet. Edit to match your own fee schedule.", tier:'modeled'},
+  archs:{t:"Architect's site-supervision fee through to building completion certificate, as a share of hard construction cost.", s:"No external benchmark wired in yet. Edit to match your own fee schedule.", tier:'modeled'},
+  cont:{t:"Buffer against construction cost overruns, as a share of hard cost.", s:"No external benchmark wired in yet. 10% is a common planning-stage default.", tier:'modeled'},
+  auth:{t:"DEWA, RTA, DDA and other authority connection and NOC fees, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
+  landsc:{t:"Variation orders, landscaping, and amenity fit-out, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
+  misc:{t:"Miscellaneous project costs not captured elsewhere, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
+  park:{t:"Cost to build one parking bay, added per bay required by the unit mix.", s:"No external benchmark wired in yet. Edit to match your own cost data.", tier:'modeled'},
+  mkt:{t:"Marketing, agent commission, and sales cost as a share of gross development value.", s:"No external benchmark wired in yet. 3–5% of GDV is typical for Dubai off-plan.", tier:'modeled'},
+  unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption. No DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
+  breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix: if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
   coverage:{t:"Building footprint as a share of plot area, implied by GFA, floor count, podium and basement levels.", s:"A rough planning check, not a substitute for the DDA plot document.", tier:'modeled'},
 };
 
@@ -1310,7 +1313,7 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
 
 /* ---------------- delete plot (demoted, always confirms via modal) ---------------- */
 document.getElementById('btnDelete').addEventListener('click', ()=>{
-  if(PROJECTS.length<=1){ alert("You need at least one plot — create another before deleting this one."); return; }
+  if(PROJECTS.length<=1){ alert("You need at least one plot. Create another before deleting this one."); return; }
   PENDING_DELETE_ID=CURRENT_ID;
   document.getElementById('deleteMsg').textContent=`Delete "${STATE.name}"? This cannot be undone.`;
   document.getElementById('deleteOverlay').classList.add('show');
@@ -1599,8 +1602,8 @@ function render(){
     row2('Land (tested)',fA(mk.land),psf(mk.land))+
     row2('DLD transfer fee',fA(best.dld),psf(best.dld))+
     row2('Construction (hard)',fA(best.hard),psf(best.hard))+
-    row2('Architect — design',fA(best.archd),psf(best.archd))+
-    row2('Architect — supervision',fA(best.archs),psf(best.archs))+
+    row2('Architect: design',fA(best.archd),psf(best.archd))+
+    row2('Architect: supervision',fA(best.archs),psf(best.archs))+
     row2('Contingency',fA(best.cont),psf(best.cont))+
     row2('Authorities',fA(best.auth),psf(best.auth))+
     row2('Landscape & variations',fA(best.landsc),psf(best.landsc))+
@@ -1869,7 +1872,7 @@ document.getElementById('pf-grid').addEventListener('click', async e=>{
       await putProject(nid, clone);
       await loadPortfolioRows(); renderPortfolio();
     } else if(act==='del'){
-      if(PROJECTS.length<=1){ alert("You need at least one plot — create another before deleting this one."); return; }
+      if(PROJECTS.length<=1){ alert("You need at least one plot. Create another before deleting this one."); return; }
       const row=PORTFOLIO_ROWS.find(r=>r.id===id);
       PENDING_DELETE_ID=id;
       document.getElementById('deleteMsg').textContent=`Delete "${row?row.name:'this plot'}"? This cannot be undone.`;
@@ -2071,9 +2074,9 @@ function applyDdaExtraction(a){
   push('Developer', a.DEVELOPER_NAME);
   push('Old plot no.', a.OLD_PLOT_NUMBERS);
   push('Max height', a.MAX_HEIGHT);
-  if(a.IS_FROZEN) notes.push('⚠ Plot is FROZEN'+(a.FREEZE_REASON?' — '+a.FREEZE_REASON:''));
+  if(a.IS_FROZEN) notes.push('⚠ Plot is FROZEN'+(a.FREEZE_REASON?': '+a.FREEZE_REASON:''));
   if(a.GENERAL_NOTES && String(a.GENERAL_NOTES).trim()) notes.push('\nDDA notes:\n'+String(a.GENERAL_NOTES).trim());
-  LAST_PDF_NOTES = notes.length ? 'From DDA register (plot '+(a.PLOT_NUMBER||'')+') —\n'+notes.join('\n') : '';
+  LAST_PDF_NOTES = notes.length ? 'From DDA register (plot '+(a.PLOT_NUMBER||'')+'):\n'+notes.join('\n') : '';
   return hits;
 }
 async function fetchDdaPlot(){
@@ -2087,7 +2090,7 @@ async function fetchDdaPlot(){
     const data=await r.json().catch(()=>({}));
     if(!r.ok){ st.textContent=(data && data.error) || 'Could not fetch this plot.'; return; }
     const n=applyDdaExtraction(data.attributes);
-    st.textContent = n>0 ? ('Filled '+n+' field'+(n>1?'s':'')+' from DDA — review below, then create.') : 'Found the plot, but nothing usable came back.';
+    st.textContent = n>0 ? ('Filled '+n+' field'+(n>1?'s':'')+' from DDA. Review below, then create.') : 'Found the plot, but nothing usable came back.';
   }catch(e){ st.textContent='Could not reach the lookup service. Try again.'; }
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
@@ -2117,14 +2120,14 @@ function applyPdfExtraction(text){
     grab('Master developer',/Master\s*Developer\s*[:\-]?\s*\n?\s*([A-Za-z][A-Za-z0-9 .,'&\-()]{2,60})/i),
     grab('Project',         /Project\s*Name\s*[:\-]?\s*\n?\s*([A-Za-z][A-Za-z0-9 .,'&\-()]{2,60})/i)
   ].filter(Boolean);
-  LAST_PDF_NOTES = notes.length ? 'From plot PDF —\n'+notes.join('\n') : '';
+  LAST_PDF_NOTES = notes.length ? 'From plot PDF:\n'+notes.join('\n') : '';
   return hits;
 }
 document.getElementById('m-pdf').addEventListener('change', async e=>{
   pdfStatus('File selected — starting…');   /* immediate proof the picker fired */
   const file=e.target.files && e.target.files[0];
   if(!file){
-    pdfStatus('No file actually came through. A secure/isolation browser often blocks the upload from reaching the page — open Solum in a normal browser tab, or just fill the fields in manually below.');
+    pdfStatus('No file actually came through. A secure/isolation browser often blocks the upload from reaching the page. Open Solum in a normal browser tab, or just fill the fields in manually below.');
     return;
   }
   pdfStatus('Reading “'+(file.name||'file')+'” ('+Math.round((file.size||0)/1024)+' KB)…');
@@ -2132,13 +2135,13 @@ document.getElementById('m-pdf').addEventListener('change', async e=>{
     const text=await ocrPlotPdf(file);
     const hits=applyPdfExtraction(text);
     pdfStatus(hits>0
-      ? `Extracted ${hits} field${hits>1?'s':''} — check the highlighted fields and correct anything that looks off.`
-      : `Couldn't confidently read this PDF — enter the details manually below.`);
+      ? `Extracted ${hits} field${hits>1?'s':''}. Check the highlighted fields and correct anything that looks off.`
+      : `Couldn't confidently read this PDF. Enter the details manually below.`);
   }catch(err){
     console.error(err);
     const msg=(err&&err.message&&/blocked|unreachable/i.test(err.message))
-      ? `Couldn't load the reader — ${err.message}. Enter the details manually below.`
-      : 'Could not read this PDF — enter the details manually below.';
+      ? `Couldn't load the reader. ${err.message} Enter the details manually below.`
+      : 'Could not read this PDF. Enter the details manually below.';
     pdfStatus(msg);
   }
 });
@@ -2171,7 +2174,7 @@ async function exportPDF(){
     await ensureJsPdf();
     const mk=marketInputs(STATE);
     const {best}=optimise(mk,STATE);
-    if(!best){ alert('No valid mix — fix the unit programme bands on Unit Matrix before exporting.'); return; }
+    if(!best){ alert('No valid mix. Fix the unit programme bands on Unit Matrix before exporting.'); return; }
     const v=verdictOf(best.mcost,mk.hurdle);
     if(!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF library did not load');
     const { jsPDF } = window.jspdf;
@@ -2188,7 +2191,7 @@ async function exportPDF(){
     doc.setDrawColor(255); doc.setLineWidth(1.4); doc.roundedRect(M,22,34,34,6,6,'S');
     doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
     doc.text('S', M+17, 44, {align:'center'});
-    doc.setFontSize(18); doc.text('Solum — Land Feasibility', M+48, 40);
+    doc.setFontSize(18); doc.text('Solum · Land Feasibility', M+48, 40);
     doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(220,210,200);
     doc.text((STATE.name||'Untitled plot')+'    ·    '+([STATE.community,STATE.subcommunity].filter(Boolean).join(', ')||'No community set')+'    ·    '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), M+48, 57);
 
@@ -2237,7 +2240,7 @@ async function exportPDF(){
     y=sectionTitle('Cost buildup', y);
     const buildupRows=[
       ['GDV (sales revenue)', fA(best.gdv)], ['Land (tested)', fA(mk.land)], ['Construction (hard)', fA(best.hard)],
-      ['Architect — design', fA(best.archd)], ['Architect — supervision', fA(best.archs)], ['Contingency', fA(best.cont)],
+      ['Architect: design', fA(best.archd)], ['Architect: supervision', fA(best.archs)], ['Contingency', fA(best.cont)],
       ['Authorities', fA(best.auth)], ['Landscape & variations', fA(best.landsc)], ['Miscellaneous', fA(best.misc)],
       ['Parking bays', fA(best.park)], ['Marketing & sales', fA(best.mkt)], ['Total investment', fA(best.total)], ['Net profit', fA(best.profit)],
     ];
@@ -2284,8 +2287,8 @@ const ANTHROPIC_KEY = '';
 const AI_FIELD_SCHEMA = [
   {path:'market.hurdle', label:'Margin hurdle', unit:'% on cost'},
   {path:'market.land', label:'Land price tested', unit:'AED'},
-  {path:'assumptions.archDesign', label:'Architect — design %', unit:'% of hard cost'},
-  {path:'assumptions.archSuper', label:'Architect — supervision %', unit:'% of hard cost'},
+  {path:'assumptions.archDesign', label:'Architect: design %', unit:'% of hard cost'},
+  {path:'assumptions.archSuper', label:'Architect: supervision %', unit:'% of hard cost'},
   {path:'assumptions.cont', label:'Contingency %', unit:'% of hard cost'},
   {path:'assumptions.authorities', label:'Authorities total', unit:'AED'},
   {path:'assumptions.landscape', label:'Landscape & variations total', unit:'AED'},
@@ -2323,7 +2326,7 @@ function aiAppendDiff(changes){
       <button class="discard">Discard</button>
       <button class="apply">Apply</button>
     </div>`;
-  wrap.querySelector('.discard').addEventListener('click', ()=>{ wrap.remove(); aiAppendMsg('assistant','Discarded — nothing changed.'); });
+  wrap.querySelector('.discard').addEventListener('click', ()=>{ wrap.remove(); aiAppendMsg('assistant','Discarded. Nothing changed.'); });
   wrap.querySelector('.apply').addEventListener('click', ()=>{
     changes.forEach(c=> setByPath(STATE, c.path, c.newValue));
     hydrateFromState(); scheduleSave();
@@ -2433,7 +2436,7 @@ function initCommunityTypeahead(){
 }
 async function pullComps(){
   const basis=document.getElementById('compsBasis'); basis.className='comps-basis';
-  if(!sb){ basis.textContent='Comps unavailable — no connection.'; return; }
+  if(!sb){ basis.textContent='Comps unavailable. No connection.'; return; }
   const areaId=resolveAreaId();
   if(areaId==null){ basis.textContent='Pick a community from the DLD list to pull comps.'; return; }
   const btn=document.getElementById('btnPullComps'), orig=btn.textContent;
@@ -2467,13 +2470,13 @@ function applyComps(rows){
   if(applied){
     const perType=STATE.types.filter(t=>t.sourced).map(t=>`${t.name}: ${fN(t.size)} sqft @ ${fN(t.price)}/sqft (n=${(by[t.name].sample_n).toLocaleString()})`).join('  ·  ');
     POPS.unitprice={ t:'Size and sales price per sq ft, per unit type.',
-      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''} — sizes are the median sold size, prices outlier-trimmed & recency-weighted. Per type — ${perType}.`,
+      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''}. Sizes are the median sold size, prices outlier-trimmed & recency-weighted. Per type: ${perType}.`,
       tier:'sourced' };
     cls='comps-basis sourced';
     msg=`Market-sourced · sizes & prices from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
   } else {
     cls='comps-basis';
-    msg=`Not enough DLD comps (need ≥${MIN} per type) for ${community} — pricing stays modeled.`;
+    msg=`Not enough DLD comps (need ≥${MIN} per type) for ${community}. Pricing stays modeled.`;
   }
   [document.getElementById('compsBasis'), document.getElementById('compsBasisMatrix')].forEach(el=>{
     if(el){ el.className=cls; el.textContent=msg; }
@@ -2553,7 +2556,7 @@ async function doLogin(){
   const password=document.getElementById('loginPass').value||'';
   const btn=document.getElementById('btnLogin'), err=document.getElementById('loginErr');
   err.textContent='';
-  if(!sb){ err.textContent='Auth service unavailable — check your connection and reload.'; return; }
+  if(!sb){ err.textContent='Auth service unavailable. Check your connection and reload.'; return; }
   const orig=btn.textContent; btn.disabled=true; btn.textContent='Signing in…';
   try{
     const {error}=await sb.auth.signInWithPassword({email, password});
