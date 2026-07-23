@@ -2194,6 +2194,10 @@ async function exportPDF(){
     doc.setFontSize(18); doc.text('Solum · Land Feasibility', M+48, 40);
     doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(220,210,200);
     doc.text((STATE.name||'Untitled plot')+'    ·    '+([STATE.community,STATE.subcommunity].filter(Boolean).join(', ')||'No community set')+'    ·    '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), M+48, 57);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255);
+    doc.text('Al Mizan', W-M, 40, {align:'right'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(200,190,180);
+    doc.text('Land feasibility', W-M, 54, {align:'right'});
 
     const kpis=[
       ['VERDICT', v, best.mcost>=mk.hurdle?'clears hurdle':'below hurdle', vcol],
@@ -2230,6 +2234,7 @@ async function exportPDF(){
       columnStyles:{0:{halign:'left'}},
       margin:{left:M, right:M}};
     const sectionTitle=function(t,yy){
+      if(yy>H-96){ doc.addPage(); yy=54; }   /* never orphan a title at the page foot */
       doc.setFillColor(PINE[0],PINE[1],PINE[2]); doc.rect(M,yy,3,12,'F');
       doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK[0],INK[1],INK[2]);
       doc.text(t.toUpperCase(), M+9, yy+10);
@@ -2237,7 +2242,19 @@ async function exportPDF(){
     };
 
     let y=sy+sh+22;
-    y=sectionTitle('Cost buildup', y);
+
+    /* Project summary — plot geometry (mirrors the JD console's summary block) */
+    y=sectionTitle('Project summary', y);
+    doc.autoTable(Object.assign({}, base, {startY:y, head:[['Metric','Value']],
+      body:[
+        ['Total plot size', fN(STATE.plot.plotArea)+' sqft'],
+        ['GFA (gross floor area)', fN(STATE.plot.gfa)+' sqft'],
+        ['Saleable (net) area', fN(best.sal)+' sqft'],
+        ['Efficiency (saleable ÷ GFA)', fP(best.eff)],
+      ],
+      columnStyles:{0:{halign:'left'},1:{halign:'right'}}}));
+
+    y=sectionTitle('Cost buildup', doc.lastAutoTable.finalY+18);
     const buildupRows=[
       ['GDV (sales revenue)', fA(best.gdv)], ['Land (tested)', fA(mk.land)], ['Construction (hard)', fA(best.hard)],
       ['Architect: design', fA(best.archd)], ['Architect: supervision', fA(best.archs)], ['Contingency', fA(best.cont)],
@@ -2247,28 +2264,60 @@ async function exportPDF(){
     doc.autoTable(Object.assign({startY:y, head:[['Item','AED']], body:buildupRows, columnStyles:{0:{halign:'left'},1:{halign:'right'}}}, base));
 
     y=sectionTitle('Recommended unit mix', doc.lastAutoTable.finalY+18);
-    const unitRows=STATE.types.map((t,i)=>{ const n=Math.round(best.u[i]); const totalSize=n*t.size; return [t.name, nf(t.size)+' sqft', n, nf(totalSize)+' sqft', nf(t.price), fA(totalSize*t.price)]; });
+    const unitRows=STATE.types.map((t,i)=>{ const n=Math.round(best.u[i]); const totalSize=n*t.size; return [t.name, fN(t.size)+' sqft', n, fN(totalSize)+' sqft', fN(t.price), fA(t.size*t.price), fA(totalSize*t.price)]; });
     const totalUnits=Math.round(best.u.reduce((a,b)=>a+b,0));
     doc.autoTable(Object.assign({}, base, {startY:y,
-      head:[['Type','Size','Units','Total size','Price/sqft','Total value']],
+      head:[['Type','Size','Units','Total size','Price/sqft','Price/unit','Total value']],
       body:unitRows,
-      foot:[[{content:'Total'},'',{content:String(totalUnits)},'','',{content:fA(best.gdv)}]],
-      footStyles:{fillColor:SOFT, textColor:INK, fontStyle:'bold', halign:'right', fontSize:9},
-      columnStyles:{0:{halign:'left'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'}}}));
+      foot:[[{content:'Total'},'',{content:String(totalUnits)},'','','',{content:fA(best.gdv)}]],
+      headStyles:Object.assign({}, base.headStyles, {fontSize:7.5, cellPadding:4}),
+      bodyStyles:Object.assign({}, base.bodyStyles, {fontSize:8, cellPadding:3.5}),
+      footStyles:{fillColor:SOFT, textColor:INK, fontStyle:'bold', halign:'right', fontSize:8},
+      columnStyles:{0:{halign:'left'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}}));
+
+    /* Profitability waterfall — JD's structure, reconciles exactly to our net profit */
+    y=sectionTitle('Profitability', doc.lastAutoTable.finalY+18);
+    doc.autoTable(Object.assign({}, base, {startY:y, head:[['Line','AED']],
+      body:[
+        ['Gross sales value', fA(best.gdv)],
+        ['Less: marketing & sales ('+fN(STATE.assumptions.mkt)+'% of sales)', '('+fA(best.mkt)+')'],
+        ['Net sales value', fA(best.gdv-best.mkt)],
+        ['Less: development & land cost', '('+fA(best.total-best.mkt)+')'],
+        ['Net profit', fA(best.profit)],
+      ],
+      columnStyles:{0:{halign:'left'},1:{halign:'right'}}}));
 
     y=sectionTitle('Land & hurdle', doc.lastAutoTable.finalY+18);
     doc.autoTable(Object.assign({}, base, {startY:y, head:[['Item','Value']],
       body:[['Land price tested', fA(mk.land)], ['Margin hurdle', fP(mk.hurdle)], ['Residual land value', fA(best.rlv)],
         ['Headroom vs tested land', (best.rlv-mk.land>=0?'+':'')+fA(best.rlv-mk.land)],
-        ['Breakeven price/sqft', nf(best.breakevenPsf)]],
+        ['Breakeven price/sqft', fN(best.breakevenPsf)]],
       columnStyles:{0:{halign:'left'},1:{halign:'right'}}}));
+
+    /* Joint development · investor share — mirrors the JD console's headline section.
+       Project column is real; the investor column + developer fee are stubbed until a
+       share % lives in the app (see docs — this is the deliberate stub in this export). */
+    y=sectionTitle('Joint development · investor share', doc.lastAutoTable.finalY+18);
+    doc.autoTable(Object.assign({}, base, {startY:y,
+      head:[['Component','Project (100%)','Investor share']],
+      body:[
+        ['Land cost', fA(mk.land), '—'],
+        ['Development cost', fA(best.total-mk.land), '—'],
+        ['Total investment', fA(best.total), '—'],
+        ["Developer's fee (% of net profit)", '—', '—'],
+        ["Investor's share of net profit", fA(best.profit), '—'],
+      ],
+      columnStyles:{0:{halign:'left'},1:{halign:'right'},2:{halign:'right'}}}));
+    let capY=doc.lastAutoTable.finalY+13; if(capY>H-46){ doc.addPage(); capY=58; }
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]);
+    doc.text('Set an investor share percentage and developer fee in the app to populate the investor column. Mirrors the JD Console joint-development split.', M, capY, {maxWidth:W-2*M});
 
     const pages=doc.internal.getNumberOfPages();
     for(let p=1;p<=pages;p++){
       doc.setPage(p);
       doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(.5); doc.line(M,H-32,W-M,H-32);
       doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]);
-      doc.text('Solum · indicative feasibility model, not a lender-grade appraisal', M, H-20);
+      doc.text('Al Mizan · Solum land feasibility · indicative model, not a lender-grade appraisal', M, H-20);
       doc.text('Page '+p+' of '+pages, W-M, H-20, {align:'right'});
     }
     doc.save((STATE.name||'plot').replace(/[^\w]+/g,'_')+'_feasibility.pdf');
