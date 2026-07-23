@@ -216,6 +216,9 @@ body.view-compare #portfolioView{display:none}
 /* editable fields carry a soft accent border at rest, so it's clear they're editable
    without clicking; the full accent ring still lands on focus (calc fields opt out) */
 .lever .field:not(.calc){border-color:color-mix(in srgb, var(--accent-500) 28%, var(--line-strong))}
+/* .own — a value the user always sets themselves (never read from DDA/PDF, e.g. land price).
+   Marked with an accent wash + solid accent border so it reads as "your input" among fetched fields. */
+.lever .field.own{background:var(--accent-50); border-color:var(--accent-500)}
 .lever .field:focus-within{border-color:var(--accent-500); box-shadow:var(--sh-inset-focus); background:var(--surface)}
 /* calculated (read-only) field: keeps a box, but drops the fill and mutes the value
    so it reads as an output the tool works out, not something to fill in */
@@ -751,20 +754,37 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="sc"><div class="k">Cost / sqft (no land)</div><div class="v" id="sm-cpsf-n">—</div></div>
         </div>
 
-        <!-- development programme — total units / sellable area / avg size -->
-        <div class="devstrip" id="devstrip"></div>
+        <!-- land price & margin hurdle — the levers you flex most, kept up top -->
+        <div class="panel">
+          <h2><span class="n">01</span> Land price &amp; margin hurdle</h2>
+          <p class="sec-note">The two live levers you flex most when negotiating this specific plot.</p>
+          <div class="leverrow">
+            <div class="lever">
+              <div class="lab"><span>Land price you're testing</span><button class="info" data-pop="land">i</button></div>
+              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land" value="30000000" step="500000"><span class="suf">total</span></div>
+            </div>
+            <div class="lever">
+              <div class="lab"><span>Your margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
+              <div class="field"><input type="number" id="in-hurdle" value="20" step="1"><span class="suf">% on cost</span></div>
+            </div>
+          </div>
+          <div class="rlv" style="margin-top:var(--sp-4)">
+            <div class="k">Price/sqft needed to hit your hurdle at this land price <button class="info" data-pop="breakeven">i</button></div>
+            <div class="v" id="breakeven">—</div>
+          </div>
+        </div>
 
         <div class="grid">
           <div>
             <div class="panel">
-              <h2><span class="n">01</span> Cost buildup</h2>
+              <h2><span class="n">02</span> Cost buildup</h2>
               <p class="sec-note">Full cost stack behind the recommended mix, at today's land price. AED/sqft is of total saleable area.</p>
               <table class="buildup" id="buildupTable"></table>
             </div>
           </div>
           <div>
             <div class="panel">
-              <h2><span class="n">02</span> Recommended unit mix</h2>
+              <h2><span class="n">03</span> Recommended unit mix</h2>
               <p class="sec-note">The profit-maximising mix inside your bands on Unit Matrix, re-solved live.</p>
               <table class="rectable">
                 <thead><tr><th>Type</th><th>Size</th><th>Units</th><th>Total size</th><th>Price/sqft</th><th>Total value</th></tr></thead>
@@ -776,24 +796,8 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
                 <div class="v" id="rlv">—</div>
               </div>
             </div>
-            <div class="panel">
-              <h2><span class="n">03</span> Land price &amp; margin hurdle</h2>
-              <p class="sec-note">The two live levers you flex most when negotiating this specific plot.</p>
-              <div class="leverrow">
-                <div class="lever">
-                  <div class="lab"><span>Land price you're testing</span><button class="info" data-pop="land">i</button></div>
-                  <div class="field"><span class="pre">AED</span><input type="number" id="in-land" value="30000000" step="500000"><span class="suf">total</span></div>
-                </div>
-                <div class="lever">
-                  <div class="lab"><span>Your margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
-                  <div class="field"><input type="number" id="in-hurdle" value="20" step="1"><span class="suf">% on cost</span></div>
-                </div>
-              </div>
-              <div class="rlv" style="margin-top:var(--sp-4)">
-                <div class="k">Price/sqft needed to hit your hurdle at this land price <button class="info" data-pop="breakeven">i</button></div>
-                <div class="v" id="breakeven">—</div>
-              </div>
-            </div>
+            <!-- development programme — unit stats, sits below the recommended mix -->
+            <div class="devstrip" id="devstrip"></div>
           </div>
         </div>
 
@@ -848,7 +852,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <h3 class="cost-group">Land cost</h3>
           <div class="fieldgrid">
             <div class="lever"><div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
-              <div class="field"><span class="pre">AED</span><input type="number" id="in-land-a" value="30000000" step="500000"><span class="suf">total</span></div></div>
+              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land-a" value="30000000" step="500000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>DLD transfer fee</span><button class="info" data-pop="dldfee">i</button></div>
               <div class="field"><input type="number" id="in-dldfee" value="4" step="0.5"><span class="suf">% of land</span></div></div>
           </div>
@@ -918,7 +922,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <div class="lever"><div class="lab"><span>Floors (G+..)</span></div>
               <div class="field"><input type="number" id="in-floors" value="14" step="1"><span class="suf">levels</span></div></div>
             <div class="lever"><div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
-              <div class="field"><span class="pre">AED</span><input type="number" id="in-land-d" value="30000000" step="500000"><span class="suf">total</span></div></div>
+              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land-d" value="30000000" step="500000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Usage / designation</span></div>
               <div class="field"><input type="text" id="in-usage" value="Residential"></div></div>
             <div class="lever"><div class="lab"><span>Basement levels</span></div>
