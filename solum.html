@@ -2183,10 +2183,15 @@ async function exportPDF(){
     const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=40;
     const INK=THEME.rgb('--ink'), MUTE=THEME.rgb('--muted'), PINE=THEME.rgb('--accent-500'),
           PINE_D=THEME.rgb('--accent-700'), LINE=THEME.rgb('--line'), SOFT=THEME.rgb('--surface-2');
+    /* Report ink: the app's --ink (#1A0E08) reads as harsh near-black on paper.
+       For print we use a softer, professional warm graphite for heavy fills
+       (header band, table headers) and a slightly lifted charcoal for body text. */
+    const SLATE=[56,52,46];   /* #38342E — header band + table headers (was near-black) */
+    const TEXT=[46,42,36];    /* #2E2A24 — data/body text, easier on the eye than pure ink */
     const VCOLOR={PURSUE:THEME.rgb('--success'), NEGOTIATE:THEME.rgb('--warning'), PASS:THEME.rgb('--error')};
     const vcol=VCOLOR[v];
 
-    doc.setFillColor(INK[0],INK[1],INK[2]); doc.rect(0,0,W,76,'F');
+    doc.setFillColor(SLATE[0],SLATE[1],SLATE[2]); doc.rect(0,0,W,76,'F');
     doc.setFillColor(PINE[0],PINE[1],PINE[2]); doc.rect(0,76,W,3,'F');
     doc.setDrawColor(255); doc.setLineWidth(1.4); doc.roundedRect(M,22,34,34,6,6,'S');
     doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
@@ -2201,8 +2206,8 @@ async function exportPDF(){
 
     const kpis=[
       ['VERDICT', v, best.mcost>=mk.hurdle?'clears hurdle':'below hurdle', vcol],
-      ['ROI', fP(best.mcost), 'net profit ÷ investment', INK],
-      ['RETURN ON PROJECT', fP(best.mgdv), 'net profit ÷ gross sales', INK],
+      ['ROI', fP(best.mcost), 'net profit ÷ investment', TEXT],
+      ['RETURN ON PROJECT', fP(best.mgdv), 'net profit ÷ gross sales', TEXT],
       ['NET PROFIT', fM(best.profit), 'at recommended mix', PINE_D],
     ];
     const ky=94, kh=54, kw=(W-2*M)/kpis.length;
@@ -2224,19 +2229,19 @@ async function exportPDF(){
     sideMetrics.forEach(function(k,i){
       const x=M+i*sw2+9;
       doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(MUTE[0],MUTE[1],MUTE[2]); doc.text(k[0].toUpperCase(),x,sy+13);
-      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(INK[0],INK[1],INK[2]); doc.text(k[1],x,sy+25);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(TEXT[0],TEXT[1],TEXT[2]); doc.text(k[1],x,sy+25);
     });
 
     const base={theme:'grid',
-      headStyles:{fillColor:INK, textColor:[255,255,255], halign:'right', fontStyle:'bold', fontSize:8.5, cellPadding:5},
-      bodyStyles:{fontSize:9, cellPadding:4.5, textColor:INK, lineColor:LINE, lineWidth:.5},
+      headStyles:{fillColor:SLATE, textColor:[255,255,255], halign:'right', fontStyle:'bold', fontSize:8.5, cellPadding:5},
+      bodyStyles:{fontSize:9, cellPadding:4.5, textColor:TEXT, lineColor:LINE, lineWidth:.5},
       alternateRowStyles:{fillColor:SOFT},
       columnStyles:{0:{halign:'left'}},
       margin:{left:M, right:M}};
     const sectionTitle=function(t,yy){
       if(yy>H-96){ doc.addPage(); yy=54; }   /* never orphan a title at the page foot */
       doc.setFillColor(PINE[0],PINE[1],PINE[2]); doc.rect(M,yy,3,12,'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK[0],INK[1],INK[2]);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(TEXT[0],TEXT[1],TEXT[2]);
       doc.text(t.toUpperCase(), M+9, yy+10);
       return yy+18;
     };
@@ -2272,7 +2277,7 @@ async function exportPDF(){
       foot:[[{content:'Total'},'',{content:String(totalUnits)},'','','',{content:fA(best.gdv)}]],
       headStyles:Object.assign({}, base.headStyles, {fontSize:7.5, cellPadding:4}),
       bodyStyles:Object.assign({}, base.bodyStyles, {fontSize:8, cellPadding:3.5}),
-      footStyles:{fillColor:SOFT, textColor:INK, fontStyle:'bold', halign:'right', fontSize:8},
+      footStyles:{fillColor:SOFT, textColor:TEXT, fontStyle:'bold', halign:'right', fontSize:8},
       columnStyles:{0:{halign:'left'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}}));
 
     /* Profitability waterfall — JD's structure, reconciles exactly to our net profit */
