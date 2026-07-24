@@ -297,7 +297,7 @@ table.buildup tr.profit td{border-bottom:0; padding-top:12px}
 table.buildup tr.profit td.lab{color:var(--accent-500); font-weight:var(--fw-bold); font-size:var(--fs-label)}
 table.buildup tr.profit td.val{font-size:var(--fs-body); color:var(--accent-500); font-weight:var(--fw-black)}
 /* sub-section headings inside the cost buildup (mirror the Cost assumptions groups) */
-table.buildup tr.grp td{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.07em; text-transform:uppercase; color:var(--accent-700); padding:16px 0 6px; border-bottom:1px solid var(--line)}
+table.buildup tr.grp td{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.07em; text-transform:uppercase; color:var(--accent-500); padding:16px 0 6px; border-bottom:1px solid var(--line)}
 table.buildup tr.grp:first-child td{padding-top:2px}
 
 table.rectable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
@@ -543,7 +543,11 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 .empty-card .ec-sub{font-size:var(--fs-body); color:var(--muted); line-height:1.55; margin-bottom:var(--sp-5)}
 .empty-card .btn{margin:0 auto}
 .pdf-tag{display:inline-block; margin-left:8px; font-size:10px; font-weight:var(--fw-black); letter-spacing:.06em; text-transform:uppercase; color:var(--accent-700); background:var(--accent-50); border-radius:var(--radius-pill); padding:1px 7px; vertical-align:middle}
-.cost-group{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.08em; text-transform:uppercase; color:var(--accent-700); margin:var(--sp-6) 0 var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid var(--line)}
+.cost-group{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.08em; text-transform:uppercase; color:var(--accent-500); margin:var(--sp-6) 0 var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid var(--line)}
+/* Summary two-column grid: right column stacks unit stats + recommended mix + scenarios */
+.sum-grid{align-items:start}
+.sum-right{display:flex; flex-direction:column; gap:var(--sp-5)}
+.sum-right .devstrip{margin-bottom:0}
 .cost-group:first-of-type{margin-top:var(--sp-2)}
 .note-save{display:flex; align-items:center; gap:12px; margin-top:12px}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
@@ -692,7 +696,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <div class="leftnav-eyebrow">This plot</div>
     <button class="leftnav-item active" data-tab="summary">Summary</button>
     <button class="leftnav-item" data-tab="mix">Unit Matrix</button>
-    <button class="leftnav-item" data-tab="assumptions">Cost assumptions</button>
+    <button class="leftnav-item" data-tab="assumptions">Assumptions</button>
     <button class="leftnav-item" data-tab="details">Plot Details</button>
     <div class="leftnav-eyebrow leftnav-section2">Market</div>
     <button class="leftnav-item" data-tab="market">Market Insights</button>
@@ -771,19 +775,18 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="sc"><div class="k">Cost / sqft (no land)</div><div class="v" id="sm-cpsf-n">—</div></div>
         </div>
 
-        <!-- development programme — total units / sellable area / avg size -->
-        <div class="devstrip" id="devstrip"></div>
-
-        <div class="grid">
+        <div class="grid sum-grid">
           <div>
             <div class="panel">
-              <h2><span class="n">01</span> Cost buildup</h2>
-              <p class="sec-note">Full cost stack behind the recommended mix, at today's land price. AED/sqft is of total saleable area.</p>
+              <h2><span class="n">01</span> Financial breakdown</h2>
+              <p class="sec-note">Revenue, cost and profit behind the recommended mix, at today's land price. AED/sqft is of total saleable area.</p>
               <table class="buildup" id="buildupTable"></table>
             </div>
           </div>
-          <div>
-            <div class="panel">
+          <div class="sum-right">
+            <!-- development programme — total units / sellable area / avg size -->
+            <div class="devstrip" id="devstrip"></div>
+            <div class="panel sum-mix">
               <h2><span class="n">02</span> Recommended unit mix</h2>
               <p class="sec-note">The profit-maximising mix within the Unit Matrix bands, re-solved live.</p>
               <table class="rectable">
@@ -795,32 +798,17 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
                 <div class="k">Residual land value: the most payable that still clears the hurdle <button class="info" data-pop="rlv">i</button></div>
                 <div class="v" id="rlv">—</div>
               </div>
-            </div>
-            <div class="panel">
-              <h2><span class="n">03</span> Land price &amp; margin hurdle</h2>
-              <p class="sec-note">The two levers that move this deal the most: land price and the profit hurdle.</p>
-              <div class="leverrow">
-                <div class="lever">
-                  <div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
-                  <div class="field"><span class="pre">AED</span><input type="number" id="in-land" value="28750000" step="500000"><span class="suf">total</span></div>
-                </div>
-                <div class="lever">
-                  <div class="lab"><span>Margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
-                  <div class="field"><input type="number" id="in-hurdle" value="20" step="1"><span class="suf">% on cost</span></div>
-                </div>
-              </div>
               <div class="rlv" style="margin-top:var(--sp-4)">
                 <div class="k">Price/sqft needed to clear the hurdle <button class="info" data-pop="breakeven">i</button></div>
                 <div class="v" id="breakeven">—</div>
               </div>
             </div>
+            <div class="panel">
+              <h2><span class="n">03</span> Scenario testing</h2>
+              <p class="sec-note">The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Assumptions.</p>
+              <div class="scen" id="scen"></div>
+            </div>
           </div>
-        </div>
-
-        <div class="panel">
-          <h2><span class="n">04</span> Scenario testing</h2>
-          <p class="sec-note">The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Cost assumptions.</p>
-          <div class="scen" id="scen"></div>
         </div>
       </div>
 
@@ -862,8 +850,14 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <!-- ===== ASSUMPTIONS ===== -->
       <div class="tabpanel-x" id="tab-assumptions" style="display:none">
         <div class="panel">
-          <h2><span class="n">01</span> Cost assumptions</h2>
-          <p class="sec-note">Everything below feeds the cost buildup on Summary. Every value is editable. The info icon shows where the default came from.</p>
+          <h2><span class="n">01</span> Assumptions</h2>
+          <p class="sec-note">Everything below feeds the Summary. Every value is editable. The info icon shows where the default came from.</p>
+
+          <h3 class="cost-group">Return target</h3>
+          <div class="fieldgrid">
+            <div class="lever"><div class="lab"><span>Margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
+              <div class="field"><input type="number" id="in-hurdle" value="20" step="1"><span class="suf">% on cost</span></div></div>
+          </div>
 
           <h3 class="cost-group">Land cost</h3>
           <div class="fieldgrid">
@@ -2291,7 +2285,7 @@ async function exportPDF(){
       ],
       columnStyles:{0:{halign:'left'},1:{halign:'right'}}}));
 
-    y=sectionTitle('Cost buildup', doc.lastAutoTable.finalY+18);
+    y=sectionTitle('Financial breakdown', doc.lastAutoTable.finalY+18);
     const buildupRows=[
       ['GDV (sales revenue)', fA(best.gdv)], ['Land (tested)', fA(mk.land)], ['Construction (hard)', fA(best.hard)],
       ['Architect: design', fA(best.archd)], ['Architect: supervision', fA(best.archs)], ['Contingency', fA(best.cont)],
