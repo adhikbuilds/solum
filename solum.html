@@ -300,7 +300,7 @@ table.buildup tr.profit td.val{font-size:var(--fs-body); color:var(--accent-500)
 table.rectable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
 table.rectable th{text-align:right; font-weight:var(--fw-bold); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:0 0 8px; border-bottom:2px solid var(--line)}
 table.rectable th:first-child{text-align:left}
-table.rectable td{padding:10px 0; text-align:right; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-weight:var(--fw-semibold); color:var(--ink); font-size:.875rem}
+table.rectable td{padding:10px 0; text-align:right; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-weight:var(--fw-semibold); color:var(--ink); font-size:var(--fs-label); white-space:nowrap}
 table.rectable td:first-child{text-align:left; font-family:var(--font-sans); font-weight:var(--fw-bold); font-size:var(--fs-body); display:flex; align-items:center; gap:8px}
 table.rectable th:not(:first-child),table.rectable td:not(:first-child){padding-left:12px}
 table.rectable tr.total td{border-bottom:0; border-top:2px solid var(--line-strong); font-weight:var(--fw-black); padding-top:12px; color:var(--ink)}
@@ -782,32 +782,32 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div>
             <div class="panel">
               <h2><span class="n">02</span> Recommended unit mix</h2>
-              <p class="sec-note">The profit-maximising mix inside your bands on Unit Matrix, re-solved live.</p>
+              <p class="sec-note">The profit-maximising mix within the Unit Matrix bands, re-solved live.</p>
               <table class="rectable">
                 <thead><tr><th>Type</th><th>Size</th><th>Units</th><th>Total size</th><th>Price/sqft</th><th>Total value</th></tr></thead>
                 <tbody id="rectable-body"></tbody>
                 <tfoot id="rectable-foot"></tfoot>
               </table>
               <div class="rlv">
-                <div class="k">Residual land value: most you can pay and still hit your hurdle <button class="info" data-pop="rlv">i</button></div>
+                <div class="k">Residual land value: the most payable that still clears the hurdle <button class="info" data-pop="rlv">i</button></div>
                 <div class="v" id="rlv">—</div>
               </div>
             </div>
             <div class="panel">
               <h2><span class="n">03</span> Land price &amp; margin hurdle</h2>
-              <p class="sec-note">The two live levers you flex most when negotiating this specific plot.</p>
+              <p class="sec-note">The two levers that move this deal the most: land price and the profit hurdle.</p>
               <div class="leverrow">
                 <div class="lever">
-                  <div class="lab"><span>Land price you're testing</span><button class="info" data-pop="land">i</button></div>
-                  <div class="field"><span class="pre">AED</span><input type="number" id="in-land" value="30000000" step="500000"><span class="suf">total</span></div>
+                  <div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
+                  <div class="field"><span class="pre">AED</span><input type="number" id="in-land" value="28750000" step="500000"><span class="suf">total</span></div>
                 </div>
                 <div class="lever">
-                  <div class="lab"><span>Your margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
+                  <div class="lab"><span>Margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
                   <div class="field"><input type="number" id="in-hurdle" value="20" step="1"><span class="suf">% on cost</span></div>
                 </div>
               </div>
               <div class="rlv" style="margin-top:var(--sp-4)">
-                <div class="k">Price/sqft needed to hit your hurdle <button class="info" data-pop="breakeven">i</button></div>
+                <div class="k">Price/sqft needed to clear the hurdle <button class="info" data-pop="breakeven">i</button></div>
                 <div class="v" id="breakeven">—</div>
               </div>
             </div>
@@ -865,7 +865,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <h3 class="cost-group">Land cost</h3>
           <div class="fieldgrid">
             <div class="lever"><div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
-              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land-a" value="30000000" step="500000"><span class="suf">total</span></div></div>
+              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land-a" value="28750000" step="500000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>DLD transfer fee</span><button class="info" data-pop="dldfee">i</button></div>
               <div class="field"><input type="number" id="in-dldfee" value="4" step="0.5"><span class="suf">% of land</span></div></div>
           </div>
@@ -882,9 +882,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
           <h3 class="cost-group">Soft cost</h3>
           <div class="fieldgrid">
-            <div class="lever"><div class="lab"><span>Architect: design &amp; approvals</span><button class="info" data-pop="archd">i</button></div>
+            <div class="lever"><div class="lab"><span>Architect: design</span><button class="info" data-pop="archd">i</button></div>
               <div class="field"><input type="number" id="in-archdesign" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
-            <div class="lever"><div class="lab"><span>Architect: supervision to completion</span><button class="info" data-pop="archs">i</button></div>
+            <div class="lever"><div class="lab"><span>Architect: supervision</span><button class="info" data-pop="archs">i</button></div>
               <div class="field"><input type="number" id="in-archsuper" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
             <div class="lever"><div class="lab"><span>DEWA, RTA, DDA &amp; authorities</span><button class="info" data-pop="auth">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-authorities" value="2000000" step="100000"><span class="suf">total</span></div></div>
@@ -899,11 +899,11 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
         <div class="panel">
           <h2><span class="n">02</span> Scenario stress-test</h2>
-          <p class="sec-note">Controls how far the Scenario testing cards on Summary flex sale price and construction cost.</p>
+          <p class="sec-note">The Scenario testing cards on Summary raise and lower sale price and construction cost by these amounts, to show the upside and downside around the base case.</p>
           <div class="fieldgrid3">
-            <div class="lever"><div class="lab"><span>Price flex</span></div>
+            <div class="lever"><div class="lab"><span>Sale price swing</span></div>
               <div class="field"><input type="number" id="in-scen-price" value="10" min="0" max="50"><span class="suf">%</span></div></div>
-            <div class="lever"><div class="lab"><span>Cost flex</span></div>
+            <div class="lever"><div class="lab"><span>Construction cost swing</span></div>
               <div class="field"><input type="number" id="in-scen-cost" value="10" min="0" max="50"><span class="suf">%</span></div></div>
           </div>
         </div>
@@ -935,7 +935,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <div class="lever"><div class="lab"><span>Floors (G+..)</span></div>
               <div class="field"><input type="number" id="in-floors" value="14" step="1"><span class="suf">levels</span></div></div>
             <div class="lever"><div class="lab"><span>Land price</span><button class="info" data-pop="land">i</button></div>
-              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land-d" value="30000000" step="500000"><span class="suf">total</span></div></div>
+              <div class="field own"><span class="pre">AED</span><input type="number" id="in-land-d" value="28750000" step="500000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Usage / designation</span></div>
               <div class="field"><input type="text" id="in-usage" value="Residential"></div></div>
             <div class="lever"><div class="lab"><span>Basement levels</span></div>
@@ -1012,6 +1012,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <div class="sec-note" id="m-pdf-status" style="margin:8px 0 0; font-weight:600;"></div>
     </div>
 
+    <div class="lever"><div class="lab"><span>Land price</span></div>
+      <div class="field own"><span class="pre">AED</span><input type="number" id="m-land" value="28750000" step="250000"><span class="suf">total</span></div></div>
+
     <div class="fieldgrid2">
       <div class="lever"><div class="lab"><span>Location / area</span></div>
         <div class="field"><input type="text" id="m-community" value=""></div></div>
@@ -1036,8 +1039,6 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <div class="lever"><div class="lab"><span>Floors</span></div>
         <div class="field"><input type="number" id="m-floors" value="10"></div></div>
     </div>
-    <div class="lever"><div class="lab"><span>Land price</span></div>
-      <div class="field own"><span class="pre">AED</span><input type="number" id="m-land" value="30000000" step="500000"><span class="suf">total</span></div></div>
 
     <div class="actions">
       <button class="btn" id="m-cancel">Cancel</button>
@@ -1099,7 +1100,7 @@ function defaultState(){
   return {
     name:'Plot 6488595', plotNumber:'6488595', community:'Wadi Al Safa 5', subcommunity:'',
     plot:{gfa:150131.47, plotArea:33362.57, far:4.5, floors:14, usage:'Residential', basement:1, podium:2, notes:''},
-    market:{cost:500, land:30000000, hurdle:20},
+    market:{cost:500, land:28750000, hurdle:20},
     assumptions:{dldFee:4, archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000},
     scenarioFlex:{price:10, cost:10},
     types:[
@@ -1170,8 +1171,8 @@ let saveTimer=null;
 let PENDING_DELETE_ID=null;
 
 const POPS = {
-  land:{t:"The plot acquisition price you're testing.", s:"Compare it against the Residual Land Value, the most you can pay and still clear your hurdle.", tier:'input'},
-  hurdle:{t:"Your minimum acceptable profit, measured against total cost.", s:"Dubai residual-style feasibility typically targets 20%+ on cost.", tier:'input'},
+  land:{t:"The plot acquisition price being tested.", s:"Compare it against the Residual Land Value, the most payable that still clears the hurdle.", tier:'input'},
+  hurdle:{t:"The minimum acceptable profit, measured against total cost.", s:"Dubai residual-style feasibility typically targets 20%+ on cost.", tier:'input'},
   dldfee:{t:"Dubai Land Department transfer fee on the land purchase.", s:"Standard DLD transfer fee is 4% of the land price. Adjust if your deal differs.", tier:'sourced'},
   prog:{t:"Off means the type isn't built at all. When on, the optimiser keeps its share inside your min–max band.", s:"Min is the guideline floor; max reflects what the community can absorb and any master-developer cap.", tier:'modeled'},
   rlv:{t:"Residual land value.", s:"The maximum you could pay for the land and still hit your margin hurdle on the recommended programme.", tier:null},
@@ -1292,7 +1293,7 @@ document.getElementById('btnNewTop').addEventListener('click',()=>{
   document.getElementById('m-gfa').value=100000;
   document.getElementById('m-far').value=4.5;
   document.getElementById('m-floors').value=10;
-  document.getElementById('m-land').value=30000000;
+  document.getElementById('m-land').value=28750000;
   clearPdfState();
   document.getElementById('modalOverlay').classList.add('show');
 });
@@ -1319,7 +1320,7 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   const plotNumber=document.getElementById('m-plotnumber').value||'';
   const community=document.getElementById('m-community').value||'';
   const subcommunity=document.getElementById('m-subcommunity').value||'';
-  const land=+document.getElementById('m-land').value||30000000;   /* GIS has no price — always user-entered */
+  const land=+document.getElementById('m-land').value||28750000;   /* GIS has no price — always user-entered */
   const ns=defaultState();
   ns.name=name; ns.plotNumber=plotNumber; ns.community=community; ns.subcommunity=subcommunity;
   ns.plot={...ns.plot, gfa, plotArea, far, floors};   /* keep usage/basement/podium/notes defaults */
@@ -1744,7 +1745,7 @@ function bindPops(){
   });
 }
 let curPop=null;
-const TIER_LABEL={sourced:'Market-sourced', modeled:'Modeled assumption', input:'Your input'};
+const TIER_LABEL={sourced:'Market-sourced', modeled:'Modeled assumption', input:'Manual input'};
 function openPop(btn){
   closePop();
   const key=btn.dataset.pop; const d=POPS[key]; if(!d) return;
