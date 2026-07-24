@@ -785,7 +785,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div class="leverrow">
                 <div class="lever">
                   <div class="lab"><span>Land price you're testing</span><button class="info" data-pop="land">i</button></div>
-                  <div class="field own"><span class="pre">AED</span><input type="number" id="in-land" value="30000000" step="500000"><span class="suf">total</span></div>
+                  <div class="field"><span class="pre">AED</span><input type="number" id="in-land" value="30000000" step="500000"><span class="suf">total</span></div>
                 </div>
                 <div class="lever">
                   <div class="lab"><span>Your margin hurdle</span><button class="info" data-pop="hurdle">i</button></div>
@@ -905,12 +905,12 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div class="field"><input type="text" id="in-name" value="Plot 6488595"></div></div>
             <div class="lever"><div class="lab"><span>Plot number</span></div>
               <div class="field"><input type="text" id="in-plotnumber" value="6488595"></div></div>
-            <div class="lever"><div class="lab"><span>Community / Area</span><button class="info" data-pop="loc">i</button></div>
-              <div class="field" style="position:relative"><input type="text" id="in-community" value="Wadi Al Safa 5" autocomplete="off" placeholder="Search community / area…"><span class="field-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div id="communityDrop" class="typeahead-drop"></div></div></div>
-            <div class="lever"><div class="lab"><span>Sub-community</span></div>
+            <div class="lever"><div class="lab"><span>Location / area</span><button class="info" data-pop="loc">i</button></div>
+              <div class="field" style="position:relative"><input type="text" id="in-community" value="Wadi Al Safa 5" autocomplete="off" placeholder="Search location / area…"><span class="field-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div id="communityDrop" class="typeahead-drop"></div></div></div>
+            <div class="lever"><div class="lab"><span>Sub-community (optional)</span></div>
               <div class="field"><input type="text" id="in-subcommunity" value=""></div></div>
             <div class="lever" style="grid-column:1/-1">
-              <button class="btn sm" id="btnPullComps" type="button">Pull DLD market comps for this community</button>
+              <button class="btn primary sm" id="btnPullComps" type="button">Pull DLD market comps for this community</button>
               <div id="compsBasis" class="comps-basis" style="margin-top:8px"></div></div>
             <div class="lever"><div class="lab"><span>Max GFA</span><button class="info" data-pop="gfa">i</button></div>
               <div class="field"><input type="number" id="in-gfa" value="150131.47"><span class="suf">sqft</span></div></div>
@@ -937,7 +937,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <p class="sec-note">Anything from the plot document that doesn't fit a field above. Details read from an imported PDF land here automatically.</p>
           <div class="lever"><div class="field"><textarea id="in-notes" rows="4" placeholder="e.g. corner plot, setback restriction on north boundary, master-developer NOC pending…"></textarea></div></div>
           <div class="note-save">
-            <button class="btn sm" id="btnSaveNote" type="button">Save note</button>
+            <button class="btn primary sm" id="btnSaveNote" type="button">Save note</button>
             <span class="savechip" id="noteSaved"></span>
           </div>
         </div>
@@ -998,9 +998,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     </div>
 
     <div class="fieldgrid2">
-      <div class="lever"><div class="lab"><span>Community / Area</span></div>
+      <div class="lever"><div class="lab"><span>Location / area</span></div>
         <div class="field"><input type="text" id="m-community" value=""></div></div>
-      <div class="lever"><div class="lab"><span>Sub-community</span></div>
+      <div class="lever"><div class="lab"><span>Sub-community (optional)</span></div>
         <div class="field"><input type="text" id="m-subcommunity" value=""></div></div>
     </div>
 
@@ -1021,6 +1021,8 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <div class="lever"><div class="lab"><span>Floors</span></div>
         <div class="field"><input type="number" id="m-floors" value="10"></div></div>
     </div>
+    <div class="lever"><div class="lab"><span>Land price</span></div>
+      <div class="field own"><span class="pre">AED</span><input type="number" id="m-land" value="30000000" step="500000"><span class="suf">total</span></div></div>
 
     <div class="actions">
       <button class="btn" id="m-cancel">Cancel</button>
@@ -1275,6 +1277,7 @@ document.getElementById('btnNewTop').addEventListener('click',()=>{
   document.getElementById('m-gfa').value=100000;
   document.getElementById('m-far').value=4.5;
   document.getElementById('m-floors').value=10;
+  document.getElementById('m-land').value=30000000;
   clearPdfState();
   document.getElementById('modalOverlay').classList.add('show');
 });
@@ -1301,9 +1304,11 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   const plotNumber=document.getElementById('m-plotnumber').value||'';
   const community=document.getElementById('m-community').value||'';
   const subcommunity=document.getElementById('m-subcommunity').value||'';
+  const land=+document.getElementById('m-land').value||30000000;   /* GIS has no price — always user-entered */
   const ns=defaultState();
   ns.name=name; ns.plotNumber=plotNumber; ns.community=community; ns.subcommunity=subcommunity;
   ns.plot={...ns.plot, gfa, plotArea, far, floors};   /* keep usage/basement/podium/notes defaults */
+  ns.market={...ns.market, land};
   if(LAST_DDA_USAGE) ns.plot.usage=LAST_DDA_USAGE;
   if(LAST_PDF_NOTES) ns.plot.notes=LAST_PDF_NOTES;
   PROJECTS.push({id,name,community}); await saveIndex();
