@@ -117,8 +117,8 @@ body.view-portfolio .topbar-plot,body.view-compare .topbar-plot{display:none}
 body.view-portfolio #brandDivider,body.view-compare #brandDivider{display:none}
 .topbar-spacer{flex:1}
 .topbar-actions{display:flex; align-items:center; gap:var(--sp-2)}
-.btn-export{display:flex; align-items:center; gap:6px; height:var(--size-el-sm); padding:0 var(--sp-3); border-radius:var(--radius-sm); border:1px solid var(--accent-500); background:var(--accent-50); color:var(--accent-700); font-family:var(--font-sans); font-size:var(--fs-label); font-weight:var(--fw-bold); cursor:pointer; transition:all var(--dur-fast) var(--ease-std)}
-.btn-export:hover{background:var(--accent-500); color:#fff}
+.btn-export{display:flex; align-items:center; gap:6px; height:var(--size-el-sm); padding:0 var(--sp-3); border-radius:var(--radius-sm); border:1px solid var(--accent-500); background:var(--accent-500); color:#fff; font-family:var(--font-sans); font-size:var(--fs-label); font-weight:var(--fw-bold); cursor:pointer; transition:all var(--dur-fast) var(--ease-std); box-shadow:var(--sh-low)}
+.btn-export:hover{background:var(--accent-600); color:#fff}
 .btn-export:disabled{opacity:.5; cursor:not-allowed}
 body.view-portfolio .btn-export,body.view-compare .btn-export{display:none}
 
@@ -253,6 +253,8 @@ body.view-compare #portfolioView{display:none}
 .info:hover,.info:focus-visible{background:var(--accent-500); border-color:var(--accent-500); color:#fff;
   transform:scale(1.14); box-shadow:0 3px 10px color-mix(in srgb, var(--accent-500) 42%, transparent); outline:none}
 .info:active{transform:scale(1.03)}
+/* keep the info icon vertically centred against its section title */
+.panel h2:has(.info){display:flex; align-items:center}
 .pop{position:absolute; z-index:40; left:22px; top:-4px; width:290px; background:var(--ink); color:#FFFFFF;
   border-radius:var(--radius-sm); padding:var(--sp-4); font-size:var(--fs-label); line-height:1.5; box-shadow:var(--sh-high);
   display:none; text-align:left; font-weight:var(--fw-medium)}
@@ -324,10 +326,10 @@ table.rectable tr.total td{border-bottom:0; border-top:2px solid var(--line-stro
 
 /* scenario testing */
 .scen{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-3)}
-.scard{border:1px solid var(--line); border-radius:var(--radius-md); padding:var(--sp-4); background:var(--surface-2); transition:all var(--dur-fast) var(--ease-std)}
+.scard{border:1px solid var(--line); border-radius:var(--radius-md); padding:var(--sp-5) var(--sp-4); background:var(--surface-2); transition:all var(--dur-fast) var(--ease-std); display:flex; flex-direction:column; justify-content:space-between}
 .scard:hover{box-shadow:var(--sh-low); border-color:var(--line-strong)}
 .scard.base{border-color:var(--accent-500); background:var(--surface); box-shadow:var(--sh-low)}
-.scard .st{display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-2)}
+.scard .st{display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-3)}
 .scard .st .name{font-size:10px; font-weight:var(--fw-bold); letter-spacing:.05em; text-transform:uppercase; color:var(--ink)}
 .scard .big{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-black); line-height:1; color:var(--accent-500)}
 .scard .sm{font-size:var(--fs-label); color:var(--muted); margin-top:var(--sp-2); display:flex; justify-content:space-between; font-weight:var(--fw-medium)}
@@ -557,8 +559,12 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
    Columns stretch to equal height; the right column distributes its blocks so any slack
    spreads between them (no trailing empty box). */
 .sum-grid{align-items:stretch}
-.sum-right{display:flex; flex-direction:column; gap:var(--sp-5); justify-content:space-between}
+.sum-right{display:flex; flex-direction:column; gap:var(--sp-5)}
 .sum-right .devstrip{margin-bottom:0}
+/* the scenario panel grows to fill the right column so it matches the left with no gap;
+   its cards stretch and spread their content, giving the titles more breathing room */
+.sum-right .panel:last-child{flex:1 1 auto; display:flex; flex-direction:column}
+.sum-right .panel:last-child .scen{flex:1 1 auto}
 .cost-group:first-of-type{margin-top:var(--sp-2)}
 .note-save{display:flex; align-items:center; gap:12px; margin-top:12px}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
