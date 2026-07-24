@@ -172,7 +172,7 @@ body.view-compare #portfolioView{display:none}
 
 /* ================= side KPI row (secondary tier) ================= */
 .kpiside{display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius-md) var(--radius-md); overflow:hidden; margin-bottom:var(--sp-5); margin-top:-1px}
-.kpiside .sc{background:var(--surface-2); padding:var(--sp-3) var(--sp-4)}
+.kpiside .sc{background:var(--surface); padding:var(--sp-3) var(--sp-4)}
 .kpiside .k{font-weight:var(--fw-semibold); font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
 .kpiside .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); margin-top:3px}
 
@@ -192,7 +192,7 @@ body.view-compare #portfolioView{display:none}
 .tag.pass{background:var(--error-bg); color:var(--error)}
 
 /* ================= development programme strip ================= */
-.devstrip{display:flex; gap:var(--sp-6); flex-wrap:wrap; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-5)}
+.devstrip{display:flex; gap:var(--sp-6); flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-5)}
 .devstrip .d{display:flex; flex-direction:column}
 .devstrip .k{font-size:10px; font-weight:var(--fw-semibold); letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
 .devstrip .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); margin-top:2px}
@@ -296,6 +296,9 @@ table.buildup tr.total td{color:var(--ink); font-weight:var(--fw-black); border-
 table.buildup tr.profit td{border-bottom:0; padding-top:12px}
 table.buildup tr.profit td.lab{color:var(--accent-500); font-weight:var(--fw-bold); font-size:var(--fs-label)}
 table.buildup tr.profit td.val{font-size:var(--fs-body); color:var(--accent-500); font-weight:var(--fw-black)}
+/* sub-section headings inside the cost buildup (mirror the Cost assumptions groups) */
+table.buildup tr.grp td{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.07em; text-transform:uppercase; color:var(--accent-700); padding:16px 0 6px; border-bottom:1px solid var(--line)}
+table.buildup tr.grp:first-child td{padding-top:2px}
 
 table.rectable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
 table.rectable th{text-align:right; font-weight:var(--fw-bold); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:0 0 8px; border-bottom:2px solid var(--line)}
@@ -816,7 +819,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
         <div class="panel">
           <h2><span class="n">04</span> Scenario testing</h2>
-          <p class="sec-note">Same recommended programme, flexing sale price &amp; construction cost by the amounts set on Assumptions.</p>
+          <p class="sec-note">The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Cost assumptions.</p>
           <div class="scen" id="scen"></div>
         </div>
       </div>
@@ -1622,17 +1625,21 @@ function render(){
   const bt=document.getElementById('buildupTable');
   const psf=n=> best.sal>0? fN(n/best.sal) : '—';
   bt.innerHTML=
-    row2('GDV (sales revenue)',fA(best.gdv),psf(best.gdv))+
+    grp('Revenue')+
+    row2('Gross development value',fA(best.gdv),psf(best.gdv))+
+    grp('Land cost')+
     row2('Land (tested)',fA(mk.land),psf(mk.land))+
     row2('DLD transfer fee',fA(best.dld),psf(best.dld))+
+    grp('Construction (hard) cost')+
     row2('Construction (hard)',fA(best.hard),psf(best.hard))+
+    row2('Contingency',fA(best.cont),psf(best.cont))+
+    row2('Parking bays',fA(best.park),psf(best.park))+
+    grp('Soft cost')+
     row2('Architect: design',fA(best.archd),psf(best.archd))+
     row2('Architect: supervision',fA(best.archs),psf(best.archs))+
-    row2('Contingency',fA(best.cont),psf(best.cont))+
     row2('Authorities',fA(best.auth),psf(best.auth))+
     row2('Landscape & variations',fA(best.landsc),psf(best.landsc))+
     row2('Miscellaneous',fA(best.misc),psf(best.misc))+
-    row2('Parking bays',fA(best.park),psf(best.park))+
     row2('Marketing & sales',fA(best.mkt),psf(best.mkt))+
     rowc2('Total investment',fA(best.total),psf(best.total),'total')+
     rowc2('Net profit',fA(best.profit),psf(best.profit),'profit');
@@ -1660,6 +1667,7 @@ function render(){
 function row(l,v){return `<tr><td class="lab">${l}</td><td class="val">${v}</td></tr>`;}
 function rowc(l,v,c){return `<tr class="${c}"><td class="lab">${l}</td><td class="val">${v}</td></tr>`;}
 function row2(l,v,psf){return `<tr><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;}
+function grp(l){return `<tr class="grp"><td colspan="3">${l}</td></tr>`;}
 function rowc2(l,v,psf,c){return `<tr class="${c}"><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;}
 
 function renderScen(best,mk){
