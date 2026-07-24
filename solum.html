@@ -837,7 +837,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div>
             <div class="panel">
               <h2><span class="n">02</span> Unit types, sizes &amp; pricing <button class="info" data-pop="unitprice">i</button></h2>
-              <p class="sec-note">Size and sales price per sq ft set separately for each type. Units are what the optimiser builds at the recommended mix. A row mutes when that type is switched off.</p>
+              <p class="sec-note">Size and price per sq ft per type. Units come from the optimiser's recommended mix; a row mutes when its type is off.</p>
               <div id="compsBasisMatrix" class="comps-basis" style="margin:0 0 12px"></div>
               <table class="utable">
                 <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th><th class="u-col">Units</th></tr></thead>
@@ -889,9 +889,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div class="field"><input type="number" id="in-archdesign" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
             <div class="lever"><div class="lab"><span>Architect: supervision</span><button class="info" data-pop="archs">i</button></div>
               <div class="field"><input type="number" id="in-archsuper" value="2.5" step="0.1"><span class="suf">% of hard cost</span></div></div>
-            <div class="lever"><div class="lab"><span>DEWA, RTA, DDA &amp; authorities</span><button class="info" data-pop="auth">i</button></div>
+            <div class="lever"><div class="lab"><span>Authorities</span><button class="info" data-pop="auth">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-authorities" value="2000000" step="100000"><span class="suf">total</span></div></div>
-            <div class="lever"><div class="lab"><span>Variations, landscape &amp; amenities</span><button class="info" data-pop="landsc">i</button></div>
+            <div class="lever"><div class="lab"><span>Landscape &amp; variations</span><button class="info" data-pop="landsc">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-landscape" value="1000000" step="100000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Miscellaneous</span><button class="info" data-pop="misc">i</button></div>
               <div class="field"><span class="pre">AED</span><input type="number" id="in-misc" value="500000" step="50000"><span class="suf">total</span></div></div>
@@ -902,7 +902,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
         <div class="panel">
           <h2><span class="n">02</span> Scenario stress-test</h2>
-          <p class="sec-note">The Scenario testing cards on Summary raise and lower sale price and construction cost by these amounts, to show the upside and downside around the base case.</p>
+          <p class="sec-note">How far the Scenario cards on Summary raise and lower sale price and construction cost.</p>
           <div class="fieldgrid3">
             <div class="lever"><div class="lab"><span>Sale price swing</span></div>
               <div class="field"><input type="number" id="in-scen-price" value="10" min="0" max="50"><span class="suf">%</span></div></div>
