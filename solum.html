@@ -1145,9 +1145,9 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     </div>
 
     <div class="lever">
-      <div class="lab"><span>Or upload the plot PDF</span></div>
-      <div class="pdf-drop"><input type="file" id="m-pdf" accept="application/pdf"></div>
-      <div class="sec-note" id="m-pdf-status" style="margin:8px 0 0; font-weight:600;"></div>
+      <div class="lab"><span>Or upload the plot sheet (PDF or scan)</span></div>
+      <div class="pdf-drop"><input type="file" id="m-pdf" accept="application/pdf,image/*"></div>
+      <div class="sec-note" id="m-pdf-status" style="margin:8px 0 0; font-weight:600;">PDF or a scanned image (JPG, PNG) — the details are read automatically.</div>
     </div>
 
     <div class="lever"><div class="lab"><span>Land price</span></div>
@@ -2306,11 +2306,38 @@ async function ocrPlotPdf(file){
   crop.getContext('2d').drawImage(full, 0,0, cw,ch, 0,0, cw,ch);
   pdfStatus('Loading text recognition (first run downloads ~5 MB)…');
   await ensureTesseract();
-  const {data}=await window.Tesseract.recognize(crop, 'eng', Object.assign({}, TESS_PATHS, {
+  return runOcr(crop);
+}
+/* A scanned image (JPG/PNG) is what the team most often receives, so accept it too.
+   We don't know the crop of an arbitrary scan, so we OCR the whole image (label-driven
+   parsing tolerates the extra text). Small scans are upscaled so the OCR has enough
+   detail to read the labelled fields. */
+async function ocrPlotImage(file){
+  pdfStatus('Reading the scan…');
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('Could not open this image.')); i.src=url; });
+    const minW=1600;                                   // upscale small scans for legibility
+    const scale=img.naturalWidth<minW ? minW/img.naturalWidth : 1;
+    const w=Math.round(img.naturalWidth*scale), h=Math.round(img.naturalHeight*scale);
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    cv.getContext('2d').drawImage(img, 0,0, w,h);
+    pdfStatus('Loading text recognition (first run downloads ~5 MB)…');
+    await ensureTesseract();
+    return runOcr(cv);
+  } finally { URL.revokeObjectURL(url); }
+}
+function isImageFile(file){
+  return (file.type && /^image\//.test(file.type)) || /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(file.name||'');
+}
+async function ocrPlotFile(file){
+  return isImageFile(file) ? ocrPlotImage(file) : ocrPlotPdf(file);
+}
+function runOcr(source){
+  return window.Tesseract.recognize(source, 'eng', Object.assign({}, TESS_PATHS, {
     logger:m=>{ if(!m||!m.status) return; const label=TESS_STEP[m.status]; if(!label) return;
       const pct=(m.progress!=null)?' '+Math.round(m.progress*100)+'%':''; pdfStatus(label+'…'+pct); }
-  }));
-  return (data && data.text) || '';
+  })).then(r=>(r && r.data && r.data.text) || '');
 }
 function markFrom(id, label){
   const input=document.getElementById(id);
@@ -2406,18 +2433,19 @@ document.getElementById('m-pdf').addEventListener('change', async e=>{
     pdfStatus('No file actually came through. A secure/isolation browser often blocks the upload from reaching the page. Open Solum in a normal browser tab, or just fill the fields in manually below.');
     return;
   }
+  const kind=isImageFile(file)?'scan':'PDF';
   pdfStatus('Reading “'+(file.name||'file')+'” ('+Math.round((file.size||0)/1024)+' KB)…');
   try{
-    const text=await ocrPlotPdf(file);
+    const text=await ocrPlotFile(file);
     const hits=applyPdfExtraction(text);
     pdfStatus(hits>0
       ? `Extracted ${hits} field${hits>1?'s':''}. Check the highlighted fields and correct anything that looks off.`
-      : `Couldn't confidently read this PDF. Enter the details manually below.`);
+      : `Couldn't confidently read this ${kind}. Enter the details manually below.`);
   }catch(err){
     console.error(err);
     const msg=(err&&err.message&&/blocked|unreachable/i.test(err.message))
       ? `Couldn't load the reader. ${err.message} Enter the details manually below.`
-      : 'Could not read this PDF. Enter the details manually below.';
+      : `Could not read this ${kind}. Enter the details manually below.`;
     pdfStatus(msg);
   }
 });
