@@ -211,7 +211,7 @@ body.view-compare #portfolioView{display:none}
 .lever{margin-bottom:var(--sp-4)}
 .lever:last-child{margin-bottom:0}
 .lever .lab{display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2)}
-.lever .lab span{font-size:var(--fs-label); color:var(--ink); font-weight:var(--fw-semibold)}
+.lever .lab span{font-size:.875rem; color:var(--ink); font-weight:var(--fw-semibold)}
 .lever .field{display:flex; align-items:center; border:1px solid var(--line); background:var(--surface-2); border-radius:var(--radius-sm); overflow:hidden; transition:all var(--dur-fast) var(--ease-std)}
 /* editable fields carry a soft accent border at rest, so it's clear they're editable
    without clicking; the full accent ring still lands on focus (calc fields opt out) */
@@ -220,6 +220,10 @@ body.view-compare #portfolioView{display:none}
    Marked with an accent wash + solid accent border so it reads as "your input" among fetched fields. */
 .lever .field.own{background:var(--accent-50); border-color:var(--accent-500)}
 .lever .field:focus-within{border-color:var(--accent-500); box-shadow:var(--sh-inset-focus); background:var(--surface)}
+/* Summary is a review surface — its inputs are already filled, so they read as clean
+   values here (no resting accent border / fill), per design direction. */
+#tab-summary .lever .field:not(.calc){border-color:var(--line-strong)}
+#tab-summary .lever .field.own{background:var(--surface-2)}
 /* calculated (read-only) field: keeps a box, but drops the fill and mutes the value
    so it reads as an output the tool works out, not something to fill in */
 .lever .field.calc{background:transparent; border-style:dashed; border-color:var(--line-strong)}
@@ -227,7 +231,7 @@ body.view-compare #portfolioView{display:none}
 .lever .field.calc input{color:var(--muted); font-weight:var(--fw-semibold); cursor:default}
 .lever .field .pre{padding:0 var(--sp-3); font-weight:var(--fw-semibold); font-size:var(--fs-label); color:var(--muted); border-right:1px solid var(--line)}
 .lever input[type=number],.lever input[type=text]{
-  border:0; background:transparent; font-family:var(--font-mono); font-weight:var(--fw-semibold); font-size:var(--fs-body); color:var(--ink);
+  border:0; background:transparent; font-family:var(--font-mono); font-weight:var(--fw-semibold); font-size:1rem; color:var(--ink);
   padding:11px 14px; width:100%; outline:none;
 }
 .lever textarea{border:0; background:transparent; font-family:var(--font-sans); font-weight:var(--fw-medium); font-size:var(--fs-body); color:var(--ink); padding:11px 14px; width:100%; outline:none; resize:vertical; min-height:64px}
@@ -285,7 +289,7 @@ body.view-compare #portfolioView{display:none}
 /* cost buildup + recommended unit tables (Summary) */
 table.buildup{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
 table.buildup td{padding:9px 0; border-bottom:1px solid var(--line)}
-table.buildup td.lab{color:var(--muted); font-weight:var(--fw-medium); font-size:var(--fs-label)}
+table.buildup td.lab{color:var(--ink); font-weight:var(--fw-semibold); font-size:var(--fs-body)}
 table.buildup td.val{font-family:var(--font-mono); font-weight:var(--fw-bold); text-align:right; color:var(--ink)}
 table.buildup td.psf{font-family:var(--font-mono); font-weight:var(--fw-medium); text-align:right; color:var(--muted); font-size:var(--fs-label); padding-left:10px; width:90px}
 table.buildup tr.total td{color:var(--ink); font-weight:var(--fw-black); border-top:2px solid var(--line-strong); border-bottom:0}
@@ -296,13 +300,14 @@ table.buildup tr.profit td.val{font-size:var(--fs-body); color:var(--accent-500)
 table.rectable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
 table.rectable th{text-align:right; font-weight:var(--fw-bold); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:0 0 8px; border-bottom:2px solid var(--line)}
 table.rectable th:first-child{text-align:left}
-table.rectable td{padding:10px 0; text-align:right; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-weight:var(--fw-semibold); color:var(--ink); font-size:var(--fs-label)}
+table.rectable td{padding:10px 0; text-align:right; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-weight:var(--fw-semibold); color:var(--ink); font-size:.875rem}
 table.rectable td:first-child{text-align:left; font-family:var(--font-sans); font-weight:var(--fw-bold); font-size:var(--fs-body); display:flex; align-items:center; gap:8px}
+table.rectable th:not(:first-child),table.rectable td:not(:first-child){padding-left:12px}
 table.rectable tr.total td{border-bottom:0; border-top:2px solid var(--line-strong); font-weight:var(--fw-black); padding-top:12px; color:var(--ink)}
 
-.rlv{display:flex; justify-content:space-between; align-items:center; margin-top:var(--sp-4); padding:var(--sp-4) var(--sp-5); background:var(--surface-2); border:1.5px dashed var(--line-strong); border-radius:var(--radius-md)}
-.rlv .k{font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); max-width:60%}
-.rlv .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-black); color:var(--accent-500)}
+.rlv{display:flex; justify-content:space-between; align-items:center; gap:var(--sp-4); margin-top:var(--sp-4); padding:var(--sp-4) var(--sp-5); background:var(--surface-2); border:1.5px dashed var(--line-strong); border-radius:var(--radius-md)}
+.rlv .k{font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted); flex:1; line-height:1.35}
+.rlv .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-black); color:var(--accent-500); flex:0 0 auto; white-space:nowrap}
 .cols2{display:grid; grid-template-columns:1fr 1fr; gap:32px}
 
 /* scenario testing */
@@ -793,7 +798,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
                 </div>
               </div>
               <div class="rlv" style="margin-top:var(--sp-4)">
-                <div class="k">Price/sqft needed to hit your hurdle at this land price <button class="info" data-pop="breakeven">i</button></div>
+                <div class="k">Price/sqft needed to hit your hurdle <button class="info" data-pop="breakeven">i</button></div>
                 <div class="v" id="breakeven">—</div>
               </div>
             </div>
