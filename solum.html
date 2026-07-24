@@ -574,7 +574,10 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 .cf-kpi .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); margin-top:3px}
 .cf-kpi .v.accent{color:var(--accent-500)}
 #cf-chart .svgchart{max-height:240px}
-.cfbar-pos{fill:var(--accent-500)} .cfbar-neg{fill:var(--line-strong)}
+.cf-head{display:flex; align-items:center; gap:8px; margin-top:var(--sp-5)}
+.cf-toggle{background:transparent; border:0; padding:0; cursor:pointer; font-family:var(--font-sans); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); display:flex; align-items:center; gap:8px}
+.cf-toggle span{color:var(--accent-500); font-size:11px}
+.cf-toggle:hover{color:var(--accent-700)}
 .cost-group:first-of-type{margin-top:var(--sp-2)}
 .note-save{display:flex; align-items:center; gap:12px; margin-top:12px}
 .btn-login{width:100%; height:var(--size-el-lg); border-radius:var(--radius-sm); border:none; background:var(--accent-500); color:#fff; font-size:var(--fs-body); font-weight:var(--fw-bold); cursor:pointer; box-shadow:var(--sh-low); transition:all var(--dur-fast) var(--ease-std); margin-bottom:16px; margin-top:14px}
@@ -945,8 +948,11 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div class="field"><input type="number" id="in-tl-payhandover" value="30" step="5" min="0" max="100"><span class="suf">% of price</span></div></div>
           </div>
           <div class="sec-note" id="tl-paywarn" style="margin-top:8px; color:var(--error); display:none">Payment plan should add up to 100%.</div>
-          <p class="sec-note" style="margin-top:var(--sp-4); margin-bottom:4px">Resulting cashflow — cumulative cash position from land purchase to handover.</p>
-          <div id="cf-chart" class="chart"></div>
+          <div class="cf-head">
+            <button class="cf-toggle" id="cfToggle" type="button"><span id="cfToggleIcon">▸</span> Cashflow chart</button>
+            <button class="info" data-pop="cashflow">i</button>
+          </div>
+          <div id="cf-chart" class="chart" style="display:none"></div>
         </div>
 
         <div class="panel">
@@ -1247,7 +1253,7 @@ const POPS = {
   recmix:{t:"The profit-maximising mix within the Unit Matrix bands, re-solved live.", s:"", tier:null},
   scenario:{t:"The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Assumptions.", s:"", tier:null},
   headline:{t:"The headline numbers for this deal.", s:"IRR is the annualised, time-weighted return from the development cashflow — it accounts for when cash goes out and comes back. Return on investment (net profit ÷ total cost) and return on project (net profit ÷ gross sales) are undiscounted margins at today's money. Net profit is at the recommended mix. Verdict compares return on investment to your margin hurdle.", tier:null},
-  cashflow:{t:"The development as a quarterly cashflow, from land purchase to handover.", s:"Land goes out at Q0; construction is spread over the build and escalated by cost inflation; off-plan sales come in on the payment plan, and units not sold off-plan sell near handover at a price-grown value. IRR is annualised; peak funding is the most cash you must float before sales catch up.", tier:null},
+  cashflow:{t:"The development as a quarterly cashflow — money in (bars up) vs money out (bars down), with the cumulative net position as a line.", s:"Land + DLD go out at Q0. Construction is spread over the build and escalated by cost inflation. Revenue comes in on the payment plan: the booking deposit lands at launch (Q0) and already offsets some of the early spend, installments arrive through construction, and the balance plus any units not sold off-plan come in at handover (grown by price growth). IRR is annualised; peak funding is the deepest cumulative cash-out before sales catch up.", tier:null},
   'tl-months':{t:"Months from buying the land to handover.", s:"Drives the cashflow timeline and IRR; the build is spread evenly across this period.", tier:null},
   'tl-costinfl':{t:"Annual construction cost inflation.", s:"Escalates build spend as it is incurred later in the programme. UAE construction inflation has recently run around 3-5%.", tier:'modeled'},
   'tl-pricegrowth':{t:"Annual sale-price growth.", s:"Applied to units not sold off-plan — they sell near handover at a grown price. Off-plan prices are locked at booking.", tier:'modeled'},
@@ -1636,53 +1642,54 @@ function cashflow(best, mk, state){
   const landOut=mk.land+best.dld, mkt=best.mkt;
   const offRev=best.gdv*off;
   const laterRev=best.gdv*(1-off)*Math.pow(1+pg, months/12);
-  const cf=new Array(N+1).fill(0);
-  cf[0]-=landOut;
-  for(let i=1;i<=N;i++) cf[i]-=(build/N)*Math.pow(1+ci, i/4);   // construction, cost-escalated
-  for(let i=0;i<=N;i++) cf[i]-=mkt/(N+1);                        // marketing spread across
-  cf[0]+=offRev*pB;                                             // booking deposit
-  for(let i=1;i<=N;i++) cf[i]+=(offRev*pC)/N;                   // construction installments
-  cf[N]+=offRev*pH+laterRev;                                    // handover balance + later sales
+  const inflow=new Array(N+1).fill(0), outflow=new Array(N+1).fill(0);
+  outflow[0]+=landOut;                                          // land + DLD at close
+  for(let i=1;i<=N;i++) outflow[i]+=(build/N)*Math.pow(1+ci, i/4);  // construction, cost-escalated
+  for(let i=0;i<=N;i++) outflow[i]+=mkt/(N+1);                  // marketing spread across
+  inflow[0]+=offRev*pB;                                         // booking deposits at launch
+  for(let i=1;i<=N;i++) inflow[i]+=(offRev*pC)/N;               // construction installments
+  inflow[N]+=offRev*pH+laterRev;                               // handover balance + later sales
+  const cf=inflow.map((v,i)=>v-outflow[i]);
   const irrQ=irrOf(cf), irrAnnual=irrQ==null?null:Math.pow(1+irrQ,4)-1;
   let cum=0,peak=0; const cumArr=[];
   for(const c of cf){ cum+=c; cumArr.push(cum); if(cum<peak)peak=cum; }
-  return {cf, cumArr, N, months, irrAnnual, peakFunding:-peak, profit:cf.reduce((a,b)=>a+b,0)};
+  return {cf, inflow, outflow, cumArr, N, months, irrAnnual, peakFunding:-peak, profit:cf.reduce((a,b)=>a+b,0)};
 }
 function updatePayWarn(){
   const t=STATE.timeline||{};
   const sum=(+t.payBooking||0)+(+t.payConstruction||0)+(+t.payHandover||0);
   const el=document.getElementById('tl-paywarn'); if(el) el.style.display = Math.abs(sum-100)>0.5 ? 'block' : 'none';
 }
-/* development cashflow J-curve: cumulative cash position over the quarters.
-   Dips negative through the build (deepest point = peak funding), recovers to
-   net profit at handover. Below-zero fill = your money out; above-zero = in profit. */
+/* development cashflow: per quarter, money in (bars up) vs money out (bars down),
+   with the cumulative net position as a line. Deepest point of the line = peak funding. */
 function renderCashflow(d){
   const el=document.getElementById('cf-chart'); if(!el) return;
-  const cum=[0].concat(d.cumArr), n=cum.length;   // prepend T0 = 0 (before any flows)
+  const inf=d.inflow, out=d.outflow, cum=d.cumArr, n=inf.length;
   if(n<2){ el.innerHTML=''; return; }
-  const W=760,H=210,P=54;
-  const vmax=Math.max(0,...cum), vmin=Math.min(0,...cum);
+  const W=760,H=230,P=56;
+  const all=[...inf, ...out.map(o=>-o), ...cum, 0];
+  const vmax=Math.max(...all), vmin=Math.min(...all);
   const Y=v=> H-P - (H-2*P)*(v-vmin)/((vmax-vmin)||1);
   const X=i=> P + (W-2*P)*i/(n-1);
-  const zeroY=Y(0);
+  const zeroY=Y(0), bw=Math.max(3, (W-2*P)/n*0.5);
+  let bars='';
+  for(let i=0;i<n;i++){ const x=(X(i)-bw/2).toFixed(1);
+    if(inf[i]>1) bars+=`<rect x="${x}" y="${Y(inf[i]).toFixed(1)}" width="${bw.toFixed(1)}" height="${(zeroY-Y(inf[i])).toFixed(1)}" rx="1.5" fill="var(--accent-500)" opacity="0.85"><title>Q${i} in: ${fA(inf[i])}</title></rect>`;
+    if(out[i]>1) bars+=`<rect x="${x}" y="${zeroY.toFixed(1)}" width="${bw.toFixed(1)}" height="${(Y(-out[i])-zeroY).toFixed(1)}" rx="1.5" fill="var(--muted)" opacity="0.38"><title>Q${i} out: ${fA(out[i])}</title></rect>`;
+  }
   const line=cum.map((c,i)=>X(i).toFixed(1)+','+Y(c).toFixed(1)).join(' ');
-  const area=`${X(0).toFixed(1)},${zeroY.toFixed(1)} ${line} ${X(n-1).toFixed(1)},${zeroY.toFixed(1)}`;
-  let ti=0; cum.forEach((c,i)=>{ if(c<cum[ti]) ti=i; });   // trough = peak funding
-  const last=n-1;
-  el.style.position='relative';
+  let ti=0; cum.forEach((c,i)=>{ if(c<cum[ti]) ti=i; });
   el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" class="svgchart" preserveAspectRatio="xMidYMid meet">'
-    +'<polygon points="'+area+'" fill="var(--accent-500)" opacity="0.09"/>'
+    +bars
     +'<line x1="'+P+'" y1="'+zeroY.toFixed(1)+'" x2="'+(W-P)+'" y2="'+zeroY.toFixed(1)+'" stroke="var(--line-strong)" stroke-width="1"/>'
-    +'<polyline points="'+line+'" fill="none" stroke="var(--accent-500)" stroke-width="2.5" stroke-linejoin="round"/>'
-    +cum.map((c,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(c).toFixed(1)+'" r="2.4" fill="var(--accent-500)"><title>'+(i===0?'Today: 0':'After Q'+(i-1)+': '+fA(c))+'</title></circle>').join('')
-    +'<line x1="'+X(ti).toFixed(1)+'" y1="'+Y(cum[ti]).toFixed(1)+'" x2="'+X(ti).toFixed(1)+'" y2="'+zeroY.toFixed(1)+'" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>'
-    +'<circle cx="'+X(ti).toFixed(1)+'" cy="'+Y(cum[ti]).toFixed(1)+'" r="3.6" fill="var(--ink)"/>'
-    +'<text x="'+X(ti).toFixed(1)+'" y="'+(Y(cum[ti])+16).toFixed(1)+'" class="ax" text-anchor="middle">peak '+fM(-d.peakFunding).replace('AED ','')+'</text>'
-    +'<circle cx="'+X(last).toFixed(1)+'" cy="'+Y(cum[last]).toFixed(1)+'" r="3.6" fill="var(--accent-500)"/>'
-    +'<text x="'+(W-P)+'" y="'+(Y(cum[last])-8).toFixed(1)+'" class="ax" text-anchor="end">profit '+fM(cum[last]).replace('AED ','')+'</text>'
+    +'<polyline points="'+line+'" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>'
+    +cum.map((c,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(c).toFixed(1)+'" r="2.2" fill="var(--ink)"><title>After Q'+i+': cumulative '+fA(c)+'</title></circle>').join('')
+    +'<circle cx="'+X(ti).toFixed(1)+'" cy="'+Y(cum[ti]).toFixed(1)+'" r="3.4" fill="var(--error)"/>'
+    +'<text x="'+X(ti).toFixed(1)+'" y="'+(Y(cum[ti])+16).toFixed(1)+'" class="ax" text-anchor="middle">peak '+fM(d.peakFunding).replace('AED ','')+'</text>'
+    +'<text x="'+(W-P)+'" y="'+(Y(cum[n-1])-8).toFixed(1)+'" class="ax" text-anchor="end">net '+fM(cum[n-1]).replace('AED ','')+'</text>'
     +'<text x="'+P+'" y="'+(H-16)+'" class="ax">Q0 · today</text>'
     +'<text x="'+(W-P)+'" y="'+(H-16)+'" class="ax" text-anchor="end">handover · '+d.months+'mo</text>'
-    +'<text x="'+P+'" y="'+(P-18).toFixed(1)+'" class="ax">cumulative cash position</text>'
+    +'<text x="'+P+'" y="'+(P-22).toFixed(1)+'" class="ax">bars: in (up) · out (down) — line: cumulative net</text>'
     +'</svg>';
 }
 
@@ -1923,6 +1930,9 @@ document.getElementById('expbtn').addEventListener('click',()=>{
   const b=document.getElementById('expbody'); const open=b.classList.toggle('show');
   document.getElementById('expbtn').firstChild.textContent=(open?'▾':'▸')+' Show every mix the optimiser weighed ';
 });
+(function(){ const t=document.getElementById('cfToggle'); if(!t) return;
+  t.addEventListener('click',()=>{ const c=document.getElementById('cf-chart'); const open=c.style.display==='none'; c.style.display=open?'block':'none'; document.getElementById('cfToggleIcon').textContent=open?'▾':'▸'; });
+})();
 
 /* ---------------- view switching ---------------- */
 function switchView(mode){
