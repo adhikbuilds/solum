@@ -240,10 +240,19 @@ body.view-compare #portfolioView{display:none}
 .leverrow{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4)}
 
 /* info icon + popover w/ provenance badges (monochrome) */
-.info{position:relative; width:16px; height:16px; border-radius:50%; border:1.5px solid var(--muted);
-  color:var(--muted); font-weight:var(--fw-bold); font-size:9px; line-height:13px; text-align:center;
-  cursor:pointer; background:transparent; user-select:none; flex:0 0 auto; transition:all .2s}
-.info:hover{border-color:var(--accent-500); color:var(--accent-500)}
+.info{position:relative; width:16px; height:16px; border-radius:50%;
+  border:1.5px solid color-mix(in srgb, var(--muted) 55%, transparent);
+  color:var(--muted); font-size:0; cursor:pointer; background:transparent; user-select:none; flex:0 0 auto;
+  display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), background .18s ease, border-color .18s ease, box-shadow .18s ease}
+/* the "i" is drawn (dot + rounded stem) so it reads crisp and modern at any size */
+.info::before{content:""; position:absolute; top:2.5px; left:50%; transform:translateX(-50%);
+  width:2px; height:2px; border-radius:50%; background:currentColor}
+.info::after{content:""; position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  width:2px; height:5px; border-radius:1px; background:currentColor}
+.info:hover,.info:focus-visible{background:var(--accent-500); border-color:var(--accent-500); color:#fff;
+  transform:scale(1.14); box-shadow:0 3px 10px color-mix(in srgb, var(--accent-500) 42%, transparent); outline:none}
+.info:active{transform:scale(1.03)}
 .pop{position:absolute; z-index:40; left:22px; top:-4px; width:290px; background:var(--ink); color:#FFFFFF;
   border-radius:var(--radius-sm); padding:var(--sp-4); font-size:var(--fs-label); line-height:1.5; box-shadow:var(--sh-high);
   display:none; text-align:left; font-weight:var(--fw-medium)}
@@ -544,9 +553,11 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 .empty-card .btn{margin:0 auto}
 .pdf-tag{display:inline-block; margin-left:8px; font-size:10px; font-weight:var(--fw-black); letter-spacing:.06em; text-transform:uppercase; color:var(--accent-700); background:var(--accent-50); border-radius:var(--radius-pill); padding:1px 7px; vertical-align:middle}
 .cost-group{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.08em; text-transform:uppercase; color:var(--accent-500); margin:var(--sp-6) 0 var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid var(--line)}
-/* Summary two-column grid: right column stacks unit stats + recommended mix + scenarios */
-.sum-grid{align-items:start}
-.sum-right{display:flex; flex-direction:column; gap:var(--sp-5)}
+/* Summary two-column grid: right column stacks unit stats + recommended mix + scenarios.
+   Columns stretch to equal height; the right column distributes its blocks so any slack
+   spreads between them (no trailing empty box). */
+.sum-grid{align-items:stretch}
+.sum-right{display:flex; flex-direction:column; gap:var(--sp-5); justify-content:space-between}
 .sum-right .devstrip{margin-bottom:0}
 .cost-group:first-of-type{margin-top:var(--sp-2)}
 .note-save{display:flex; align-items:center; gap:12px; margin-top:12px}
@@ -778,8 +789,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
         <div class="grid sum-grid">
           <div>
             <div class="panel">
-              <h2><span class="n">01</span> Financial breakdown</h2>
-              <p class="sec-note">Revenue, cost and profit behind the recommended mix, at today's land price. AED/sqft is of total saleable area.</p>
+              <h2><span class="n">01</span> Financial breakdown <button class="info" data-pop="finbreak">i</button></h2>
               <table class="buildup" id="buildupTable"></table>
             </div>
           </div>
@@ -787,25 +797,19 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <!-- development programme — total units / sellable area / avg size -->
             <div class="devstrip" id="devstrip"></div>
             <div class="panel sum-mix">
-              <h2><span class="n">02</span> Recommended unit mix</h2>
-              <p class="sec-note">The profit-maximising mix within the Unit Matrix bands, re-solved live.</p>
+              <h2><span class="n">02</span> Recommended unit mix <button class="info" data-pop="recmix">i</button></h2>
               <table class="rectable">
                 <thead><tr><th>Type</th><th>Size</th><th>Units</th><th>Total size</th><th>Price/sqft</th><th>Total value</th></tr></thead>
                 <tbody id="rectable-body"></tbody>
                 <tfoot id="rectable-foot"></tfoot>
               </table>
               <div class="rlv">
-                <div class="k">Residual land value: the most payable that still clears the hurdle <button class="info" data-pop="rlv">i</button></div>
+                <div class="k">Residual land value <button class="info" data-pop="rlv">i</button></div>
                 <div class="v" id="rlv">—</div>
-              </div>
-              <div class="rlv" style="margin-top:var(--sp-4)">
-                <div class="k">Price/sqft needed to clear the hurdle <button class="info" data-pop="breakeven">i</button></div>
-                <div class="v" id="breakeven">—</div>
               </div>
             </div>
             <div class="panel">
-              <h2><span class="n">03</span> Scenario testing</h2>
-              <p class="sec-note">The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Assumptions.</p>
+              <h2><span class="n">03</span> Scenario testing <button class="info" data-pop="scenario">i</button></h2>
               <div class="scen" id="scen"></div>
             </div>
           </div>
@@ -1187,6 +1191,9 @@ const POPS = {
   unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption. No DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
   breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix: if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
   coverage:{t:"Building footprint as a share of plot area, implied by GFA, floor count, podium and basement levels.", s:"A rough planning check, not a substitute for the DDA plot document.", tier:'modeled'},
+  finbreak:{t:"Revenue, cost and profit behind the recommended mix, at today's land price. AED/sqft is of total saleable area.", s:"", tier:null},
+  recmix:{t:"The profit-maximising mix within the Unit Matrix bands, re-solved live.", s:"", tier:null},
+  scenario:{t:"The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Assumptions.", s:"", tier:null},
 };
 
 /* ---------------- storage / project management ----------------
@@ -1563,7 +1570,7 @@ function render(){
   const {best,cand}=optimise(mk,STATE);
 
   if(!best){
-    ['vm-roi','vm-rop','vm-profit','sm-inv','sm-gross','sm-avgprice','sm-cpsf-w','sm-cpsf-n','breakeven'].forEach(id=>document.getElementById(id).textContent='—');
+    ['vm-roi','vm-rop','vm-profit','sm-inv','sm-gross','sm-avgprice','sm-cpsf-w','sm-cpsf-n'].forEach(id=>document.getElementById(id).textContent='—');
     document.getElementById('vm-verdict-cell').innerHTML='<span class="tag pass">no mix</span>';
     document.getElementById('devstrip').innerHTML='';
     document.getElementById('buildupTable').innerHTML='';
@@ -1593,7 +1600,6 @@ function render(){
   document.getElementById('sm-avgprice').textContent=fN(best.avgPricePsf);
   document.getElementById('sm-cpsf-w').textContent=fN(best.cpsfWith);
   document.getElementById('sm-cpsf-n').textContent=fN(best.cpsfNo);
-  document.getElementById('breakeven').textContent=fN(best.breakevenPsf)+' AED/sqft';
 
   /* development programme strip */
   document.getElementById('devstrip').innerHTML=
