@@ -525,7 +525,16 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 .chart-collapse:hover{border-color:var(--accent-500); color:var(--accent-500)}
 .mkt-panel.collapsed .chart,.mkt-panel.collapsed .sec-note{display:none}
 #chart-trend .svgchart{max-height:230px}
-.svgchart .pt{fill:var(--accent-500)}
+.svgchart .pt{fill:var(--accent-500); transition:r var(--dur-fast) var(--ease-std)}
+.svgchart .hit{cursor:pointer}
+/* location filter for the price-trend chart */
+.mkt-ctrl{display:flex; align-items:center; gap:10px; margin:0 0 var(--sp-4)}
+.mkt-ctrl label{font-size:var(--fs-label); font-weight:var(--fw-bold); color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+.mkt-select{font-family:var(--font-sans); font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink); background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:8px 12px; cursor:pointer; max-width:300px}
+.mkt-select:focus{outline:none; border-color:var(--accent-500)}
+/* hover value tooltip on chart data points */
+.chart-tip{position:absolute; transform:translate(-50%,calc(-100% - 10px)); background:var(--ink); color:#fff; font-size:var(--fs-label); font-weight:var(--fw-semibold); padding:5px 9px; border-radius:6px; white-space:nowrap; pointer-events:none; z-index:5; box-shadow:var(--sh-med)}
+.chart-tip::after{content:""; position:absolute; left:50%; top:100%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--ink)}
 .empty-card{max-width:460px; margin:48px auto; text-align:center; padding:var(--sp-8); background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--sh-low)}
 .empty-card .ec-title{font-size:1.25rem; font-weight:var(--fw-black); color:var(--ink); margin-bottom:var(--sp-2)}
 .empty-card .ec-sub{font-size:var(--fs-body); color:var(--muted); line-height:1.55; margin-bottom:var(--sp-5)}
@@ -957,6 +966,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
         <div class="panel mkt-panel" style="margin-bottom:var(--sp-6)">
           <h2>Price trend <button class="chart-collapse" type="button" aria-label="Collapse chart">–</button></h2>
           <p class="sec-note">Median sale price per ft² by month, last 24 months (outlier-trimmed).</p>
+          <div class="mkt-ctrl"><label for="mkt-trend-area">Location</label><select id="mkt-trend-area" class="mkt-select"></select></div>
           <div id="chart-trend" class="chart"></div>
         </div>
         <div class="market-2col">
@@ -2595,13 +2605,37 @@ function applyComps(rows, best){
 
 /* ---------------- Market Insights (Phase 3) ---------------- */
 let MARKET_LOADED=false;
+/* the plot's own area, so the trend chart can default to it */
+function plotAreaId(){
+  if(STATE && STATE.areaId) return STATE.areaId;
+  const b=(typeof resolveAreaBest==='function')?resolveAreaBest():null;
+  return b?b.id:null;
+}
+function populateTrendAreas(){
+  const sel=document.getElementById('mkt-trend-area'); if(!sel) return;
+  const cur=plotAreaId();
+  sel.innerHTML=['<option value="">All Dubai</option>']
+    .concat(LOCATIONS.map(l=>`<option value="${l.area_id}">${(l.area_name_en||'').replace(/</g,'&lt;')}</option>`)).join('');
+  sel.value = cur!=null ? String(cur) : '';
+}
+async function loadTrend(areaId){
+  if(!sb) return;
+  const el=document.getElementById('chart-trend');
+  if(el && !MARKET_LOADED) el.innerHTML='<div class="chart-loading">Loading price trend…</div>';
+  const {data,error}=await sb.rpc('market_price_trend',{p_months:24, p_area_id: areaId!=null?areaId:null});
+  renderTrend(error?[]:(data||[]));
+}
 async function loadMarket(){
   if(!sb) return;
   const t=document.getElementById('chart-trend'), v=document.getElementById('chart-velocity'), o=document.getElementById('chart-offplan');
   if(!MARKET_LOADED) [t,v,o].forEach(el=>{ if(el) el.innerHTML='<div class="chart-loading">Loading DLD market data…</div>'; });
+  const sel=document.getElementById('mkt-trend-area');
+  if(sel && !sel._bound){ sel._bound=true; sel.addEventListener('change',()=>loadTrend(sel.value?+sel.value:null)); }
+  populateTrendAreas();
+  const areaId = sel && sel.value ? +sel.value : plotAreaId();
   try{
     const [tr,ve,of]=await Promise.all([
-      sb.rpc('market_price_trend',{p_months:24}),
+      sb.rpc('market_price_trend',{p_months:24, p_area_id: areaId!=null?areaId:null}),
       sb.rpc('market_velocity',{p_months:12,p_limit:15}),
       sb.rpc('market_offplan',{p_months:24}),
     ]);
@@ -2614,7 +2648,7 @@ async function loadMarket(){
 function renderTrend(rows){
   const el=document.getElementById('chart-trend'); if(!el) return;
   rows=(rows||[]).filter(r=>r&&r.price_sqft!=null).sort((a,b)=> a.month<b.month?-1:1);
-  if(rows.length<2){ el.innerHTML='<div class="chart-empty">Not enough data.</div>'; return; }
+  if(rows.length<2){ el.innerHTML='<div class="chart-empty">Not enough data for this location.</div>'; return; }
   const asof=document.getElementById('mkt-asof'); if(asof) asof.textContent=' · through '+String(rows[rows.length-1].month).slice(0,7);
   const W=720,H=170,P=42;
   const ys=rows.map(r=>+r.price_sqft), ymin=Math.min(...ys), ymax=Math.max(...ys);
@@ -2622,16 +2656,38 @@ function renderTrend(rows){
   const Y=val=>H-P-(H-2*P)*(val-ymin)/((ymax-ymin)||1);
   const pts=rows.map((r,i)=>X(i).toFixed(1)+','+Y(+r.price_sqft).toFixed(1)).join(' ');
   const mid=(ymin+ymax)/2;
+  const dots=rows.map((r,i)=>'<circle class="pt" data-i="'+i+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(+r.price_sqft).toFixed(1)+'" r="2.6"/>').join('');
+  /* invisible wide hit-targets so hovering anywhere near a point reveals its value */
+  const hits=rows.map((r,i)=>{
+    const label=(String(r.month).slice(0,7)+' · '+fN(+r.price_sqft)+'/ft²'+(r.n!=null?' · n='+fN(+r.n):'')).replace(/"/g,'&quot;');
+    return '<circle class="hit" data-i="'+i+'" data-label="'+label+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(+r.price_sqft).toFixed(1)+'" r="14" fill="transparent"/>';
+  }).join('');
+  el.style.position='relative';
   el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" class="svgchart" preserveAspectRatio="xMidYMid meet">'
     +'<line x1="'+P+'" y1="'+Y(mid).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(mid).toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>'
     +'<polygon points="'+P+','+(H-P)+' '+pts+' '+X(rows.length-1).toFixed(1)+','+(H-P)+'" fill="var(--accent-500)" opacity="0.08"/>'
     +'<polyline points="'+pts+'" fill="none" stroke="var(--accent-500)" stroke-width="2.5" stroke-linejoin="round"/>'
-    +rows.map((r,i)=>'<circle class="pt" cx="'+X(i).toFixed(1)+'" cy="'+Y(+r.price_sqft).toFixed(1)+'" r="2.6"><title>'+String(r.month).slice(0,7)+' · '+fN(+r.price_sqft)+'/ft² (n='+fN(+r.n||0)+')</title></circle>').join('')
+    +dots+hits
     +'<text x="'+P+'" y="'+(H-16)+'" class="ax">'+String(rows[0].month).slice(0,7)+'</text>'
     +'<text x="'+(W-P)+'" y="'+(H-16)+'" class="ax" text-anchor="end">'+String(rows[rows.length-1].month).slice(0,7)+'</text>'
     +'<text x="'+(P-8)+'" y="'+(Y(ymax)+4).toFixed(1)+'" class="ax" text-anchor="end">'+fN(ymax)+'</text>'
     +'<text x="'+(P-8)+'" y="'+(Y(ymin)+4).toFixed(1)+'" class="ax" text-anchor="end">'+fN(ymin)+'</text>'
-    +'</svg>';
+    +'</svg><div class="chart-tip" style="display:none"></div>';
+  const tip=el.querySelector('.chart-tip');
+  el.querySelectorAll('circle.hit').forEach(h=>{
+    h.addEventListener('mouseenter',()=>{
+      const cr=h.getBoundingClientRect(), e=el.getBoundingClientRect();
+      tip.textContent=h.dataset.label;
+      tip.style.left=(cr.left+cr.width/2-e.left)+'px';
+      tip.style.top=(cr.top+cr.height/2-e.top)+'px';
+      tip.style.display='block';
+      const d=el.querySelector('circle.pt[data-i="'+h.dataset.i+'"]'); if(d) d.setAttribute('r','5');
+    });
+    h.addEventListener('mouseleave',()=>{
+      tip.style.display='none';
+      const d=el.querySelector('circle.pt[data-i="'+h.dataset.i+'"]'); if(d) d.setAttribute('r','2.6');
+    });
+  });
 }
 function renderVelocity(rows){
   const el=document.getElementById('chart-velocity'); if(!el) return;
