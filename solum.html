@@ -2474,6 +2474,41 @@ function resolveAreaId(){
   const name=(document.getElementById('in-community').value||'').toLowerCase().trim();
   return (name in LOC_BY_NAME) ? LOC_BY_NAME[name] : null;
 }
+/* Fuzzy location matching — a plot's fetched community often isn't a verbatim DLD
+   area name, so we rank the DLD list by similarity and recommend the nearest. */
+function _normLoc(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function _lev(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,i)=>i), cur=new Array(n+1);
+  for(let i=1;i<=m;i++){ cur[0]=i;
+    for(let j=1;j<=n;j++){ const cost=a[i-1]===b[j-1]?0:1; cur[j]=Math.min(cur[j-1]+1, prev[j]+1, prev[j-1]+cost); }
+    [prev,cur]=[cur,prev];
+  }
+  return prev[n];
+}
+function _simLoc(a,b){
+  a=_normLoc(a); b=_normLoc(b); if(!a||!b) return 0; if(a===b) return 1;
+  if(a.includes(b)||b.includes(a)) return 0.9;
+  const at=new Set(a.split(' ')), bt=new Set(b.split(' '));
+  let inter=0; at.forEach(t=>{ if(bt.has(t)) inter++; });
+  const tok=inter/Math.max(at.size,bt.size);
+  const lr=1-_lev(a,b)/Math.max(a.length,b.length);
+  return Math.max(tok, lr*0.9);
+}
+function nearestAreas(name, k){
+  if(!name || !LOCATIONS.length) return [];
+  return LOCATIONS.map(l=>({l, s:_simLoc(name, l.area_name_en)})).sort((x,y)=>y.s-x.s).slice(0,k);
+}
+/* exact DLD match if the typed name is one; otherwise the nearest area above a
+   confidence floor. Returns {id, name, exact, score} or null. */
+function resolveAreaBest(){
+  const raw=(document.getElementById('in-community').value||'').trim();
+  const exact=LOC_BY_NAME[raw.toLowerCase()];
+  if(exact!=null) return {id:exact, name:LOC_BY_ID[exact]||raw, exact:true, score:1};
+  const top=nearestAreas(raw,1)[0];
+  if(top && top.s>=0.4) return {id:top.l.area_id, name:top.l.area_name_en, exact:false, score:top.s};
+  return null;
+}
 /* clickable community typeahead (native datalist is unreliable, esp. on Mac) */
 function initCommunityTypeahead(){
   const input=document.getElementById('in-community'), drop=document.getElementById('communityDrop');
@@ -2483,7 +2518,8 @@ function initCommunityTypeahead(){
   const place=()=>{ const r=input.getBoundingClientRect(); drop.style.left=r.left+'px'; drop.style.top=(r.bottom+4)+'px'; drop.style.width=r.width+'px'; };
   const open=()=>{
     const q=(input.value||'').toLowerCase().trim();
-    const list=LOCATIONS.filter(l=>(l.area_name_en||'').toLowerCase().includes(q)).slice(0,8);
+    let list=LOCATIONS.filter(l=>(l.area_name_en||'').toLowerCase().includes(q)).slice(0,8);
+    if(!list.length && q){ list=nearestAreas(input.value,6).filter(x=>x.s>=0.3).map(x=>x.l); }   /* no substring hit → nearest areas */
     if(!list.length){ close(); return; }
     drop.innerHTML=list.map(l=>`<div class="typeahead-opt" data-id="${l.area_id}" data-name="${(l.area_name_en||'').replace(/"/g,'&quot;')}">${l.area_name_en}</div>`).join('');
     place(); drop.classList.add('show');
@@ -2504,18 +2540,19 @@ function initCommunityTypeahead(){
 async function pullComps(){
   const basis=document.getElementById('compsBasis'); basis.className='comps-basis';
   if(!sb){ basis.textContent='Comps unavailable. No connection.'; return; }
-  const areaId=resolveAreaId();
-  if(areaId==null){ basis.textContent='Pick a community from the DLD list to pull comps.'; return; }
+  const best=resolveAreaBest();
+  if(best==null){ basis.textContent='Type a location and pick the nearest DLD area from the list to pull comps.'; return; }
+  STATE.areaId=best.id;
   const btn=document.getElementById('btnPullComps'), orig=btn.textContent;
   btn.disabled=true; btn.textContent='Pulling…';
   try{
-    const {data,error}=await sb.rpc('get_comps',{p_area_id:areaId});
+    const {data,error}=await sb.rpc('get_comps',{p_area_id:best.id});
     if(error){ basis.textContent='Comps error: '+error.message; btn.textContent=orig; }
-    else { applyComps(data||[]); btn.textContent='↻ Refresh DLD comps'; }
+    else { applyComps(data||[], best); btn.textContent='↻ Refresh DLD comps'; }
   }catch(e){ basis.textContent='Comps failed. Please try again.'; btn.textContent=orig; }
   btn.disabled=false;
 }
-function applyComps(rows){
+function applyComps(rows, best){
   const basis=document.getElementById('compsBasis');
   const MIN=5, by={};
   rows.forEach(r=>by[r.unit_type]=r);
@@ -2530,8 +2567,10 @@ function applyComps(rows){
       if(!asOf || r.as_of>asOf) asOf=r.as_of;
     } else { t.sourced=false; }
   });
-  STATE.areaId=resolveAreaId();
-  const community=LOC_BY_ID[STATE.areaId] || document.getElementById('in-community').value;
+  const typed=(document.getElementById('in-community').value||'').trim();
+  STATE.areaId = best ? best.id : resolveAreaId();
+  const community=LOC_BY_ID[STATE.areaId] || typed;
+  const nearNote = (best && best.exact===false) ? `Nearest DLD area to “${typed}”: ${community}. ` : '';
   STATE.comps={community, asOf, applied, totalN};
   let cls, msg;
   if(applied){
@@ -2540,10 +2579,10 @@ function applyComps(rows){
       s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''}. Sizes are the median sold size, prices outlier-trimmed & recency-weighted. Per type: ${perType}.`,
       tier:'sourced' };
     cls='comps-basis sourced';
-    msg=`Market-sourced · sizes & prices from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
+    msg=nearNote+`Market-sourced · sizes & prices from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
   } else {
     cls='comps-basis';
-    msg=`Not enough DLD comps (need ≥${MIN} per type) for ${community}. Pricing stays modeled.`;
+    msg=nearNote+`Not enough DLD comps (need ≥${MIN} per type) for ${community}. Pricing stays modeled.`;
   }
   [document.getElementById('compsBasis'), document.getElementById('compsBasisMatrix')].forEach(el=>{
     if(el){ el.className=cls; el.textContent=msg; }
