@@ -754,8 +754,11 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <button class="leftnav-item" data-tab="mix">Unit Matrix</button>
     <button class="leftnav-item" data-tab="assumptions">Assumptions</button>
     <button class="leftnav-item" data-tab="details">Plot Details</button>
-    <div class="leftnav-eyebrow leftnav-section2">Market</div>
-    <button class="leftnav-item" data-tab="market">Market Insights</button>
+    <div class="leftnav-eyebrow leftnav-section2">Market insights</div>
+    <button class="leftnav-item" data-tab="market" data-scroll="mkt-overview">Overview</button>
+    <button class="leftnav-item" data-tab="market" data-scroll="soon-supply">Competitive supply</button>
+    <button class="leftnav-item" data-tab="market" data-scroll="soon-offplan">Off-plan comps</button>
+    <button class="leftnav-item" data-tab="market" data-scroll="soon-absorption">Absorption</button>
     <div class="leftnav-foot">
       <span class="savechip" id="saveChipNav"></span>
       <button class="delete-link" id="btnDelete">Delete this plot</button>
@@ -1043,7 +1046,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
       <!-- ===== MARKET INSIGHTS (tab) ===== -->
       <div class="tabpanel-x" id="tab-market" style="display:none">
-        <div class="market-head">
+        <div class="market-head" id="mkt-overview">
           <h1>Market Insights</h1>
           <p class="sec-note">Dubai residential apartment sales from DLD<span id="mkt-asof"></span>. Sales velocity, not absorption (we have sold transactions, not live inventory).</p>
         </div>
@@ -1072,7 +1075,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <p class="sec-note">Supply and off-plan intelligence we're wiring in next, so a land call factors in the competition, not just past sales. The figures below are illustrative placeholders, not live data.</p>
         </div>
 
-        <div class="panel mkt-panel soon-panel" style="margin-bottom:var(--sp-6)">
+        <div class="panel mkt-panel soon-panel" id="soon-supply" style="margin-bottom:var(--sp-6); scroll-margin-top:var(--sp-4)">
           <h2>Competitive supply <span class="soon-badge">Coming soon</span></h2>
           <p class="sec-note">Apartment units completing in this area by year, from the RERA off-plan pipeline — shows whether your handover window is crowded.</p>
           <div class="supply-chart">
@@ -1085,7 +1088,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="soon-read">~4,200 apartments complete in your handover year within ~3 km. <b>Pricing pressure: elevated</b> — worth pushing sales ahead of the 2028 wave.</div>
         </div>
 
-        <div class="panel mkt-panel soon-panel" style="margin-bottom:var(--sp-6)">
+        <div class="panel mkt-panel soon-panel" id="soon-offplan" style="margin-bottom:var(--sp-6); scroll-margin-top:var(--sp-4)">
           <h2>Comparable off-plan launches <span class="soon-badge">Coming soon</span></h2>
           <p class="sec-note">Nearby launches — price per sqft, how much is already sold, and completion — to benchmark your launch price and absorption, and to set the payment-plan assumptions.</p>
           <div class="opl-grid">
@@ -1108,7 +1111,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="soon-read">Nearby launches sit at <b>AED 1,640–1,910/sqft</b>, ~40–80% sold within 6–12 months — a launch price near <b>AED 1,750/sqft</b> and ~60% off-plan absorption look supportable.</div>
         </div>
 
-        <div class="panel mkt-panel soon-panel">
+        <div class="panel mkt-panel soon-panel" id="soon-absorption" style="scroll-margin-top:var(--sp-4)">
           <h2>Absorption — months to sell out <span class="soon-badge">Coming soon</span></h2>
           <p class="sec-note">Your unit count against the area's recent sales pace, to sanity-check the sell-down baked into the cashflow.</p>
           <div class="absorb-row">
@@ -1511,6 +1514,7 @@ document.querySelectorAll('.leftnav-item').forEach(t=>t.addEventListener('click'
   t.classList.add('active');
   document.getElementById('tab-'+t.dataset.tab).style.display='block';
   if(t.dataset.tab==='market') loadMarket();
+  if(t.dataset.scroll){ const el=document.getElementById(t.dataset.scroll); if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth', block:'start'}), 40); }
 }));
 /* collapsible market chart panels */
 document.querySelectorAll('.chart-collapse').forEach(b=>b.addEventListener('click',e=>{
