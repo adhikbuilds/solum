@@ -2601,7 +2601,7 @@ function applyComps(rows, best){
   if(applied){
     const perType=STATE.types.filter(t=>t.sourced).map(t=>`${t.name}: ${fN(t.size)} sqft @ ${fN(t.price)}/sqft (n=${(by[t.name].sample_n).toLocaleString()})`).join('  ·  ');
     POPS.unitprice={ t:'Size and sales price per sq ft, per unit type.',
-      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''}. Sizes are the median sold size, prices outlier-trimmed & recency-weighted. Per type: ${perType}.`,
+      s:`Market-sourced from ${totalN.toLocaleString()} DLD sales in ${community}${asOf?`, through ${asOf}`:''}. Method: drop the top and bottom 5% of prices as outliers, then take a recency-weighted average — each sale is weighted on a 1-year half-life, so a sale 12 months old counts half as much as a fresh one, 24 months a quarter, and so on. Size is the median sold size. Per type: ${perType}.`,
       tier:'sourced' };
     cls='comps-basis sourced';
     msg=nearNote+`Market-sourced · sizes & prices from ${totalN.toLocaleString()} DLD transactions in ${community}${asOf?` · through ${asOf}`:''}.`;
