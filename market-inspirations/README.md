@@ -49,6 +49,13 @@ versus deliberately skipping.
 | Player | Category | Profile | Analysis |
 | --- | --- | --- | --- |
 | AIRE | Consulting + Software (both) | [`players/aire.md`](players/aire.md) | [`analysis/aire-vs-solum.md`](analysis/aire-vs-solum.md) |
+| Land Sterling | Consulting (RICS valuation house) | [`players/land-sterling.md`](players/land-sterling.md) | [`analysis/consultants-vs-solum.md`](analysis/consultants-vs-solum.md) |
+
+Cross-cutting read: [`analysis/consultants-vs-solum.md`](analysis/consultants-vs-solum.md)
+puts both consultants side by side. The short version is that two firms with opposite
+value propositions (AIRE sells tech and data at AED 20k, Land Sterling sells chartered
+trust at AED 73,500) structure the same study the same way and both lead with Highest
+& Best Use. When opposites agree, the agreement is signal.
 
 Earlier references (Aprao, JD Investment Console, BCG) live in
 `docs/PROJECT_CONTEXT.md` §4. Move them here if they ever get a full write-up.
