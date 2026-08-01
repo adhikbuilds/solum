@@ -68,6 +68,10 @@ It is a pre-ship gate distilled from a YC design review of six AI-built startup 
 pages: what reads as auto-generated, what the reviewers actively praised, and the six
 tests every effect on the Solum site has to pass. Source transcript is alongside it.
 
+Locked component decisions live in
+[`design-principles/locked-components.md`](design-principles/locked-components.md).
+Those are settled and should not be redesigned without a deliberate call to reopen them.
+
 Site design references live in `analysis/` —
 [`rudus-design-teardown.md`](analysis/rudus-design-teardown.md) is the primary one.
 
