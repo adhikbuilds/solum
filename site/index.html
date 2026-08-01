@@ -142,6 +142,26 @@ nav.stuck .nav-in{
 
 /* ---------- hero ---------- */
 .hero{padding:104px 0 0; position:relative; isolation:isolate; overflow:hidden}
+/* the block above the console is sized against the viewport, so the terminal
+   always shows the same slice of itself whatever the screen height */
+.heroblock{min-height:calc(72vh - 104px); display:flex; flex-direction:column; justify-content:center}
+/* on shorter screens the hero content itself becomes the floor, so it scales
+   down too, otherwise the terminal gets pushed off the fold entirely */
+@media(max-height:860px){
+  .hero{padding-top:84px}
+  .hero h1{font-size:clamp(38px,4.6vw,58px); margin:16px 0 15px}
+  .hero-sub{font-size:14.5px; margin-bottom:24px}
+  .heroblock{min-height:calc(70vh - 84px)}
+}
+@media(max-height:740px){
+  .hero{padding-top:64px}
+  .hero h1{font-size:clamp(32px,4.1vw,46px); margin:13px 0 12px}
+  .hero-sub{font-size:13px; margin-bottom:19px; line-height:1.6}
+  .heroblock{min-height:calc(69vh - 64px)}
+  .btn-arrow{padding:6px 6px 6px 20px; font-size:11.5px}
+  .btn-arrow .circ{width:32px; height:32px}
+  .eyebrow{font-size:10.5px}
+}
 .hero .wrap{position:relative; z-index:2}
 .hero h1{margin:20px 0 18px; max-width:790px}
 .hero .lede{margin-bottom:30px}
@@ -208,7 +228,7 @@ nav.stuck .nav-in{
   --ok:#5FCB92; --ok-bg:rgba(95,203,146,.14);
   --warn:#E0A052; --warn-bg:rgba(224,160,82,.15);
   --bad:#E8736F; --bad-bg:rgba(232,115,111,.15);
-  margin-top:268px; background:var(--card); border:1px solid var(--line);
+  margin-top:26px; background:var(--card); border:1px solid var(--line);
   border-radius:12px 12px 0 0; border-bottom:0;
   display:grid; grid-template-columns:1.05fr .95fr; overflow:hidden;
   box-shadow:0 30px 70px -34px rgba(26,14,8,.55);
@@ -286,7 +306,7 @@ nav.stuck .nav-in{
   border-radius:4px; padding:5px 9px; flex:1; min-height:26px; white-space:nowrap; overflow:hidden;
   transition:border-color .3s var(--ease), background .3s var(--ease);
 }
-.ocr-v.filled{border-color:var(--accent-300); background:var(--accent-50); color:var(--accent-800)}
+.ocr-v.filled{border-color:var(--accent-500); background:rgba(255,107,25,.07); color:var(--ink)}
 .caret{display:inline-block; width:6px; background:var(--accent-500); animation:blink 1s steps(2) infinite}
 @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
 
@@ -470,7 +490,7 @@ section{padding:104px 0}
 
 /* ---------- CTA ---------- */
 .cta{background:var(--dark); color:var(--dark-ink); padding:104px 0 110px}
-.ctagrid{display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:start}
+.ctagrid{display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:center}
 @media(max-width:880px){ .ctagrid{grid-template-columns:1fr; gap:44px} }
 .ctaleft h2{margin:20px 0 18px; max-width:none; font-size:clamp(30px,3.4vw,44px)}
 .ctaleft .lede{max-width:40ch}
@@ -567,11 +587,14 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
     <span class="chip chip-3"><i class="cok"></i>Pursue</span>
   </div>
   <div class="wrap">
-    <div class="eyebrow">For small and mid-market property developers</div>
+    <div class="heroblock">
+    <div class="eyebrow">For real estate developers in the UAE</div>
     <h1><span class="dim">Land feasibility studies in</span> minutes, not weeks.</h1>
     <p class="hero-sub">Know what a plot is worth before you bid on it.</p>
     <div class="hero-cta">
       <a href="#access" class="btn btn-arrow">Book a demo <span class="circ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span></a>
+    </div>
+
     </div>
 
     <!-- ---------- interactive console ---------- -->
@@ -813,7 +836,6 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
           <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" placeholder="Your name" autocomplete="name" required></div>
           <div class="field"><label for="f-co">Company</label><input id="f-co" name="company" placeholder="Company" autocomplete="organization" required></div>
           <div class="field"><label for="f-em">Email</label><input id="f-em" name="email" type="email" placeholder="you@company.ae" autocomplete="email" required></div>
-          <div class="field"><label for="f-ph">Phone</label><input id="f-ph" name="phone" placeholder="+971" autocomplete="tel"></div>
           <button class="btn btn-arrow" type="submit">Book a demo <span class="circ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span></button>
           <div class="form-ok" id="formOk"></div>
           <div class="form-note">You will hear back within a working day.</div>
@@ -833,7 +855,6 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
         <a href="#access">Book a demo</a>
       </div>
     </div>
-    <div class="foot-legal">An indicative screening model, not a lender-grade appraisal. Live on Dubai data. Sources: DLD transactions, DDA plot register, published cost benchmarks.</div>
   </div>
   <div class="foot-mark">Solum</div>
 </footer>
