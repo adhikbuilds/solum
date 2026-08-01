@@ -94,6 +94,7 @@ nav{
   transition:color .18s var(--ease);
 }
 .nav-links a:hover{color:var(--accent-700)}
+.nav-links a.btn, .nav-links a.btn:hover{color:#fff}   /* the pill keeps its own colour */
 
 .btn{
   font-family:var(--sans); font-size:14px; font-weight:600; border:0; cursor:pointer;
@@ -159,32 +160,101 @@ nav{
 .console-live i{width:6px; height:6px; border-radius:50%; background:var(--ok); display:block; animation:pulse 2.4s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.28}}
 
-.stage{padding:26px 24px 30px; border-right:1px solid var(--line); position:relative}
+.stage{padding:20px 22px 24px; border-right:1px solid var(--line); position:relative; display:flex; flex-direction:column}
 @media(max-width:900px){ .stage{border-right:0; border-bottom:1px solid var(--line)} }
 .panel{padding:26px 24px 30px}
 
-.stage-label{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
-  color:var(--muted); margin-bottom:4px;
+/* step rail */
+.steprail{display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap}
+.steprail button{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  background:transparent; border:1px solid transparent; color:var(--muted); cursor:pointer;
+  padding:6px 10px; border-radius:6px; display:flex; align-items:center; gap:7px;
+  transition:color .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
 }
-.stage-plot{font-family:var(--sans); font-weight:600; font-size:15px; margin-bottom:16px}
-.stage-plot span{color:var(--muted); font-weight:400}
-.massleg{
-  display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;
-  font-family:var(--mono); font-size:10.5px; color:var(--muted);
-}
-.massleg span{display:flex; align-items:center; gap:6px}
-.massleg b{width:8px; height:8px; border-radius:2px; display:block; flex:none}
-.massleg em{margin-left:auto; font-style:normal; color:var(--ink-2)}
+.steprail button i{font-style:normal; opacity:.55; font-size:9.5px}
+.steprail button:hover{color:var(--ink); background:var(--paper-2)}
+.steprail button.on{color:var(--accent-700); background:var(--accent-50); border-color:var(--accent-100)}
+.steprail button.on i{opacity:1; color:var(--accent-500)}
+.steprail button.done{color:var(--ink-2)}
 
-svg.massing{width:100%; height:auto; display:block; overflow:visible}
-.slab{transition:opacity .5s var(--ease)}
-.plot-line{
-  fill:none; stroke:var(--line-2); stroke-width:1.4; stroke-dasharray:5 4;
+/* the stage box never changes height, so nothing on the page jumps */
+.stagebox{position:relative; height:322px}
+.sview{
+  position:absolute; inset:0; opacity:0; pointer-events:none;
+  transform:translateY(6px); transition:opacity .4s var(--ease), transform .4s var(--ease);
+  display:flex; flex-direction:column;
 }
+.sview.on{opacity:1; pointer-events:auto; transform:none}
+.sview-h{font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin-bottom:14px}
+
+/* 01 read */
+.readgrid{display:grid; grid-template-columns:112px 1fr; gap:18px; align-items:start}
+.sheet{
+  position:relative; background:#fff; border:1px solid var(--line-2); border-radius:4px;
+  padding:11px 10px; height:150px; overflow:hidden; box-shadow:0 6px 16px -10px rgba(26,14,8,.4);
+}
+.sheet-h{font-family:var(--mono); font-size:6.5px; letter-spacing:.1em; color:var(--muted); margin-bottom:9px}
+.sheet-l{height:4px; background:var(--line); border-radius:2px; margin-bottom:6px}
+.sheet-l.s{width:58%}
+.sheet-scan{
+  position:absolute; left:0; right:0; height:26px; top:-30px;
+  background:linear-gradient(180deg, transparent, rgba(255,107,25,.22), transparent);
+  border-top:1px solid var(--accent-500); border-bottom:1px solid var(--accent-500);
+}
+.sheet-scan.run{animation:scan 2.1s var(--ease) 1 forwards}
+@keyframes scan{ from{top:-30px} to{top:150px} }
+.ocr{display:flex; flex-direction:column; gap:8px}
+.ocr-row{display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:11px}
+.ocr-k{color:var(--muted); width:78px; flex:none; font-size:10px; letter-spacing:.05em}
+.ocr-v{
+  color:var(--ink); background:var(--paper-2); border:1px solid var(--line);
+  border-radius:4px; padding:5px 9px; flex:1; min-height:26px; white-space:nowrap; overflow:hidden;
+  transition:border-color .3s var(--ease), background .3s var(--ease);
+}
+.ocr-v.filled{border-color:var(--accent-300); background:var(--accent-50); color:var(--accent-800)}
+.caret{display:inline-block; width:6px; background:var(--accent-500); animation:blink 1s steps(2) infinite}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+/* 02 comps */
+.comps{font-family:var(--mono); font-size:11.5px}
+.comps-h{display:flex; color:var(--muted); font-size:9.5px; letter-spacing:.11em;
+         padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:3px}
+.comps-r{display:flex; padding:10px 0; border-bottom:1px solid var(--line); color:var(--ink-2);
+         opacity:0; transform:translateY(5px)}
+.comps-r.in{opacity:1; transform:none; transition:opacity .45s var(--ease), transform .45s var(--ease)}
+.comps-r b{color:var(--ink); font-weight:500}
+.c1{flex:1.3} .c2{flex:1; text-align:right} .c3{flex:1; text-align:right} .c4{flex:.9; text-align:right; color:var(--muted)}
+.comps-src{margin-top:12px; font-family:var(--mono); font-size:10px; color:var(--muted)}
+
+/* 03 optimiser */
+.opt{display:flex; flex-direction:column; gap:0}
+.opt-grid{display:flex; align-items:flex-end; gap:3px; height:150px}
+.opt-grid i{flex:1; background:var(--line); border-radius:2px 2px 0 0; display:block;
+            transition:background .18s var(--ease)}
+.opt-grid i.best{background:var(--accent-500)}
+.opt-cap{margin-top:14px; font-family:var(--mono); font-size:11px; color:var(--muted)}
+.opt-cap b{color:var(--accent-700); font-weight:500}
+.mixbar{display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:16px; background:var(--line)}
+.mixbar i{display:block; width:0; transition:width .7s var(--ease)}
+
+/* 04 build */
+svg.massing{display:block; overflow:visible}
 .plot-fill{fill:var(--accent-50)}
+.plot-line{fill:none; stroke:var(--line-2); stroke-width:1.4; stroke-dasharray:5 4}
 .dim-line{stroke:var(--line-2); stroke-width:1}
 .dim-txt{font-family:var(--mono); font-size:9.5px; fill:var(--muted); letter-spacing:.06em}
+.buildwrap{display:grid; grid-template-columns:1fr 168px; gap:18px; align-items:center; flex:1}
+.buildwrap .massing{width:100%; max-width:250px; height:auto; justify-self:center}
+.buildfacts{display:flex; flex-direction:column; gap:10px}
+.bf{display:flex; flex-direction:column; gap:2px}
+.bf span{font-family:var(--mono); font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.bf b{font-family:var(--mono); font-size:11.5px; font-weight:500; color:var(--ink)}
+.massleg{display:flex; flex-direction:column; gap:5px; margin-top:4px;
+         font-family:var(--mono); font-size:9.5px; color:var(--muted)}
+.massleg span{display:flex; align-items:center; gap:6px}
+.massleg b{width:7px; height:7px; border-radius:2px; display:block; flex:none}
+@media(max-width:520px){ .buildwrap{grid-template-columns:1fr} .readgrid{grid-template-columns:1fr} .sheet{display:none} }
 
 /* right panel */
 .readout{display:flex; flex-direction:column; gap:0}
@@ -287,48 +357,9 @@ section{padding:104px 0}
 .cmp li::before{content:''; width:5px; height:5px; border-radius:50%; background:var(--line-2); margin-top:8px; flex:none}
 .cmp.ours li::before{background:var(--accent-500)}
 
-/* ---------- workflow (dark) ---------- */
+/* ---------- dark section base ---------- */
 .dark{background:var(--dark); color:var(--dark-ink); border-top:1px solid var(--dark-line)}
 .dark h2,.dark h3{color:var(--dark-ink)}
-
-.flow{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:12px}
-@media(max-width:900px){ .flow{grid-template-columns:1fr} }
-.step{
-  background:var(--dark-2); border:1px solid var(--dark-line); border-radius:11px;
-  padding:24px 22px 26px; position:relative; overflow:hidden;
-}
-.step-n{font-family:var(--mono); font-size:11px; color:var(--accent-300); letter-spacing:.12em; margin-bottom:14px}
-.step h3{font-size:22px; margin-bottom:10px}
-.step p{font-size:14.5px; line-height:1.58; color:#B0A296}
-.step-vis{margin-top:20px; height:132px; border-radius:8px; background:#0A0806; border:1px solid var(--dark-line); overflow:hidden; position:relative}
-
-/* step 1: OCR field fill */
-.ocr{padding:12px 13px; display:flex; flex-direction:column; gap:7px}
-.ocr-row{display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:10.5px}
-.ocr-k{color:#6E6259; width:62px; flex:none}
-.ocr-v{
-  color:var(--dark-ink); background:#161210; border:1px solid var(--dark-line);
-  border-radius:4px; padding:3px 8px; flex:1; overflow:hidden; white-space:nowrap;
-}
-.ocr-v.filled{border-color:var(--accent-700); color:var(--accent-300)}
-.caret{display:inline-block; width:6px; background:var(--accent-500); animation:blink 1s steps(2) infinite}
-@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
-
-/* step 2: comps streaming */
-.comps{padding:11px 13px; font-family:var(--mono); font-size:10px}
-.comps-h{display:flex; color:#6E6259; letter-spacing:.06em; padding-bottom:6px; border-bottom:1px solid var(--dark-line); margin-bottom:5px}
-.comps-r{display:flex; padding:4px 0; color:#B0A296; opacity:0; transform:translateY(4px)}
-.comps-r.in{opacity:1; transform:none; transition:opacity .4s var(--ease), transform .4s var(--ease)}
-.comps-r b{color:var(--dark-ink); font-weight:500}
-.c1{flex:1.5} .c2{flex:1; text-align:right} .c3{flex:1; text-align:right}
-
-/* step 3: optimiser sweep */
-.opt{padding:13px; position:relative; height:100%}
-.opt-grid{display:flex; align-items:flex-end; gap:2.5px; height:74px}
-.opt-grid i{flex:1; background:var(--dark-line); border-radius:1.5px 1.5px 0 0; display:block; transition:background .25s, height .25s}
-.opt-grid i.best{background:var(--accent-500)}
-.opt-cap{margin-top:10px; font-family:var(--mono); font-size:10px; color:#6E6259}
-.opt-cap b{color:var(--accent-300); font-weight:500}
 
 /* ---------- capability grid ---------- */
 .caps{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:11px; overflow:hidden}
@@ -336,6 +367,13 @@ section{padding:104px 0}
 @media(max-width:560px){ .caps{grid-template-columns:1fr} }
 .cap{background:var(--card); padding:26px 24px 28px; transition:background .22s var(--ease)}
 .cap:hover{background:var(--accent-50)}
+.cap{position:relative}
+.ship{
+  position:absolute; top:18px; right:18px;
+  font-family:var(--mono); font-size:9px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--accent-700); background:var(--accent-50); border:1px solid var(--accent-100);
+  border-radius:999px; padding:3px 9px;
+}
 .cap-i{margin-bottom:15px; color:var(--accent-500)}
 .cap h3{font-size:20px; margin-bottom:8px}
 .cap p{font-size:14px; line-height:1.55}
@@ -406,10 +444,9 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
   <div class="nav-in">
     <a class="logo" href="#top" style="color:inherit;text-decoration:none"><i></i>Solum</a>
     <div class="nav-links">
-      <a href="#how">How it works</a>
+      <a href="#how">Methodology</a>
       <a href="#inside">What it does</a>
-      <a href="#next">Roadmap</a>
-      <a href="#access" class="btn">Request access</a>
+      <a href="#access" class="btn">Request a demo</a>
     </div>
   </div>
 </nav>
@@ -422,8 +459,7 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
     <h1><span class="dim">Land feasibility in</span> minutes, not weeks.</h1>
     <p class="lede">Upload a plot. Get the buildable mix, the returns, and the most you can pay for the land.</p>
     <div class="hero-cta">
-      <a href="#access" class="btn">Request access</a>
-      <a href="#how" class="btn btn-ghost">See how it works</a>
+      <a href="#access" class="btn">Request a free demo</a>
     </div>
     <p class="hero-note" style="margin-top:16px">Live model. Drag the price.</p>
 
@@ -436,34 +472,76 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
       </div>
 
       <div class="stage">
-        <div class="stage-label">What you can build here</div>
-        <div class="stage-plot">G+14 residential <span>· 33,363 sqft plot · 4.5 FAR</span></div>
-        <svg class="massing" viewBox="0 0 420 336" aria-label="Massing diagram: a G plus 14 residential block on the plot, banded by unit mix">
-          <defs>
-            <radialGradient id="grndShadow" cx=".5" cy=".5" r=".5">
-              <stop offset="0" stop-color="#1A0E08" stop-opacity=".16"/>
-              <stop offset="1" stop-color="#1A0E08" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-          <ellipse id="grnd" cx="214" cy="250" rx="140" ry="38" fill="url(#grndShadow)" opacity="0"/>
-          <g id="plotG">
-            <polygon class="plot-fill" points="75,236 210,171 345,236 210,301"/>
-            <polygon class="plot-line" points="75,236 210,171 345,236 210,301"/>
-            <text class="dim-txt" x="92" y="270">33,363 SQFT</text>
-          </g>
-          <g id="massG"></g>
-          <g id="hgt" opacity="0">
-            <line class="dim-line" x1="372" y1="72" x2="372" y2="240" stroke-dasharray="3 3"/>
-            <line class="dim-line" x1="368" y1="72" x2="376" y2="72"/>
-            <line class="dim-line" x1="368" y1="240" x2="376" y2="240"/>
-            <text class="dim-txt" x="382" y="160">G+14</text>
-          </g>
-        </svg>
-        <div class="massleg">
-          <span><b style="background:#FF9A5B"></b>2BR 20%</span>
-          <span><b style="background:#FFBE92"></b>1BR 50%</span>
-          <span><b style="background:#FFD9BC"></b>Studio 30%</span>
-          <em>194 units</em>
+        <div class="steprail" id="steprail">
+          <button type="button" data-s="0"><i>01</i>Read</button>
+          <button type="button" data-s="1"><i>02</i>Price</button>
+          <button type="button" data-s="2"><i>03</i>Optimise</button>
+          <button type="button" data-s="3"><i>04</i>Build</button>
+        </div>
+
+        <div class="stagebox">
+          <!-- 01 read the plot sheet -->
+          <div class="sview" data-v="0">
+            <div class="sview-h">Reading the plot sheet</div>
+            <div class="readgrid">
+              <div class="sheet">
+                <div class="sheet-h">DDA PLOT DETAILS</div>
+                <div class="sheet-l"></div><div class="sheet-l"></div><div class="sheet-l s"></div>
+                <div class="sheet-l"></div><div class="sheet-l s"></div><div class="sheet-l"></div>
+                <div class="sheet-l s"></div><div class="sheet-l"></div>
+                <div class="sheet-scan"></div>
+              </div>
+              <div class="ocr" id="ocr"></div>
+            </div>
+          </div>
+
+          <!-- 02 comparables -->
+          <div class="sview" data-v="1">
+            <div class="sview-h">Pricing from recorded sales</div>
+            <div class="comps" id="comps"></div>
+          </div>
+
+          <!-- 03 optimiser -->
+          <div class="sview" data-v="2">
+            <div class="sview-h">Testing every mix in your bands</div>
+            <div class="opt">
+              <div class="opt-grid" id="optGrid"></div>
+              <div class="opt-cap" id="optCap">Ready</div>
+              <div class="mixbar" id="mixbar"><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+
+          <!-- 04 the envelope -->
+          <div class="sview" data-v="3">
+            <div class="sview-h">What you can build here</div>
+            <div class="buildwrap">
+              <svg class="massing" viewBox="0 0 420 336" aria-label="Massing diagram: a G plus 14 residential block on the plot, banded by unit mix">
+                <defs>
+                  <radialGradient id="grndShadow" cx=".5" cy=".5" r=".5">
+                    <stop offset="0" stop-color="#1A0E08" stop-opacity=".16"/>
+                    <stop offset="1" stop-color="#1A0E08" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <ellipse id="grnd" cx="214" cy="250" rx="140" ry="38" fill="url(#grndShadow)" opacity="0"/>
+                <g id="plotG">
+                  <polygon class="plot-fill" points="75,236 210,171 345,236 210,301"/>
+                  <polygon class="plot-line" points="75,236 210,171 345,236 210,301"/>
+                </g>
+                <g id="massG"></g>
+              </svg>
+              <div class="buildfacts">
+                <div class="bf"><span>Envelope</span><b>G+14 residential</b></div>
+                <div class="bf"><span>Plot</span><b>33,363 sqft &middot; 4.5 FAR</b></div>
+                <div class="bf"><span>Sellable</span><b>126,372 sqft</b></div>
+                <div class="bf"><span>Units</span><b>194</b></div>
+                <div class="massleg">
+                  <span><b style="background:#FF9A5B"></b>2BR 20%</span>
+                  <span><b style="background:#FFBE92"></b>1BR 50%</span>
+                  <span><b style="background:#FFD9BC"></b>Studio 30%</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -546,34 +624,48 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
   <div class="wrap">
     <div class="split-head rv">
       <div>
-        <div class="eyebrow">How it works</div>
-        <h2 style="margin-top:20px"><span class="dim">Plot sheet in.</span> Verdict out.</h2>
+        <div class="eyebrow">Methodology</div>
+        <h2 style="margin-top:20px"><span class="dim">What goes in.</span> What comes out.</h2>
       </div>
       <div style="padding-top:14px">
-        <p class="lede">No spreadsheet. The panels below run the real logic.</p>
+        <p class="lede">Every number traces back to a source or to an assumption you set.</p>
       </div>
     </div>
 
-    <div class="flow">
-      <div class="step rv">
-        <div class="step-n">01</div>
-        <h3>Read the plot</h3>
-        <p>PDF or a phone photo. Solum reads the plot number, area, buildable area and height.</p>
-        <div class="step-vis"><div class="ocr" id="ocr"></div></div>
+    <div class="method">
+      <div class="mcol rv">
+        <div class="mcol-h">Inputs</div>
+        <ul>
+          <li>Plot sheet, PDF or scan, read automatically</li>
+          <li>Plot geometry from the DDA register</li>
+          <li>Recorded DLD transactions for the community</li>
+          <li>Your construction cost, fees and margin hurdle</li>
+          <li>The unit types you are willing to build</li>
+        </ul>
       </div>
-      <div class="step rv">
-        <div class="step-n">02</div>
-        <h3>Price it from real sales</h3>
-        <p>Prices and sizes from recorded DLD sales in that community, weighted to recent deals.</p>
-        <div class="step-vis"><div class="comps" id="comps"></div></div>
+      <div class="mcol rv">
+        <div class="mcol-h">Method</div>
+        <ul>
+          <li>Comparables trimmed at the 5th and 95th percentile</li>
+          <li>Recency weighted on a one year half life</li>
+          <li>Saleable area from a floor efficiency curve</li>
+          <li>Every mix inside your bands tested exhaustively</li>
+          <li>Residual land value solved at your hurdle</li>
+        </ul>
       </div>
-      <div class="step rv">
-        <div class="step-n">03</div>
-        <h3>Find the mix that earns most</h3>
-        <p>Every mix inside your bands gets tested. You get the one that earns most, and your price ceiling.</p>
-        <div class="step-vis"><div class="opt"><div class="opt-grid" id="optGrid"></div><div class="opt-cap" id="optCap">Testing mixes…</div></div></div>
+      <div class="mcol rv">
+        <div class="mcol-h">Output</div>
+        <ul>
+          <li>The mix that returns the most on this plot</li>
+          <li>The most you can pay for the land</li>
+          <li>Return on investment, return on project and IRR</li>
+          <li>Quarterly cashflow and peak funding</li>
+          <li>A PDF with the buildup, scenarios and sources</li>
+        </ul>
       </div>
     </div>
+
+    <p class="mono rv" style="font-size:12.5px;color:var(--dark-muted);margin-top:34px;max-width:74ch">Solum screens the land buy. A chartered valuation still belongs on the plot you decide to pursue.</p>
   </div>
 </section>
 
@@ -617,50 +709,44 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
         <h3>Portfolio view</h3>
         <p>Every live plot in one place, sorted by margin or land value.</p>
       </div>
+      <div class="cap rv">
+        <span class="ship">Shipping</span>
+        <div class="cap-i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M6 21V9l6-4 6 4v12"/><path d="M10 21v-5h4v5"/></svg></div>
+        <h3>Competitive supply</h3>
+        <p>What is launched and what is coming in the same community.</p>
+      </div>
+      <div class="cap rv">
+        <span class="ship">Shipping</span>
+        <div class="cap-i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2.5"/></svg></div>
+        <h3>Off-plan comparables</h3>
+        <p>Launch pricing and payment plans on schemes selling now.</p>
+      </div>
+      <div class="cap rv">
+        <span class="ship">Shipping</span>
+        <div class="cap-i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20V6m0 14h18"/><path d="M7 20V13M12 20V9M17 20v-4"/></svg></div>
+        <h3>Absorption</h3>
+        <p>How fast units clear, which sets a real sales programme.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ================= ROADMAP ================= -->
-<section class="band" id="next">
-  <div class="wrap">
-    <div class="sec-head rv">
-      <div class="eyebrow">On the roadmap</div>
-      <h2><span class="dim">Past what already</span> sold.</h2>
-      <p class="lede">Sales tell you yesterday's price. These tell you whether it moves.</p>
-    </div>
-    <div class="soon">
-      <div class="soon-c rv"><span class="soon-tag">In build</span><h3>Competitive supply</h3><p>What is launched and what is coming in the same community.</p></div>
-      <div class="soon-c rv"><span class="soon-tag">In build</span><h3>Off-plan comparables</h3><p>Launch pricing and payment plans on schemes selling now.</p></div>
-      <div class="soon-c rv"><span class="soon-tag">In build</span><h3>Absorption</h3><p>How fast units clear, which sets a real sales programme.</p></div>
-    </div>
-  </div>
-</section>
+
+
 
 <!-- ================= CTA ================= -->
 <section class="cta" id="access">
   <div class="wrap">
-    <div class="eyebrow">Request access</div>
-    <h2 style="margin-top:20px"><span class="dim">Send us a plot.</span> We will send back the feasibility.</h2>
-    <p class="lede">Attach a plot sheet. We will run it and send back the full analysis.</p>
+    <div class="eyebrow">Get started</div>
+    <h2 style="margin-top:20px"><span class="dim">Request a</span> free demo.</h2>
+    <p class="lede">Leave your details and we will set you up on a plot of your own.</p>
 
     <form id="leadForm" novalidate>
       <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" placeholder="Your name" autocomplete="name" required></div>
       <div class="field"><label for="f-co">Company</label><input id="f-co" name="company" placeholder="Company" autocomplete="organization" required></div>
       <div class="field"><label for="f-em">Email</label><input id="f-em" name="email" type="email" placeholder="you@company.ae" autocomplete="email" required></div>
       <div class="field"><label for="f-ph">Phone</label><input id="f-ph" name="phone" placeholder="+971" autocomplete="tel"></div>
-      <div class="field f-full">
-        <label for="f-plots">Plots you evaluate in a year</label>
-        <select id="f-plots" name="volume">
-          <option>1 to 5</option><option>6 to 20</option><option>21 to 50</option><option>More than 50</option>
-        </select>
-      </div>
-      <label class="drop f-full" for="f-file">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4m0 0L7 9m5-5l5 5M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/></svg>
-        <span id="dropTxt">Attach a plot sheet, PDF or scan, optional</span>
-        <input id="f-file" type="file" accept="application/pdf,image/*">
-      </label>
-      <div class="f-full"><button class="btn" type="submit">Request access</button></div>
+      <div class="f-full"><button class="btn" type="submit">Request demo</button></div>
       <div class="form-ok" id="formOk"></div>
       <div class="form-note">A person replies, usually within a working day.</div>
     </form>
@@ -672,10 +758,9 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
     <div class="foot-in">
       <h3>Land feasibility for developers in the Gulf.</h3>
       <div class="foot-links">
-        <a href="#how">How it works</a>
+        <a href="#how">Methodology</a>
         <a href="#inside">What it does</a>
-        <a href="#next">Roadmap</a>
-        <a href="#access">Request access</a>
+        <a href="#access">Request a demo</a>
       </div>
     </div>
     <div class="foot-legal">An indicative screening model, not a lender-grade appraisal. Live on Dubai data. Sources: DLD transactions, DDA plot register, published cost benchmarks.</div>
@@ -857,89 +942,139 @@ paint();
     show(roof, 160 + faces.length*90);
     edges.forEach(function(el,i){ show(el, 320 + faces.length*90 + i*70); });
     lines.forEach(function(el,i){ show(el, 520 + faces.length*90 + i*34); });  // floors etch in last
-    setTimeout(function(){
-      var h = document.getElementById('hgt');
-      h.style.transition='opacity .6s'; h.style.opacity=1;
-    }, 900 + faces.length*90 + lines.length*34);
   }
-  new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting) run(); });
-  }, {threshold:.25}).observe(document.getElementById('console'));
+  window.__solumMassing = run;      // the workflow sequencer triggers stage 04
 })();
 
-/* ---------- step 1: the plot sheet being read ---------- */
+/* ---------- the workflow sequence ----------
+   Four stages in one fixed frame. Plays through once when it comes into
+   view, then stops. The rail stays clickable so any step can be replayed. */
 (function(){
-  var rows = [['Plot no.','6488595'],['Area','33,363 sqft'],['Buildable','150,131 sqft'],['Height','G+14'],['Use','Residential']];
-  var el = document.getElementById('ocr');
-  el.innerHTML = rows.map(function(r){
+  var rail = document.getElementById('steprail');
+  if(!rail) return;
+  var btns  = rail.querySelectorAll('button');
+  var views = document.querySelectorAll('.sview');
+  var played = [false,false,false,false];
+  var current = -1, autoTimer = null, autoRunning = false;
+
+  /* ---- 01 the plot sheet being read ---- */
+  var OCR = [['Plot no.','6488595'],['Area','33,363 sqft'],['Buildable','150,131 sqft'],
+             ['Height','G+14'],['Land use','Residential']];
+  var ocrEl = document.getElementById('ocr');
+  ocrEl.innerHTML = OCR.map(function(r){
     return '<div class="ocr-row"><span class="ocr-k">'+r[0]+'</span><span class="ocr-v" data-v="'+r[1]+'"></span></div>';
   }).join('');
-  var cells = el.querySelectorAll('.ocr-v'), done = false;
-  function type(i){
-    if(i >= cells.length) return;
-    var c = cells[i], v = c.dataset.v, n = 0;
-    c.innerHTML = '<span class="caret">&nbsp;</span>';
-    var t = setInterval(function(){
-      n++;
-      c.innerHTML = v.slice(0,n) + (n < v.length ? '<span class="caret">&nbsp;</span>' : '');
-      if(n >= v.length){ clearInterval(t); c.classList.add('filled'); setTimeout(function(){ type(i+1); }, 130); }
-    }, 34);
+  function playRead(done){
+    var scan = document.querySelector('.sheet-scan');
+    if(scan){ scan.classList.remove('run'); void scan.offsetWidth; scan.classList.add('run'); }
+    var cells = ocrEl.querySelectorAll('.ocr-v');
+    cells.forEach(function(c){ c.textContent=''; c.classList.remove('filled'); });
+    function type(i){
+      if(i >= cells.length){ if(done) done(); return; }
+      var c = cells[i], v = c.dataset.v, n = 0;
+      var t = setInterval(function(){
+        n++;
+        c.innerHTML = v.slice(0,n) + (n < v.length ? '<span class="caret">&nbsp;</span>' : '');
+        if(n >= v.length){ clearInterval(t); c.classList.add('filled'); setTimeout(function(){ type(i+1); }, 110); }
+      }, 26);
+    }
+    setTimeout(function(){ type(0); }, 620);   // let the scan pass first
   }
-  new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting && !done){ done = true; setTimeout(function(){ type(0); }, 320); } });
-  }, {threshold:.4}).observe(el);
-})();
 
-/* ---------- step 2: comparables arriving ---------- */
-(function(){
-  var data = [['Studio','1,550','430'],['1BR','1,460','750'],['2BR','1,350','1,150'],['3BR','1,280','1,600']];
-  var el = document.getElementById('comps');
-  el.innerHTML = '<div class="comps-h"><span class="c1">TYPE</span><span class="c2">AED/SQFT</span><span class="c3">SIZE</span></div>' +
-    data.map(function(d){
-      return '<div class="comps-r"><span class="c1"><b>'+d[0]+'</b></span><span class="c2">'+d[1]+'</span><span class="c3">'+d[2]+'</span></div>';
-    }).join('');
-  var rows = el.querySelectorAll('.comps-r'), done = false;
-  new IntersectionObserver(function(es){
-    es.forEach(function(e){
-      if(e.isIntersecting && !done){ done = true;
-        rows.forEach(function(r,i){ setTimeout(function(){ r.classList.add('in'); }, 380 + i*190); });
-      }
-    });
-  }, {threshold:.4}).observe(el);
-})();
-
-/* ---------- step 3: the optimiser sweeping mixes ---------- */
-(function(){
-  var N = 34, grid = document.getElementById('optGrid'), cap = document.getElementById('optCap');
-  var heights = [], i;
-  for(i=0;i<N;i++){
-    // a plausible return surface with a single clear peak
-    var x = (i - N*0.62) / (N*0.30);
-    heights.push(30 + 70 * Math.exp(-x*x) + (i%3)*2.2);
+  /* ---- 02 comparables arriving ---- */
+  var COMPS = [['Studio','1,550','430','118'],['1BR','1,460','750','206'],
+               ['2BR','1,350','1,150','143'],['3BR','1,280','1,600','47']];
+  var compsEl = document.getElementById('comps');
+  compsEl.innerHTML =
+    '<div class="comps-h"><span class="c1">TYPE</span><span class="c2">AED/SQFT</span>'+
+    '<span class="c3">TYPICAL SIZE</span><span class="c4">SALES</span></div>' +
+    COMPS.map(function(d){
+      return '<div class="comps-r"><span class="c1"><b>'+d[0]+'</b></span><span class="c2"><b>'+d[1]+
+             '</b></span><span class="c3">'+d[2]+'</span><span class="c4">'+d[3]+'</span></div>';
+    }).join('') +
+    '<div class="comps-src">Wadi Al Safa 5, trailing 24 months, trimmed and recency weighted</div>';
+  function playPrice(done){
+    var rows = compsEl.querySelectorAll('.comps-r');
+    rows.forEach(function(r){ r.classList.remove('in'); });
+    rows.forEach(function(r,i){ setTimeout(function(){ r.classList.add('in'); }, 160 + i*210); });
+    setTimeout(function(){ if(done) done(); }, 160 + rows.length*210 + 260);
   }
-  grid.innerHTML = heights.map(function(h){ return '<i style="height:'+h+'%"></i>'; }).join('');
+
+  /* ---- 03 the optimiser sweep ---- */
+  var N = 30, grid = document.getElementById('optGrid'), cap = document.getElementById('optCap');
+  var heights = [];
+  for(var i=0;i<N;i++){
+    var x = (i - N*0.63) / (N*0.29);
+    heights.push(26 + 72 * Math.exp(-x*x) + (i%3)*2.4);
+  }
+  grid.innerHTML = heights.map(function(h){ return '<i style="height:'+h.toFixed(1)+'%"></i>'; }).join('');
   var bars = grid.querySelectorAll('i');
   var best = heights.indexOf(Math.max.apply(null, heights));
-  var done = false;
-
-  function sweep(){
+  var MIX = [[30,'#FFD9BC'],[50,'#FFBE92'],[20,'#FF9A5B'],[0,'#E07C2E']];
+  var mixEl = document.getElementById('mixbar');
+  function playOptimise(done){
+    mixEl.querySelectorAll('i').forEach(function(el,i){
+      el.style.background = MIX[i][1]; el.style.width = '0%';
+    });
     var k = 0;
     var t = setInterval(function(){
       bars.forEach(function(b){ b.classList.remove('best'); });
       bars[k].classList.add('best');
-      cap.innerHTML = 'Testing mixes… <b>' + (k+1) + ' of 657</b>';
+      cap.innerHTML = 'Testing mixes <b>' + Math.round((k+1)/bars.length*657) + ' of 657</b>';
       k++;
       if(k >= bars.length){
         clearInterval(t);
         bars.forEach(function(b){ b.classList.remove('best'); });
         bars[best].classList.add('best');
-        cap.innerHTML = 'Best mix <b>30 / 50 / 20 / 0</b> · RLV <b>AED 44.6M</b>';
+        cap.innerHTML = 'Best mix <b>30 / 50 / 20 / 0</b> at <b>AED 44.6M</b> residual land value';
+        mixEl.querySelectorAll('i').forEach(function(el,i){ el.style.width = MIX[i][0] + '%'; });
+        setTimeout(function(){ if(done) done(); }, 700);
       }
-    }, 52);
+    }, 48);
   }
+
+  /* ---- 04 the envelope, built by the massing module ---- */
+  function playBuild(done){
+    if(window.__solumMassing) window.__solumMassing();
+    setTimeout(function(){ if(done) done(); }, 2400);
+  }
+
+  var PLAY = [playRead, playPrice, playOptimise, playBuild];
+
+  function goto(n, auto){
+    if(n === current) return;
+    current = n;
+    views.forEach(function(v,i){ v.classList.toggle('on', i===n); });
+    btns.forEach(function(b,i){
+      b.classList.toggle('on', i===n);
+      b.classList.toggle('done', i<n);
+    });
+    PLAY[n](function(){
+      played[n] = true;
+      if(auto && autoRunning && n < 3){ autoTimer = setTimeout(function(){ goto(n+1, true); }, 520); }
+      else if(n === 3){ autoRunning = false; }
+    });
+  }
+
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      autoRunning = false; clearTimeout(autoTimer);   // a click always wins over the auto run
+      goto(+b.dataset.s, false);
+    });
+  });
+
+  var kicked = false;
   new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting && !done){ done = true; setTimeout(sweep, 400); } });
-  }, {threshold:.4}).observe(grid);
+    es.forEach(function(e){
+      if(e.isIntersecting && !kicked){
+        kicked = true; autoRunning = true;
+        setTimeout(function(){ goto(0, true); }, 260);
+      }
+    });
+  }, {threshold:.3}).observe(document.getElementById('console'));
+
+  goto(0, false);          // show something immediately, before any scroll
+  current = -1;            // so the observer can replay stage 0 properly
 })();
 
 /* ---------- reveal on scroll (opacity only, never hides content) ---------- */
@@ -953,10 +1088,6 @@ paint();
 })();
 
 /* ---------- form ---------- */
-document.getElementById('f-file').addEventListener('change', function(e){
-  var f = e.target.files && e.target.files[0];
-  document.getElementById('dropTxt').textContent = f ? f.name : 'Attach a plot sheet, PDF or scan, optional';
-});
 document.getElementById('leadForm').addEventListener('submit', function(e){
   e.preventDefault();
   var f = e.target, ok = document.getElementById('formOk');
