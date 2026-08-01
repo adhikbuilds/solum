@@ -8,7 +8,7 @@
 <meta name="description" content="Land feasibility for small and mid-market developers in the Gulf. Upload a plot, get the mix, the returns, and the most you can pay for the land.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Urbanist:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Urbanist:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Brand ramp carried over from the app so the site and the tool are one product */
@@ -40,7 +40,9 @@
 
   --serif:'Instrument Serif', Georgia, 'Times New Roman', serif;
   --sans:'Urbanist', system-ui, -apple-system, sans-serif;
-  --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* not IBM Plex Mono: it is the default face of every AI generated landing page
+     and reads as one on sight. DM Mono is drawn rather than defaulted to. */
+  --mono:'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   --maxw:1180px;
   --ease:cubic-bezier(.22,1,.36,1);
@@ -481,7 +483,7 @@ section{padding:104px 0}
 .cmp-lab{font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase;
          color:var(--muted); margin-bottom:11px}
 
-.pgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:7px; max-width:296px; margin-bottom:26px}
+.pgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:238px; margin-bottom:24px}
 .pgrid i{
   display:block; aspect-ratio:1; background:rgba(26,14,8,.055);
   clip-path:polygon(0 0, 83% 0, 100% 17%, 100% 100%, 0 100%);
