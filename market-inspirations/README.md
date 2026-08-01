@@ -60,6 +60,17 @@ trust at AED 73,500) structure the same study the same way and both lead with Hi
 Earlier references (Aprao, JD Investment Console, BCG) live in
 `docs/PROJECT_CONTEXT.md` §4. Move them here if they ever get a full write-up.
 
+## Design principles
+
+Before building anything customer-facing, read
+[`design-principles/ai-slop-antipatterns.md`](design-principles/ai-slop-antipatterns.md).
+It is a pre-ship gate distilled from a YC design review of six AI-built startup landing
+pages: what reads as auto-generated, what the reviewers actively praised, and the six
+tests every effect on the Solum site has to pass. Source transcript is alongside it.
+
+Site design references live in `analysis/` —
+[`rudus-design-teardown.md`](analysis/rudus-design-teardown.md) is the primary one.
+
 ## How to add a player
 Copy [`players/_template.md`](players/_template.md), fill it in, add a row to the
 table above, and write a comparison in `analysis/` if the player is close enough to
