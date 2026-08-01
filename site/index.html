@@ -59,7 +59,7 @@ body{
   font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
   color:var(--accent-700); display:flex; align-items:center; gap:9px;
 }
-.eyebrow::before{content:''; width:5px; height:5px; border-radius:50%; background:var(--accent-500); flex:none}
+.eyebrow::before{content:''; width:24px; height:1.5px; border-radius:1px; background:var(--accent-500); flex:none}
 .dark .eyebrow{color:var(--accent-300)}
 
 h1,h2,h3{font-family:var(--serif); font-weight:400; letter-spacing:-.012em; line-height:1.02}
@@ -104,6 +104,24 @@ nav{
 }
 .btn:hover{background:var(--accent-600)}      /* brighten on hover, never recede */
 .btn:active{transform:translateY(1px)}
+/* locked: pill with a mono label and an accent circle holding the arrow */
+.btn-arrow{
+  background:var(--card); color:var(--ink); border:1px solid var(--line-2);
+  border-radius:999px; padding:7px 7px 7px 24px; gap:16px;
+  font-family:var(--mono); font-size:12.5px; font-weight:500;
+  letter-spacing:.13em; text-transform:uppercase;
+}
+.btn-arrow:hover{background:var(--card); border-color:var(--ink)}
+.btn-arrow .circ{
+  width:38px; height:38px; border-radius:50%; background:var(--accent-500);
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  transition:transform .22s var(--ease);
+}
+.btn-arrow:hover .circ{transform:rotate(45deg)}
+.btn-arrow .circ svg{display:block}
+.dark .btn-arrow{background:transparent; color:var(--dark-ink); border-color:#3A3129}
+.dark .btn-arrow:hover{border-color:var(--dark-ink)}
+
 .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line-2)}
 .btn-ghost:hover{background:#fff; border-color:var(--ink); color:var(--ink)}
 
@@ -116,6 +134,10 @@ nav{
 .hero .lede{margin-bottom:30px}
 .hero-cta{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
 .hero-note{font-family:var(--mono); font-size:12px; color:var(--muted)}
+.hero-sub{
+  font-family:var(--mono); font-size:15.5px; line-height:1.72; color:var(--ink-2);
+  margin-bottom:32px; max-width:44ch;
+}
 
 /* ambient cadastral backdrop: real parcel geometry, drifting slowly */
 .backdrop{
@@ -170,18 +192,23 @@ nav{
 .panel{padding:26px 24px 30px}
 
 /* step rail */
-.steprail{display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap}
+.steprail{display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; position:relative}
 .steprail button{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
-  background:transparent; border:1px solid transparent; color:var(--muted); cursor:pointer;
-  padding:6px 10px; border-radius:6px; display:flex; align-items:center; gap:7px;
+  font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:.07em; text-transform:uppercase;
+  background:var(--paper-2); border:1px solid var(--line); color:var(--ink-2); cursor:pointer;
+  padding:8px 13px; border-radius:999px; display:flex; align-items:center; gap:8px;
   transition:color .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
 }
-.steprail button i{font-style:normal; opacity:.55; font-size:9.5px}
-.steprail button:hover{color:var(--ink); background:var(--paper-2)}
-.steprail button.on{color:var(--accent-700); background:var(--accent-50); border-color:var(--accent-100)}
-.steprail button.on i{opacity:1; color:var(--accent-500)}
-.steprail button.done{color:var(--ink-2)}
+.steprail button i{
+  font-style:normal; font-size:10px; width:17px; height:17px; border-radius:50%;
+  background:var(--line-2); color:#fff; display:inline-flex; align-items:center; justify-content:center;
+  transition:background .25s var(--ease);
+}
+.steprail button:hover{color:var(--ink); border-color:var(--line-2)}
+.steprail button.on{color:#fff; background:var(--accent-500); border-color:var(--accent-500)}
+.steprail button.on i{background:rgba(255,255,255,.28)}
+.steprail button.done{color:var(--accent-700); background:var(--accent-50); border-color:var(--accent-100)}
+.steprail button.done i{background:var(--accent-500)}
 
 /* the stage box never changes height, so nothing on the page jumps */
 .stagebox{position:relative; height:322px}
@@ -353,8 +380,10 @@ section{padding:104px 0}
 @media(max-width:800px){ .compare{grid-template-columns:1fr} }
 .cmp{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:28px 26px}
 .cmp.ours{border-color:var(--accent-300); background:linear-gradient(180deg,var(--accent-50),var(--card) 62%)}
-.cmp-t{font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin-bottom:16px}
-.cmp-n{font-family:var(--mono); font-size:38px; font-weight:500; letter-spacing:-.03em; line-height:1; margin-bottom:6px}
+.cmp-t{font-family:var(--serif); font-size:27px; letter-spacing:-.01em; color:var(--ink);
+       margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--line)}
+.cmp.ours .cmp-t{border-color:var(--accent-100)}
+.cmp-n{font-family:var(--mono); font-size:34px; font-weight:500; letter-spacing:-.03em; line-height:1; margin-bottom:6px}
 .cmp.ours .cmp-n{color:var(--accent-500)}
 .cmp-s{font-size:14px; color:var(--muted); margin-bottom:20px; font-family:var(--mono)}
 .cmp ul{list-style:none; display:flex; flex-direction:column; gap:10px}
@@ -366,20 +395,34 @@ section{padding:104px 0}
 .dark{background:var(--dark); color:var(--dark-ink); border-top:1px solid var(--dark-line)}
 .dark h2,.dark h3{color:var(--dark-ink)}
 
+/* ---------- how it works ---------- */
+.steps{display:grid; grid-template-columns:repeat(3,1fr); gap:20px}
+@media(max-width:860px){ .steps{grid-template-columns:1fr} }
+.stepcard{
+  background:var(--card); border:1px solid var(--line); border-radius:11px;
+  padding:26px 24px 28px;
+}
+.stepnum{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--accent-500);
+  margin-bottom:16px;
+}
+.stepcard h3{font-size:22px; margin-bottom:10px}
+.stepcard p{font-size:14.5px; line-height:1.58}
+
 /* ---------- capability grid ---------- */
-.caps{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:11px; overflow:hidden}
+.caps{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--dark-line); border:1px solid var(--dark-line); border-radius:11px; overflow:hidden}
 @media(max-width:880px){ .caps{grid-template-columns:1fr 1fr} }
 @media(max-width:560px){ .caps{grid-template-columns:1fr} }
-.cap{background:var(--card); padding:26px 24px 28px; transition:background .22s var(--ease)}
-.cap:hover{background:var(--accent-50)}
+.cap{background:var(--dark-2); padding:26px 24px 28px; transition:background .22s var(--ease)}
+.cap:hover{background:#141010}
 .cap{position:relative}
 .ship{
   position:absolute; top:18px; right:18px;
   font-family:var(--mono); font-size:9px; letter-spacing:.13em; text-transform:uppercase;
-  color:var(--accent-700); background:var(--accent-50); border:1px solid var(--accent-100);
+  color:var(--accent-300); background:rgba(255,107,25,.10); border:1px solid rgba(255,107,25,.28);
   border-radius:999px; padding:3px 9px;
 }
-.cap-i{margin-bottom:15px; color:var(--accent-500)}
+.cap-i{margin-bottom:15px; color:var(--accent-300)}
 .cap h3{font-size:20px; margin-bottom:8px}
 .cap p{font-size:14px; line-height:1.55}
 
@@ -450,9 +493,9 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
   <div class="nav-in">
     <a class="logo" href="#top" style="color:inherit;text-decoration:none"><i></i>Solum</a>
     <div class="nav-links">
-      <a href="#how">Methodology</a>
-      <a href="#inside">What it does</a>
-      <a href="#access" class="btn">Request a demo</a>
+      <a href="#how">How it works</a>
+      <a href="#inside">Features</a>
+      <a href="#access" class="btn">Book a demo</a>
     </div>
   </div>
 </nav>
@@ -461,13 +504,12 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
 <header class="hero" id="top">
   <div class="backdrop" aria-hidden="true"><canvas id="scene"></canvas><svg id="cadastre" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"></svg></div>
   <div class="wrap">
-    <div class="eyebrow">For small and mid-market developers</div>
-    <h1><span class="dim">Land feasibility in</span> minutes, not weeks.</h1>
-    <p class="lede">Upload a plot. Get the buildable mix, the returns, and the most you can pay for the land.</p>
+    <div class="eyebrow">For small and mid-market property developers</div>
+    <h1><span class="dim">Land feasibility studies in</span> minutes, not weeks.</h1>
+    <p class="hero-sub">Know what a plot is worth<br>before you bid on it.</p>
     <div class="hero-cta">
-      <a href="#access" class="btn">Request a free demo</a>
+      <a href="#access" class="btn btn-arrow">Book a demo <span class="circ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span></a>
     </div>
-    <p class="hero-note" style="margin-top:16px">Live model. Drag the price.</p>
 
     <!-- ---------- interactive console ---------- -->
     <div class="console" id="console">
@@ -479,10 +521,10 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
 
       <div class="stage">
         <div class="steprail" id="steprail">
-          <button type="button" data-s="0"><i>01</i>Read</button>
-          <button type="button" data-s="1"><i>02</i>Price</button>
-          <button type="button" data-s="2"><i>03</i>Optimise</button>
-          <button type="button" data-s="3"><i>04</i>Build</button>
+          <button type="button" data-s="0"><i>1</i>Upload</button>
+          <button type="button" data-s="1"><i>2</i>Price</button>
+          <button type="button" data-s="2"><i>3</i>Optimise</button>
+          <button type="button" data-s="3"><i>4</i>Evaluate</button>
         </div>
 
         <div class="stagebox">
@@ -519,7 +561,7 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
 
           <!-- 04 the envelope -->
           <div class="sview" data-v="3">
-            <div class="sview-h">What you can build here</div>
+            <div class="sview-h">The envelope this plot supports</div>
             <div class="buildwrap">
               <svg class="massing" viewBox="0 0 420 336" aria-label="Massing diagram: a G plus 14 residential block on the plot, banded by unit mix">
                 <defs>
@@ -590,98 +632,80 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
     <div class="split-head rv">
       <div>
         <div class="eyebrow">The gap</div>
-        <h2 style="margin-top:20px"><span class="dim">A study takes</span> three weeks.</h2>
+        <h2 style="margin-top:20px"><span class="dim">You have to name a price</span> before you know if it works.</h2>
       </div>
       <div style="padding-top:14px">
-        <p class="lede">Consultants quote AED 20,000 to 73,500 per plot. Worth it for the one you are buying. Not for the six on your desk this week.</p>
+        <p class="lede">A broker sends a plot on Sunday and wants an answer by Wednesday. A feasibility study takes three to four weeks and costs between AED 10,000 and AED 50,000, which is why most bids get priced from a spreadsheet and a rule of thumb.</p>
       </div>
     </div>
 
     <div class="compare">
       <div class="cmp rv">
         <div class="cmp-t">Consulting study</div>
-        <div class="cmp-n">3 weeks</div>
-        <div class="cmp-s">AED 20,000 to 73,500 a plot</div>
+        <div class="cmp-n">3 to 4 weeks</div>
+        <div class="cmp-s">AED 10,000 to 50,000 a plot</div>
         <ul>
-          <li>One plot per engagement</li>
-          <li>Signed, lender-accepted opinion</li>
+          <li>A chartered team signs the opinion</li>
+          <li>Lenders and partners accept it</li>
+          <li>Right for the plot you have already chosen</li>
           <li>The model stays with the consultant</li>
-          <li>Too slow to screen a pipeline</li>
         </ul>
       </div>
       <div class="cmp ours rv">
         <div class="cmp-t">Solum</div>
-        <div class="cmp-n">Minutes</div>
-        <div class="cmp-s">Every plot you look at</div>
+        <div class="cmp-n">Same day</div>
+        <div class="cmp-s">Every plot you are sent</div>
         <ul>
-          <li>Answers on the same call</li>
-          <li>Priced from recorded DLD sales</li>
-          <li>Every assumption stays open to check</li>
-          <li>Built to rank a whole pipeline</li>
+          <li>Runs on the plot sheet the broker sent you</li>
+          <li>Priced from transactions recorded with the DLD</li>
+          <li>Every assumption stays visible and editable</li>
+          <li>Cheap enough to run on all of them</li>
         </ul>
       </div>
     </div>
-    <p class="mono rv" style="font-size:12.5px;color:var(--muted);margin-top:26px;max-width:70ch">A screening tool, not an appraisal. It decides which plot earns the study.</p>
   </div>
 </section>
 
 <!-- ================= HOW IT WORKS (dark) ================= -->
-<section class="dark" id="how">
+<section id="how">
   <div class="wrap">
     <div class="split-head rv">
       <div>
-        <div class="eyebrow">Methodology</div>
-        <h2 style="margin-top:20px"><span class="dim">What goes in.</span> What comes out.</h2>
+        <div class="eyebrow">How it works</div>
+        <h2 style="margin-top:20px"><span class="dim">Three steps,</span> start to ceiling price.</h2>
       </div>
       <div style="padding-top:14px">
-        <p class="lede">Every number traces back to a source or to an assumption you set.</p>
+        <p class="lede">Every number traces back to a recorded sale or to an assumption you set.</p>
       </div>
     </div>
 
-    <div class="method">
-      <div class="mcol rv">
-        <div class="mcol-h">Inputs</div>
-        <ul>
-          <li>Plot sheet, PDF or scan, read automatically</li>
-          <li>Plot geometry from the DDA register</li>
-          <li>Recorded DLD transactions for the community</li>
-          <li>Your construction cost, fees and margin hurdle</li>
-          <li>The unit types you are willing to build</li>
-        </ul>
+    <div class="steps">
+      <div class="stepcard rv">
+        <div class="stepnum">01</div>
+        <h3>Upload the plot sheet</h3>
+        <p>A PDF or a photo from your phone. Solum reads the plot number, area, buildable area and height.</p>
       </div>
-      <div class="mcol rv">
-        <div class="mcol-h">Method</div>
-        <ul>
-          <li>Comparables trimmed at the 5th and 95th percentile</li>
-          <li>Recency weighted on a one year half life</li>
-          <li>Saleable area from a floor efficiency curve</li>
-          <li>Every mix inside your bands tested exhaustively</li>
-          <li>Residual land value solved at your hurdle</li>
-        </ul>
+      <div class="stepcard rv">
+        <div class="stepnum">02</div>
+        <h3>It prices from recorded sales</h3>
+        <p>Unit prices and typical sizes come from Land Department transactions in that community over the last 24 months.</p>
       </div>
-      <div class="mcol rv">
-        <div class="mcol-h">Output</div>
-        <ul>
-          <li>The mix that returns the most on this plot</li>
-          <li>The most you can pay for the land</li>
-          <li>Return on investment, return on project and IRR</li>
-          <li>Quarterly cashflow and peak funding</li>
-          <li>A PDF with the buildup, scenarios and sources</li>
-        </ul>
+      <div class="stepcard rv">
+        <div class="stepnum">03</div>
+        <h3>You get a price ceiling</h3>
+        <p>Solum tests every unit mix you allow and reports the highest land price that still clears your margin.</p>
       </div>
     </div>
-
-    <p class="mono rv" style="font-size:12.5px;color:var(--dark-muted);margin-top:34px;max-width:74ch">Solum screens the land buy. A chartered valuation still belongs on the plot you decide to pursue.</p>
   </div>
 </section>
 
 <!-- ================= WHAT IT DOES ================= -->
-<section id="inside">
+<section class="dark" id="inside">
   <div class="wrap">
     <div class="sec-head rv">
-      <div class="eyebrow">What it does</div>
-      <h2><span class="dim">Only what the</span> decision needs.</h2>
-      <p class="lede">Nothing else.</p>
+      <div class="eyebrow">Features</div>
+      <h2><span class="dim">Priced from</span> recorded transactions.</h2>
+      <p class="lede">Unit prices and typical sizes come from sales registered with the Dubai Land Department in the community you are buying into, weighted towards recent deals.</p>
     </div>
 
     <div class="caps">
@@ -752,9 +776,9 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
       <div class="field"><label for="f-co">Company</label><input id="f-co" name="company" placeholder="Company" autocomplete="organization" required></div>
       <div class="field"><label for="f-em">Email</label><input id="f-em" name="email" type="email" placeholder="you@company.ae" autocomplete="email" required></div>
       <div class="field"><label for="f-ph">Phone</label><input id="f-ph" name="phone" placeholder="+971" autocomplete="tel"></div>
-      <div class="f-full"><button class="btn" type="submit">Request demo</button></div>
+      <div class="f-full"><button class="btn btn-arrow" type="submit" style="width:100%;justify-content:space-between">Book a demo <span class="circ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span></button></div>
       <div class="form-ok" id="formOk"></div>
-      <div class="form-note">A person replies, usually within a working day.</div>
+      <div class="form-note">You will hear back within a working day.</div>
     </form>
   </div>
 </section>
@@ -764,9 +788,9 @@ footer{background:var(--dark); color:var(--dark-muted); border-top:1px solid var
     <div class="foot-in">
       <h3>Land feasibility for developers in the Gulf.</h3>
       <div class="foot-links">
-        <a href="#how">Methodology</a>
-        <a href="#inside">What it does</a>
-        <a href="#access">Request a demo</a>
+        <a href="#how">How it works</a>
+        <a href="#inside">Features</a>
+        <a href="#access">Book a demo</a>
       </div>
     </div>
     <div class="foot-legal">An indicative screening model, not a lender-grade appraisal. Live on Dubai data. Sources: DLD transactions, DDA plot register, published cost benchmarks.</div>
@@ -826,9 +850,11 @@ function initParcelField(){
   var pos = [], col = [];
   var seed = 20260801;
   function rnd(){ seed = (seed*1103515245 + 12345) & 0x7fffffff; return seed/0x7fffffff; }
+  var meta = [];                       // x: grow order, y: 1 if subject
+  var GROW_I = 0, IS_SUB = 0;
   function tri(a,b,c,r,g2,b2){
     pos.push(a[0],a[1],a[2], b[0],b[1],b[2], c[0],c[1],c[2]);
-    for(var k=0;k<3;k++) col.push(r,g2,b2);
+    for(var k=0;k<3;k++){ col.push(r,g2,b2); meta.push(GROW_I, IS_SUB); }
   }
   function quad(a,b,c,d,r,g2,b2){ tri(a,b,c,r,g2,b2); tri(a,c,d,r,g2,b2); }
 
@@ -844,6 +870,8 @@ function initParcelField(){
     }
   }
   var SUB_R = 9, SUB_C = 11;                            // the subject plot
+  var WARM = [[6,5],[12,14],[4,13]];                    // secondary opportunities
+  function isWarm(r,c){ for(var i=0;i<WARM.length;i++){ if(WARM[i][0]===r && WARM[i][1]===c) return true; } return false; }
   var roadR = 5, roadC = 6;                            // two clear corridors
 
   for(var r1=0; r1<ROWS; r1++){
@@ -851,14 +879,19 @@ function initParcelField(){
       var A=lattice[r1][c1], B=lattice[r1][c1+1], C=lattice[r1+1][c1+1], D=lattice[r1+1][c1];
       var p0=[A[0],0,A[1]], p1=[B[0],0,B[1]], p2=[C[0],0,C[1]], p3=[D[0],0,D[1]];
       var isSub  = (r1===SUB_R && c1===SUB_C);
+      var warm   = isWarm(r1,c1);
       var isRoad = (r1===roadR || c1===roadC);
       var v = rnd();
 
       // ground parcel
-      var g = isSub ? [1.00,0.85,0.72] : isRoad ? [0.906,0.866,0.808] : (v>0.55 ? [0.952,0.925,0.879] : [0.930,0.898,0.845]);
+      var g = isSub ? [1.00,0.85,0.72] : warm ? [0.995,0.905,0.822]
+            : isRoad ? [0.906,0.866,0.808] : (v>0.55 ? [0.952,0.925,0.879] : [0.930,0.898,0.845]);
+      GROW_I = 0; IS_SUB = 0;
       quad(p0,p1,p2,p3, g[0],g[1],g[2]);
 
       if(isRoad || v < 0.30) continue;                 // roads and gaps stay open
+      GROW_I = Math.sqrt((r1-ROWS/2)*(r1-ROWS/2) + (c1-COLS/2)*(c1-COLS/2)) / (ROWS*0.72);
+      IS_SUB = isSub ? 1 : 0;
       // a block on this parcel
       var h = isSub ? 17.0 : 1.8 + rnd()*6.6;
       var s = 0.80;                                    // setback
@@ -867,9 +900,9 @@ function initParcelField(){
       var b0=ins(A), b1=ins(B), b2=ins(C), b3=ins(D);
       var t0=[b0[0],h,b0[2]], t1=[b1[0],h,b1[2]], t2=[b2[0],h,b2[2]], t3=[b3[0],h,b3[2]];
 
-      var base = isSub ? [1.00,0.42,0.10] : [0.874,0.826,0.760];
-      var lit  = isSub ? [1.00,0.58,0.24] : [0.948,0.918,0.868];
-      var shd  = isSub ? [0.76,0.28,0.05] : [0.782,0.726,0.652];
+      var base = isSub ? [1.00,0.42,0.10] : warm ? [0.985,0.760,0.560] : [0.874,0.826,0.760];
+      var lit  = isSub ? [1.00,0.58,0.24] : warm ? [1.000,0.855,0.690] : [0.948,0.918,0.868];
+      var shd  = isSub ? [0.76,0.28,0.05] : warm ? [0.900,0.630,0.400] : [0.782,0.726,0.652];
 
       quad(t0,t1,t2,t3, lit[0],lit[1],lit[2]);                     // roof
       quad(b0,b1,t1,t0, base[0],base[1],base[2]);                  // faces, two lit two shaded
@@ -881,16 +914,24 @@ function initParcelField(){
 
   var geometry = new O.Geometry(gl, {
     position: { size:3, data:new Float32Array(pos) },
-    color:    { size:3, data:new Float32Array(col) }
+    color:    { size:3, data:new Float32Array(col) },
+    meta:     { size:2, data:new Float32Array(meta) }
   });
 
   var program = new O.Program(gl, {
     vertex: [
-      'attribute vec3 position;','attribute vec3 color;',
+      'attribute vec3 position;','attribute vec3 color;','attribute vec2 meta;',
       'uniform mat4 modelViewMatrix;','uniform mat4 projectionMatrix;',
-      'varying vec3 vColor;','varying float vFog;',
+      'uniform float uGrow;','uniform float uSweep;','uniform float uPulse;',
+      'varying vec3 vColor;','varying float vFog;','varying float vLight;',
       'void main(){',
-      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  vec3 p = position;',
+      '  float g = clamp((uGrow - meta.x) * 1.5, 0.0, 1.0);',     // blocks rise outward from the centre
+      '  g = g*g*(3.0-2.0*g);',
+      '  p.y *= g;',
+      '  float sweep = 1.0 - clamp(abs(p.x - uSweep) / 15.0, 0.0, 1.0);',  // a survey line crossing the field
+      '  vLight = sweep * 0.55 + meta.y * uPulse * 0.5;',
+      '  vec4 mv = modelViewMatrix * vec4(p, 1.0);',
       '  vFog = clamp((-mv.z - 150.0) / 190.0, 0.0, 1.0);',
       '  vColor = color;',
       '  gl_Position = projectionMatrix * mv;',
@@ -898,14 +939,21 @@ function initParcelField(){
     ].join('\n'),
     fragment: [
       'precision highp float;',
-      'varying vec3 vColor;','varying float vFog;',
-      'uniform vec3 uPaper;',
+      'varying vec3 vColor;','varying float vFog;','varying float vLight;',
+      'uniform vec3 uPaper;','uniform vec3 uAccent;',
       'void main(){',
-      '  vec3 c = mix(vColor, uPaper, vFog);',            // distance fades into the page
+      '  vec3 c = mix(vColor, uAccent, vLight * 0.42);',   // the sweep warms what it passes
+      '  c = mix(c, uPaper, vFog);',                       // distance fades into the page
       '  gl_FragColor = vec4(c, 1.0);',
       '}'
     ].join('\n'),
-    uniforms: { uPaper: { value: [0.980, 0.965, 0.941] } },
+    uniforms: {
+      uPaper:  { value: [0.980, 0.965, 0.941] },
+      uAccent: { value: [1.000, 0.560, 0.180] },
+      uGrow:   { value: 0 },
+      uSweep:  { value: -999 },
+      uPulse:  { value: 0 }
+    },
     transparent: false, cullFace: false, depthTest: true
   });
 
@@ -927,7 +975,7 @@ function initParcelField(){
   }
   window.addEventListener('resize', resize); resize();
 
-  var t0 = 0, running = true;
+  var t0 = 0, running = true, born = 0;
   document.addEventListener('visibilitychange', function(){
     running = !document.hidden; if(running) requestAnimationFrame(frame);
   });
@@ -936,8 +984,16 @@ function initParcelField(){
     if(!running) return;
     requestAnimationFrame(frame);
     t0 = t * 0.001;
+    if(!born) born = t0;
+    var age = t0 - born;
     mx += (tx - mx) * 0.045;                          // eased, so it never snaps
     my += (ty - my) * 0.045;
+
+    program.uniforms.uGrow.value  = Math.min(1.6, age * 0.42);          // one-time rise
+    program.uniforms.uPulse.value = 0.5 + 0.5 * Math.sin(t0 * 1.35);    // the subject plot breathes
+    var period = 13.0, span = 200.0;                                    // sweep crosses, then rests
+    var ph = (age % period) / period;
+    program.uniforms.uSweep.value = ph < 0.55 ? (-span/2 + ph/0.55 * span) : -9999.0;
 
     var orbit = t0 * 0.020 + mx * 0.13;
     var rad   = 205;
@@ -1200,6 +1256,23 @@ paint();
     setTimeout(function(){ if(done) done(); }, 2400);
   }
 
+  /* Once the four stages land, sweep the price up until the verdict turns and
+     settle back, so the visitor sees the model is live without being told. */
+  var demoed = false;
+  function demoSlider(){
+    if(demoed) return; demoed = true;
+    var el = document.getElementById('land');
+    if(!el) return;
+    var start = parseFloat(el.value), peak = 47.5, step = 0.55, v = start, up = true;
+    var t = setInterval(function(){
+      v += up ? step : -step;
+      if(v >= peak){ up = false; }
+      if(!up && v <= start){ v = start; clearInterval(t); }
+      el.value = v.toFixed(2);
+      el.dispatchEvent(new Event('input'));
+    }, 26);
+  }
+
   var PLAY = [playRead, playPrice, playOptimise, playBuild];
 
   function goto(n, auto){
@@ -1213,7 +1286,7 @@ paint();
     PLAY[n](function(){
       played[n] = true;
       if(auto && autoRunning && n < 3){ autoTimer = setTimeout(function(){ goto(n+1, true); }, 520); }
-      else if(n === 3){ autoRunning = false; }
+      else if(n === 3){ autoRunning = false; if(auto) setTimeout(demoSlider, 620); }
     });
   }
 
