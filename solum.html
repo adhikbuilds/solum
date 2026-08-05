@@ -297,6 +297,7 @@ body.view-compare #portfolioView{display:none}
 .mixbar{display:flex; height:32px; border-radius:var(--radius-sm); overflow:hidden; border:none; margin-bottom:var(--sp-3)}
 .mixbar .seg{display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-bold); font-size:var(--fs-label); min-width:0; transition:flex var(--dur-med) var(--ease-std)}
 .mixbar .seg.tiny{font-size:10px; letter-spacing:-.02em}
+.na{color:var(--muted)}
 /* the arithmetic behind the strip, spelled out so it can be checked by hand */
 .eff-note{margin-top:var(--sp-3); line-height:1.6}
 .mixlegend{display:flex; flex-wrap:wrap; gap:var(--sp-4); margin-bottom:var(--sp-5); padding-top:var(--sp-1)}
@@ -850,7 +851,6 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="sum-right">
             <!-- development programme — total units / sellable area / avg size -->
             <div class="devstrip" id="devstrip"></div>
-            <p class="sec-note eff-note" id="eff-note"></p>
             <div class="panel sum-mix">
               <h2><span class="n">02</span> Recommended unit mix <button class="info" data-pop="recmix">i</button></h2>
               <table class="rectable">
@@ -909,6 +909,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <p class="sec-note">The mix the optimiser is currently recommending, as a share of saleable area. Full P&amp;L is on Summary.</p>
           <div id="mixbar" class="mixbar"></div>
           <div id="mixlegend" class="mixlegend"></div>
+          <p class="sec-note eff-note" id="eff-note"></p>
           <div class="expander" style="margin-top:var(--sp-4)">
             <button class="exp-btn" id="expbtn">▸ Show every mix the optimiser weighed <span id="candcount"></span></button>
             <div class="exp-body" id="expbody"></div>
@@ -1297,11 +1298,13 @@ const THEME = (()=>{
 /* legacy helper name kept for existing call-sites */
 function solidHex(h){ return THEME.resolveVar(h); }
 
-/* Saleable-to-GFA efficiency. baseEff (an assumption, default 82%) is the ceiling
-   for a low-density plate; every unit per floor above uref costs kc of efficiency,
-   because more units means more corridor, more cores and more risers. Dubai
-   apartment towers land in the mid 70s to low 80s. */
-const EFF={uref:8, kc:0.006};
+/* Saleable-to-GFA efficiency. baseEff (an assumption, default 82%) is the ceiling.
+   The penalty is driven by average unit size, not by units per floor: every unit
+   needs a door, a share of the lobby, a riser and its length of corridor, so a
+   studio-heavy scheme loses more of its GFA to circulation than a 3BR one. Units
+   per floor is the wrong lever because it is not scale invariant, and on a large
+   plate it drove efficiency to absurd lows. Floor is a hard clamp. */
+const EFF={refSize:1000, ptPerSqft:0.0088, floor:0.75};
 const SLIDER_MAX=60;
 /* ---- Supabase client + storage shim (Phase 2 auth/comps) ---- */
 /* Outside Claude's artifact env (e.g. on Vercel) window.storage is absent —
@@ -1342,7 +1345,7 @@ const POPS = {
   misc:{t:"Miscellaneous project costs not captured elsewhere, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
   park:{t:"Cost to build one parking bay, added per bay required by the unit mix.", s:"Bays come from the provision set per unit type on Unit Matrix, plus the visitor allowance. No external benchmark wired in yet; edit to match your own cost data.", tier:'modeled'},
   visitor:{t:"Visitor bays, as a percentage on top of the bays the units themselves require.", s:"Dubai schemes typically provide 10\u201320% for visitors on residential towers. Check the requirement on your plot's affection plan.", tier:'modeled'},
-  baseeff:{t:"The best saleable-to-GFA ratio this plate could achieve before density is taken into account.", s:"Every unit per floor above eight costs 0.6 points of efficiency, because more units means more corridor, cores and risers. Dubai apartment towers typically land in the mid 70s to low 80s. Lower this if the scheme carries large amenity or lobby areas.", tier:'modeled'},
+  baseeff:{t:"The best saleable-to-GFA ratio this scheme could achieve, before the unit mix is taken into account.", s:"Smaller average units cost efficiency: each one needs a door, a share of the lobby, a riser and its length of corridor. Below an average of 1,000 sqft the model gives up 0.88 points per 100 sqft, and never falls below 75%. Dubai apartment towers typically land in the mid 70s to low 80s. Lower the base if the scheme carries large amenity or lobby areas.", tier:'modeled'},
   mkt:{t:"Marketing, agent commission, and sales cost as a share of gross development value.", s:"No external benchmark wired in yet. 3–5% of GDV is typical for Dubai off-plan.", tier:'modeled'},
   unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption. No DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
   breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix: if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
@@ -1680,9 +1683,11 @@ function evalMix(fracs,mk,state){
   const A=state.assumptions;
   const T=state.types, avgTarget=T.reduce((s,t,i)=>s+fracs[i]*t.size,0);
   const emax=(A.baseEff!=null?A.baseEff:82)/100;
-  const upf=(state.plot.gfa/state.plot.floors)*emax/avgTarget;
-  const eff=emax-EFF.kc*Math.max(0,upf-EFF.uref);
+  const effPenalty=EFF.ptPerSqft*Math.max(0,EFF.refSize-avgTarget)/100;
+  const eff=Math.min(emax, Math.max(EFF.floor, emax-effPenalty));
   const salTarget=state.plot.gfa*eff;
+  /* kept for the sanity read on Plot Details, no longer drives efficiency */
+  const upf=state.plot.floors>0 ? (state.plot.gfa*eff)/state.plot.floors/avgTarget : 0;
 
   /* A schedule of whole apartments, not fractions of one. Floor each type, then
      hand the leftover area to the largest remainders while it still fits, so the
@@ -1780,8 +1785,13 @@ function cashflow(best, mk, state){
   outflow[0]+=landOut;                                          // land + DLD at close
   for(let i=1;i<=N;i++) outflow[i]+=(build/N)*Math.pow(1+ci, i/4);  // construction, cost-escalated
   for(let i=0;i<=N;i++) outflow[i]+=mkt/(N+1);                  // marketing spread across
-  inflow[0]+=offRev*pB;                                         // booking deposits at launch
-  for(let i=1;i<=N;i++) inflow[i]+=(offRev*pC)/N;               // construction installments
+  /* Launch follows acquisition: design, approvals and escrow registration all sit
+     between buying the land and taking a deposit. Booking money at Q0 made the
+     scheme look self-funding from day one and left the cashflow all-positive, so
+     IRR had no sign change and came back undefined. */
+  const launchQ=Math.min(1,N);
+  inflow[launchQ]+=offRev*pB;                                   // booking deposits at launch
+  for(let i=launchQ+1;i<=N;i++) inflow[i]+=(offRev*pC)/(N-launchQ);  // construction installments
   inflow[N]+=offRev*pH+laterRev;                               // handover balance + later sales
   const cf=inflow.map((v,i)=>v-outflow[i]);
   const irrQ=irrOf(cf), irrAnnual=irrQ==null?null:Math.pow(1+irrQ,4)-1;
@@ -1874,14 +1884,17 @@ function render(){
   const cfd=cashflow(best,mk,STATE);
 
   /* headline KPIs — IRR-first (time-weighted), then the JD vocabulary */
-  document.getElementById('vm-irr').innerHTML = cfd.irrAnnual==null ? '—' : fP(cfd.irrAnnual)+' <span class="u">annualised</span>';
+  document.getElementById('vm-irr').innerHTML = cfd.irrAnnual==null
+    ? '<span class="na">n/a</span> <span class="u">no net cash out to return on</span>'
+    : fP(cfd.irrAnnual)+' <span class="u">annualised</span>';
   document.getElementById('vm-roi').innerHTML=fP(best.mcost)+' <span class="u">net ÷ investment</span>';
   document.getElementById('vm-rop').innerHTML=fP(best.mgdv)+' <span class="u">net ÷ sales</span>';
   document.getElementById('vm-profit').textContent=fM(best.profit);
   document.getElementById('vm-verdict-cell').innerHTML=`<span class="tag ${v.toLowerCase()}">${v}</span>`;
 
   /* timeline & cashflow section */
-  document.getElementById('cf-irr').textContent = cfd.irrAnnual==null ? '—' : fP(cfd.irrAnnual);
+  document.getElementById('cf-irr').innerHTML = cfd.irrAnnual==null
+    ? '<span class="na">n/a</span>' : fP(cfd.irrAnnual);
   document.getElementById('cf-peak').textContent = fM(cfd.peakFunding);
   document.getElementById('cf-profit').textContent = fM(cfd.profit);
   document.getElementById('cf-months').textContent = cfd.months+' months';
@@ -1906,12 +1919,14 @@ function render(){
      <div class="d"><div class="k">Parking bays</div><div class="v">${Math.ceil(best.bays)}</div></div>`;
   const effNote=document.getElementById('eff-note');
   if(effNote){
+    const base=STATE.assumptions.baseEff, drop=base-best.eff*100;
     effNote.textContent =
-      `${STATE.assumptions.baseEff}% base, less ${(EFF.kc*100).toFixed(1)} points per unit per floor above `
-      + `${EFF.uref}. At ${best.upf.toFixed(1)} units per floor that is ${(best.eff*100).toFixed(1)}%, `
-      + `giving ${fN(best.salTarget)} sqft; the whole-unit schedule builds ${fN(best.sal)} sqft `
-      + `(${fP(best.effAct)} of GFA). Parking: ${Math.ceil(best.resBays)} resident bays `
-      + `plus ${STATE.assumptions.visitorPct}% visitor = ${Math.ceil(best.bays)}.`;
+      `Efficiency: ${base}% base, less ${drop.toFixed(1)} points for an average unit of `
+      + `${fN(best.avg)} sqft, floored at ${(EFF.floor*100).toFixed(0)}%. That is `
+      + `${(best.eff*100).toFixed(1)}% of GFA, or ${fN(best.salTarget)} sqft; the whole-unit `
+      + `schedule builds ${fN(best.sal)} sqft (${fP(best.effAct)}). `
+      + `Parking: ${Math.ceil(best.resBays)} resident bays plus `
+      + `${STATE.assumptions.visitorPct}% visitor = ${Math.ceil(best.bays)}.`;
   }
 
   const mixbar=document.getElementById('mixbar'); mixbar.innerHTML='';
