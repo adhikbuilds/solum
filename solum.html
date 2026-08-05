@@ -296,6 +296,9 @@ body.view-compare #portfolioView{display:none}
 /* recommended programme mix bar (used in unit matrix) */
 .mixbar{display:flex; height:32px; border-radius:var(--radius-sm); overflow:hidden; border:none; margin-bottom:var(--sp-3)}
 .mixbar .seg{display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-bold); font-size:var(--fs-label); min-width:0; transition:flex var(--dur-med) var(--ease-std)}
+.mixbar .seg.tiny{font-size:10px; letter-spacing:-.02em}
+/* the arithmetic behind the strip, spelled out so it can be checked by hand */
+.eff-note{margin-top:var(--sp-3); line-height:1.6}
 .mixlegend{display:flex; flex-wrap:wrap; gap:var(--sp-4); margin-bottom:var(--sp-5); padding-top:var(--sp-1)}
 .mixlegend .li{display:flex; align-items:center; gap:6px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted)}
 .mixlegend .li b{color:var(--ink); font-weight:var(--fw-bold); font-family:var(--font-mono)}
@@ -847,6 +850,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="sum-right">
             <!-- development programme — total units / sellable area / avg size -->
             <div class="devstrip" id="devstrip"></div>
+            <p class="sec-note eff-note" id="eff-note"></p>
             <div class="panel sum-mix">
               <h2><span class="n">02</span> Recommended unit mix <button class="info" data-pop="recmix">i</button></h2>
               <table class="rectable">
@@ -890,10 +894,10 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div>
             <div class="panel">
               <h2><span class="n">02</span> Unit types, sizes &amp; pricing <button class="info" data-pop="unitprice">i</button></h2>
-              <p class="sec-note">Size and price per sq ft per type. Units come from the optimiser's recommended mix; a row mutes when its type is off.</p>
+              <p class="sec-note">Size, price per sq ft and parking provision per type. Units come from the optimiser's recommended mix; a row mutes when its type is off.</p>
               <div id="compsBasisMatrix" class="comps-basis" style="margin:0 0 12px"></div>
               <table class="utable">
-                <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th><th class="u-col">Units</th></tr></thead>
+                <thead><tr><th>Type</th><th>Size (sqft)</th><th>Price (AED/sqft)</th><th>Bays/unit</th><th class="u-col">Units</th></tr></thead>
                 <tbody id="utable-body"></tbody>
               </table>
               <div class="avgprice"><span>Blended average price, at recommended mix</span><b id="avgprice-val">—</b></div>
@@ -956,6 +960,10 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div class="field"><span class="pre">AED</span><input type="number" id="in-misc" value="500000" step="50000"><span class="suf">total</span></div></div>
             <div class="lever"><div class="lab"><span>Marketing &amp; sales</span><button class="info" data-pop="mkt">i</button></div>
               <div class="field"><input type="number" id="in-mkt" value="4" step="0.5"><span class="suf">% of GDV</span></div></div>
+            <div class="lever"><div class="lab"><span>Visitor parking</span><button class="info" data-pop="visitor">i</button></div>
+              <div class="field"><input type="number" id="in-visitor" value="15" step="5" min="0"><span class="suf">% on top</span></div></div>
+            <div class="lever"><div class="lab"><span>Base plate efficiency</span><button class="info" data-pop="baseeff">i</button></div>
+              <div class="field"><input type="number" id="in-baseeff" value="82" step="1" min="50" max="95"><span class="suf">% of GFA</span></div></div>
           </div>
 
           <h3 class="cost-group">Timeline &amp; phasing</h3>
@@ -1240,14 +1248,17 @@ function defaultState(){
     name:'Plot 6488595', plotNumber:'6488595', community:'Wadi Al Safa 5', subcommunity:'',
     plot:{gfa:150131.47, plotArea:33362.57, far:4.5, floors:14, usage:'Residential', basement:1, podium:2, notes:''},
     market:{cost:500, land:28750000, hurdle:20},
-    assumptions:{dldFee:4, archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000},
+    assumptions:{dldFee:4, archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000, visitorPct:15, baseEff:82},
     scenarioFlex:{price:10, cost:10},
     timeline:{months:30, payBooking:20, payConstruction:50, payHandover:30, costInfl:3.5, priceGrowth:4, offplanPct:70},
+    /* bays is parking provision per unit, by bedroom count. Dubai practice is
+       1 bay for studio and 1BR, 2 for 2BR and above; visitor parking is added
+       on top as a percentage in assumptions. */
     types:[
-      {key:'s', name:'Studio', size:430,  price:1550, hex:'var(--u-studio)', on:true, min:10, max:30},
-      {key:'a', name:'1BR',    size:750,  price:1460, hex:'var(--u-1br)',    on:true, min:20, max:50},
-      {key:'b', name:'2BR',    size:1150, price:1350, hex:'var(--u-2br)',    on:true, min:10, max:40},
-      {key:'c', name:'3BR',    size:1600, price:1280, hex:'var(--u-3br)',    on:true, min:0,  max:30},
+      {key:'s', name:'Studio', size:430,  price:1550, bays:1, hex:'var(--u-studio)', on:true, min:10, max:30},
+      {key:'a', name:'1BR',    size:750,  price:1460, bays:1, hex:'var(--u-1br)',    on:true, min:20, max:50},
+      {key:'b', name:'2BR',    size:1150, price:1350, bays:2, hex:'var(--u-2br)',    on:true, min:10, max:40},
+      {key:'c', name:'3BR',    size:1600, price:1280, bays:2, hex:'var(--u-3br)',    on:true, min:0,  max:30},
     ]
   };
 }
@@ -1286,7 +1297,11 @@ const THEME = (()=>{
 /* legacy helper name kept for existing call-sites */
 function solidHex(h){ return THEME.resolveVar(h); }
 
-const EFF={emax:0.86, uref:8, kc:0.004};
+/* Saleable-to-GFA efficiency. baseEff (an assumption, default 82%) is the ceiling
+   for a low-density plate; every unit per floor above uref costs kc of efficiency,
+   because more units means more corridor, more cores and more risers. Dubai
+   apartment towers land in the mid 70s to low 80s. */
+const EFF={uref:8, kc:0.006};
 const SLIDER_MAX=60;
 /* ---- Supabase client + storage shim (Phase 2 auth/comps) ---- */
 /* Outside Claude's artifact env (e.g. on Vercel) window.storage is absent —
@@ -1325,7 +1340,9 @@ const POPS = {
   auth:{t:"DEWA, RTA, DDA and other authority connection and NOC fees, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
   landsc:{t:"Variation orders, landscaping, and amenity fit-out, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
   misc:{t:"Miscellaneous project costs not captured elsewhere, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
-  park:{t:"Cost to build one parking bay, added per bay required by the unit mix.", s:"No external benchmark wired in yet. Edit to match your own cost data.", tier:'modeled'},
+  park:{t:"Cost to build one parking bay, added per bay required by the unit mix.", s:"Bays come from the provision set per unit type on Unit Matrix, plus the visitor allowance. No external benchmark wired in yet; edit to match your own cost data.", tier:'modeled'},
+  visitor:{t:"Visitor bays, as a percentage on top of the bays the units themselves require.", s:"Dubai schemes typically provide 10\u201320% for visitors on residential towers. Check the requirement on your plot's affection plan.", tier:'modeled'},
+  baseeff:{t:"The best saleable-to-GFA ratio this plate could achieve before density is taken into account.", s:"Every unit per floor above eight costs 0.6 points of efficiency, because more units means more corridor, cores and risers. Dubai apartment towers typically land in the mid 70s to low 80s. Lower this if the scheme carries large amenity or lobby areas.", tier:'modeled'},
   mkt:{t:"Marketing, agent commission, and sales cost as a share of gross development value.", s:"No external benchmark wired in yet. 3–5% of GDV is typical for Dubai off-plan.", tier:'modeled'},
   unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption. No DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
   breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix: if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
@@ -1359,12 +1376,24 @@ async function loadIndex(){
   return (await lsGet('plot-index'))||[];
 }
 async function saveIndex(){ await lsSet('plot-index', PROJECTS); }   /* local cache; in Supabase the table is the index */
+/* Plots saved before parking-by-bedroom and the efficiency assumption existed
+   have neither. Backfill on read so an old plot opens instead of computing with
+   undefined. Defaults match defaultState(). */
+const DEFAULT_BAYS={s:1,a:1,b:2,c:2};
+function hydrate(st){
+  if(!st) return st;
+  const A=st.assumptions=st.assumptions||{};
+  if(A.visitorPct==null) A.visitorPct=15;
+  if(A.baseEff==null)    A.baseEff=82;
+  (st.types||[]).forEach(t=>{ if(t.bays==null) t.bays = DEFAULT_BAYS[t.key] != null ? DEFAULT_BAYS[t.key] : (t.size>1000?2:1); });
+  return st;
+}
 async function loadProject(id){
   if(sb){ try{
     const {data,error}=await sb.from('plots').select('data').eq('id',id).maybeSingle();
-    if(!error && data && data.data){ await lsSet('plot:'+id, data.data); return data.data; }
+    if(!error && data && data.data){ await lsSet('plot:'+id, data.data); return hydrate(data.data); }
   }catch(e){} }
-  return await lsGet('plot:'+id);
+  return hydrate(await lsGet('plot:'+id));
 }
 async function putProject(id,state){
   await lsSet('plot:'+id, state);   /* cache locally first, always */
@@ -1530,6 +1559,8 @@ function hydrateFromState(){
   document.getElementById('in-plotnumber').value=STATE.plotNumber||'';
   document.getElementById('in-community').value=STATE.community;
   document.getElementById('in-subcommunity').value=STATE.subcommunity||'';
+  document.getElementById('in-visitor').value=STATE.assumptions.visitorPct;
+  document.getElementById('in-baseeff').value=STATE.assumptions.baseEff;
   document.getElementById('in-gfa').value=STATE.plot.gfa;
   document.getElementById('in-plotarea').value=STATE.plot.plotArea;
   document.getElementById('in-far').value=STATE.plot.far;
@@ -1581,6 +1612,7 @@ function updateCoverage(){
 function bindTop(){
   const map=[
     ['in-name','name','text'],['in-plotnumber','plotNumber','text'],['in-community','community','text'],['in-subcommunity','subcommunity','text'],
+    ['in-visitor','assumptions.visitorPct','num'],['in-baseeff','assumptions.baseEff','num'],
     ['in-gfa','plot.gfa','num'],['in-plotarea','plot.plotArea','num'],['in-far','plot.far','num'],['in-floors','plot.floors','num'],
     ['in-usage','plot.usage','text'],['in-basement','plot.basement','num'],['in-podium','plot.podium','num'],['in-notes','plot.notes','text'],
     ['in-cost','market.cost','num'],['in-hurdle','market.hurdle','num'],['in-dldfee','assumptions.dldFee','num'],
@@ -1625,10 +1657,12 @@ function buildUnitTable(){
     tr.innerHTML=`<td><div class="namecell"><span class="dot" style="background:${t.hex}"></span>${t.name}</div></td>
       <td><input type="number" class="u-size" value="${t.size}" step="10" ${t.on?'':'tabindex="-1"'}></td>
       <td><input type="number" class="u-price" value="${t.price}" step="10" ${t.on?'':'tabindex="-1"'}></td>
+      <td><input type="number" class="u-bays" value="${t.bays}" step="0.5" min="0" ${t.on?'':'tabindex="-1"'}></td>
       <td class="u-count">—</td>`;
     body.appendChild(tr);
     tr.querySelector('.u-size').addEventListener('input',e=>{ t.size=+e.target.value||1; render(); scheduleSave(); });
     tr.querySelector('.u-price').addEventListener('input',e=>{ t.price=+e.target.value||0; render(); scheduleSave(); });
+    tr.querySelector('.u-bays').addEventListener('input',e=>{ t.bays=Math.max(0,+e.target.value||0); render(); scheduleSave(); });
   });
 }
 /* keep the sizing/pricing table's muted rows in sync with the programme on/off switches */
@@ -1643,14 +1677,30 @@ function syncUnitTableMute(){
 /* ---------------- optimiser ---------------- */
 function marketInputs(state){ return { cost:state.market.cost, land:state.market.land, hurdle:state.market.hurdle/100 }; }
 function evalMix(fracs,mk,state){
-  const T=state.types, avg=T.reduce((s,t,i)=>s+fracs[i]*t.size,0);
-  const upf=(state.plot.gfa/state.plot.floors)*EFF.emax/avg;
-  const eff=EFF.emax-EFF.kc*Math.max(0,upf-EFF.uref);
-  const sal=state.plot.gfa*eff;
-  const u=T.map((t,i)=> sal*fracs[i]/t.size);
-  const bays=T.reduce((s,t,i)=> s+u[i]*(t.size>1615?2:1),0);
-  const gdv=sal*T.reduce((s,t,i)=> s+fracs[i]*t.price,0);
   const A=state.assumptions;
+  const T=state.types, avgTarget=T.reduce((s,t,i)=>s+fracs[i]*t.size,0);
+  const emax=(A.baseEff!=null?A.baseEff:82)/100;
+  const upf=(state.plot.gfa/state.plot.floors)*emax/avgTarget;
+  const eff=emax-EFF.kc*Math.max(0,upf-EFF.uref);
+  const salTarget=state.plot.gfa*eff;
+
+  /* A schedule of whole apartments, not fractions of one. Floor each type, then
+     hand the leftover area to the largest remainders while it still fits, so the
+     built schedule never exceeds the saleable area the plate can carry. */
+  const uRaw=T.map((t,i)=> salTarget*fracs[i]/t.size);
+  const u=uRaw.map(Math.floor);
+  let used=u.reduce((acc,n,i)=> acc+n*T[i].size, 0);
+  uRaw.map((v,i)=>[v-Math.floor(v),i]).sort((a,b)=>b[0]-a[0])
+      .forEach(([,i])=>{ if(uRaw[i]>0 && used+T[i].size<=salTarget+1e-6){ u[i]++; used+=T[i].size; } });
+  const sal=used;
+  const totalUnits=u.reduce((a,b)=>a+b,0);
+  const avg=totalUnits>0? sal/totalUnits : avgTarget;
+
+  /* parking by bedroom count, plus a visitor allowance on top */
+  const resBays=T.reduce((s,t,i)=> s+u[i]*(t.bays!=null?t.bays:1),0);
+  const bays=resBays*(1+(A.visitorPct||0)/100);
+
+  const gdv=T.reduce((s,t,i)=> s+u[i]*t.size*t.price, 0);
   const hard=state.plot.gfa*mk.cost;
   const archd=hard*(A.archDesign/100), archs=hard*(A.archSuper/100), cont=hard*(A.cont/100);
   const auth=A.authorities, landsc=A.landscape, misc=A.misc;
@@ -1665,9 +1715,11 @@ function evalMix(fracs,mk,state){
   const cpsfWith = sal>0? total/sal : 0;
   const cpsfNo = sal>0? nonland/sal : 0;
   const breakevenPsf = sal>0? (1+mk.hurdle)*total/sal : 0;
-  const out={avg,upf,eff,sal,u,bays,gdv,hard,archd,archs,cont,auth,landsc,misc,park,mkt,dld,nonland,total,profit,
-    mcost:profit/total,mgdv:profit/gdv,rlv,avgPricePsf,cpsfWith,cpsfNo,breakevenPsf,
-    totalUnits:u.reduce((a,b)=>a+b,0)};
+  /* effAct is what the built schedule actually achieves against GFA; eff is what
+     the plate model predicted. They differ only by the whole-unit rounding. */
+  const out={avg,upf,eff,effAct:state.plot.gfa>0? sal/state.plot.gfa : 0,salTarget,
+    sal,u,bays,resBays,gdv,hard,archd,archs,cont,auth,landsc,misc,park,mkt,dld,nonland,total,profit,
+    mcost:profit/total,mgdv:profit/gdv,rlv,avgPricePsf,cpsfWith,cpsfNo,breakevenPsf,totalUnits};
   T.forEach((t,i)=> out[t.key]=fracs[i]);
   return out;
 }
@@ -1844,16 +1896,32 @@ function render(){
   document.getElementById('sm-cpsf-n').textContent=fN(best.cpsfNo);
 
   /* development programme strip */
+  /* the strip is where a developer checks our arithmetic against their own, so it
+     shows the parking count and what efficiency resolved to, not just the result */
   document.getElementById('devstrip').innerHTML=
-    `<div class="d"><div class="k">Total units</div><div class="v">${Math.round(best.totalUnits)}</div></div>
+    `<div class="d"><div class="k">Total units</div><div class="v">${best.totalUnits}</div></div>
      <div class="d"><div class="k">Total sellable area</div><div class="v">${fN(best.sal)} sqft</div></div>
      <div class="d"><div class="k">Avg. unit size</div><div class="v">${fN(best.avg)} sqft</div></div>
-     <div class="d"><div class="k">Efficiency</div><div class="v">${fP(best.eff)}</div></div>`;
+     <div class="d"><div class="k">Efficiency</div><div class="v">${fP(best.effAct)}</div></div>
+     <div class="d"><div class="k">Parking bays</div><div class="v">${Math.ceil(best.bays)}</div></div>`;
+  const effNote=document.getElementById('eff-note');
+  if(effNote){
+    effNote.textContent =
+      `${STATE.assumptions.baseEff}% base, less ${(EFF.kc*100).toFixed(1)} points per unit per floor above `
+      + `${EFF.uref}. At ${best.upf.toFixed(1)} units per floor that is ${(best.eff*100).toFixed(1)}%, `
+      + `giving ${fN(best.salTarget)} sqft; the whole-unit schedule builds ${fN(best.sal)} sqft `
+      + `(${fP(best.effAct)} of GFA). Parking: ${Math.ceil(best.resBays)} resident bays `
+      + `plus ${STATE.assumptions.visitorPct}% visitor = ${Math.ceil(best.bays)}.`;
+  }
 
   const mixbar=document.getElementById('mixbar'); mixbar.innerHTML='';
   STATE.types.forEach(t=>{ const pct=best[t.key]; if(pct<=0) return;
     const d=document.createElement('div'); d.className='seg'; d.style.background=t.hex; d.style.flex=pct;
-    d.textContent=(pct*100).toFixed(0)+'%'; if(pct<0.08) d.textContent=''; mixbar.appendChild(d); });
+    /* every segment is labelled. A blank one made the bar read as though the mix
+       did not add up to 100. Narrow segments just get smaller type. */
+    d.textContent=(pct*100).toFixed(0)+'%';
+    if(pct<0.08) d.classList.add('tiny');
+    mixbar.appendChild(d); });
   /* mix legend — every type identified regardless of segment width */
   const legend=document.getElementById('mixlegend');
   if(legend){
