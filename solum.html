@@ -940,7 +940,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <h3 class="cost-group">Construction (hard) cost</h3>
           <div class="fieldgrid">
             <div class="lever"><div class="lab"><span>Construction cost</span><button class="info" data-pop="cost">i</button></div>
-              <div class="field"><span class="pre">AED</span><input type="number" id="in-cost" value="500" step="10"><span class="suf">/ sqft GFA</span></div></div>
+              <div class="field"><span class="pre">AED</span><input type="number" id="in-cost" value="345" step="5"><span class="suf">/ sqft BUA</span></div></div>
             <div class="lever"><div class="lab"><span>Contingency</span><button class="info" data-pop="cont">i</button></div>
               <div class="field"><input type="number" id="in-cont" value="10" step="1"><span class="suf">% of hard cost</span></div></div>
             <div class="lever"><div class="lab"><span>Parking cost</span><button class="info" data-pop="park">i</button></div>
@@ -1025,6 +1025,10 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               <div id="compsBasis" class="comps-basis" style="margin-top:8px"></div></div>
             <div class="lever"><div class="lab"><span>Max GFA</span><button class="info" data-pop="gfa">i</button></div>
               <div class="field"><input type="number" id="in-gfa" value="150131.47"><span class="suf">sqft</span></div></div>
+            <div class="lever"><div class="lab"><span>BUA factor</span><button class="info" data-pop="buafactor">i</button></div>
+              <div class="field"><input type="number" id="in-buafactor" value="1.45" step="0.05" min="1"><span class="suf">&times; GFA</span></div></div>
+            <div class="lever"><div class="lab"><span>Built-up area (BUA)</span><button class="info" data-pop="bua">i</button></div>
+              <div class="field calc"><input type="number" id="in-bua" value="" disabled><span class="suf">sqft</span></div></div>
             <div class="lever"><div class="lab"><span>Plot area</span></div>
               <div class="field"><input type="number" id="in-plotarea" value="33362.57"><span class="suf">sqft</span></div></div>
             <div class="lever"><div class="lab"><span>FAR</span></div>
@@ -1247,8 +1251,8 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 function defaultState(){
   return {
     name:'Plot 6488595', plotNumber:'6488595', community:'Wadi Al Safa 5', subcommunity:'',
-    plot:{gfa:150131.47, plotArea:33362.57, far:4.5, floors:14, usage:'Residential', basement:1, podium:2, notes:''},
-    market:{cost:500, land:28750000, hurdle:20},
+    plot:{gfa:150131.47, plotArea:33362.57, far:4.5, floors:14, buaFactor:1.45, usage:'Residential', basement:1, podium:2, notes:''},
+    market:{cost:345, costBasis:'bua', land:28750000, hurdle:20},
     assumptions:{dldFee:4, archDesign:2.5, archSuper:2.5, cont:10, authorities:2000000, landscape:1000000, misc:500000, mkt:4, bay:55000, visitorPct:15, baseEff:82},
     scenarioFlex:{price:10, cost:10},
     timeline:{months:30, payBooking:20, payConstruction:50, payHandover:30, costInfl:3.5, priceGrowth:4, offplanPct:70},
@@ -1336,8 +1340,9 @@ const POPS = {
   rlv:{t:"Residual land value.", s:"The maximum you could pay for the land and still hit your margin hurdle on the recommended programme.", tier:null},
   gfa:{t:"Maximum gross floor area: the hard cap on what you can build.", s:"Set this from your plot document (e.g. DDA Plot Details), or auto-filled if you uploaded a PDF.", tier:'input'},
   loc:{t:"Community drives comparable pricing and absorption once DLD data is wired in.", s:"Set this from your plot document. Governs which comps this plot is benchmarked against.", tier:'input'},
-  cost:{t:"Hard construction cost per sq ft of GFA, mid-market apartment spec.", s:"Knight Frank Q2-2025 apartments AED 400–880/sqft; Engel & Völkers AED 350–700/sqft. Excludes land & fit-out.", tier:'sourced'},
-  archd:{t:"Architect's design and authority-approval fee, as a share of hard construction cost.", s:"No external benchmark wired in yet. Edit to match your own fee schedule.", tier:'modeled'},
+  cost:{t:"Hard construction cost per sq ft of BUA, mid-market apartment spec.", s:"Published benchmarks are usually quoted per sq ft of GFA: Knight Frank Q2-2025 apartments AED 400\u2013880/sqft, Engel & V\u00f6lkers AED 350\u2013700/sqft. Divide those by the BUA factor before comparing. AED 345 on BUA at a 1.45 factor is AED 500 on GFA. Excludes land and fit-out.", tier:'sourced'},
+  buafactor:{t:"Built-up area as a multiple of Max GFA.", s:"GFA counts only what the authority charges plot ratio on. BUA is everything actually constructed: basement parking, podium, services, plant and MEP. Dubai residential towers typically run 1.3 to 1.6 times GFA depending on how much parking sits below ground. Construction cost is charged on BUA.", tier:'modeled'},
+  bua:{t:"Everything that gets built, in sq ft. Max GFA multiplied by the BUA factor.", s:"This is the area construction cost is charged on, not the FAR-counted GFA. Saleable area is still derived from GFA.", tier:'modeled'},  archd:{t:"Architect's design and authority-approval fee, as a share of hard construction cost.", s:"No external benchmark wired in yet. Edit to match your own fee schedule.", tier:'modeled'},
   archs:{t:"Architect's site-supervision fee through to building completion certificate, as a share of hard construction cost.", s:"No external benchmark wired in yet. Edit to match your own fee schedule.", tier:'modeled'},
   cont:{t:"Buffer against construction cost overruns, as a share of hard cost.", s:"No external benchmark wired in yet. 10% is a common planning-stage default.", tier:'modeled'},
   auth:{t:"DEWA, RTA, DDA and other authority connection and NOC fees, as a fixed total.", s:"No external benchmark wired in yet. Edit to match your own cost data for this plot.", tier:'modeled'},
@@ -1388,6 +1393,13 @@ function hydrate(st){
   const A=st.assumptions=st.assumptions||{};
   if(A.visitorPct==null) A.visitorPct=15;
   if(A.baseEff==null)    A.baseEff=82;
+  const P=st.plot=st.plot||{};
+  if(P.buaFactor==null) P.buaFactor=1.45;
+  /* Construction used to be priced per sqft of GFA. Re-expressing it per sqft of
+     BUA without converting the rate would inflate every saved plot's build cost
+     by the factor, so convert once and mark the basis. */
+  const M=st.market=st.market||{};
+  if(M.costBasis!=='bua'){ if(M.cost>0) M.cost=Math.round(M.cost/P.buaFactor); M.costBasis='bua'; }
   (st.types||[]).forEach(t=>{ if(t.bays==null) t.bays = DEFAULT_BAYS[t.key] != null ? DEFAULT_BAYS[t.key] : (t.size>1000?2:1); });
   return st;
 }
@@ -1562,6 +1574,7 @@ function hydrateFromState(){
   document.getElementById('in-plotnumber').value=STATE.plotNumber||'';
   document.getElementById('in-community').value=STATE.community;
   document.getElementById('in-subcommunity').value=STATE.subcommunity||'';
+  document.getElementById('in-buafactor').value=STATE.plot.buaFactor;
   document.getElementById('in-visitor').value=STATE.assumptions.visitorPct;
   document.getElementById('in-baseeff').value=STATE.assumptions.baseEff;
   document.getElementById('in-gfa').value=STATE.plot.gfa;
@@ -1592,6 +1605,7 @@ function hydrateFromState(){
     .forEach(([id,k])=>{ const e=document.getElementById(id); if(e && tl[k]!=null) e.value=tl[k]; });
   updatePayWarn();
   updateTopbarPlot();
+  updateBua();
   updateCoverage();
   buildUnitTable();
   buildProg();
@@ -1601,6 +1615,13 @@ function hydrateFromState(){
 function updateTopbarPlot(){
   document.getElementById('topbarPlotName').textContent=STATE.name||'Untitled plot';
   document.getElementById('topbarPlotLoc').textContent=[STATE.community,STATE.subcommunity].filter(Boolean).join(' · ')||'No community set';
+}
+/* BUA is derived, so its field is read-only and refreshed from GFA x factor */
+function updateBua(){
+  const el=document.getElementById('in-bua'); if(!el) return;
+  const gfa=+document.getElementById('in-gfa').value||0;
+  const f=+document.getElementById('in-buafactor').value||1.45;
+  el.value=Math.round(gfa*f);
 }
 function updateCoverage(){
   const p=STATE.plot;
@@ -1616,6 +1637,7 @@ function bindTop(){
   const map=[
     ['in-name','name','text'],['in-plotnumber','plotNumber','text'],['in-community','community','text'],['in-subcommunity','subcommunity','text'],
     ['in-visitor','assumptions.visitorPct','num'],['in-baseeff','assumptions.baseEff','num'],
+    ['in-buafactor','plot.buaFactor','num'],
     ['in-gfa','plot.gfa','num'],['in-plotarea','plot.plotArea','num'],['in-far','plot.far','num'],['in-floors','plot.floors','num'],
     ['in-usage','plot.usage','text'],['in-basement','plot.basement','num'],['in-podium','plot.podium','num'],['in-notes','plot.notes','text'],
     ['in-cost','market.cost','num'],['in-hurdle','market.hurdle','num'],['in-dldfee','assumptions.dldFee','num'],
@@ -1635,6 +1657,7 @@ function bindTop(){
       if(parts.length===1) STATE[parts[0]]=v; else STATE[parts[0]][parts[1]]=v;
       render(); scheduleSave();
       if(id==='in-name'||id==='in-community'||id==='in-subcommunity') updateTopbarPlot();
+      if(id==='in-gfa'||id==='in-buafactor') updateBua();
       if(id==='in-gfa'||id==='in-plotarea'||id==='in-floors'||id==='in-basement'||id==='in-podium') updateCoverage();
     });
   });
@@ -1706,7 +1729,10 @@ function evalMix(fracs,mk,state){
   const bays=resBays*(1+(A.visitorPct||0)/100);
 
   const gdv=T.reduce((s,t,i)=> s+u[i]*t.size*t.price, 0);
-  const hard=state.plot.gfa*mk.cost;
+  /* construction is priced on what actually gets built, not on the FAR-counted
+     area: BUA carries the basement, podium, services and plant that GFA excludes */
+  const bua=state.plot.gfa*(state.plot.buaFactor||1.45);
+  const hard=bua*mk.cost;
   const archd=hard*(A.archDesign/100), archs=hard*(A.archSuper/100), cont=hard*(A.cont/100);
   const auth=A.authorities, landsc=A.landscape, misc=A.misc;
   const park=bays*A.bay, mkt=gdv*(A.mkt/100);
@@ -1722,7 +1748,7 @@ function evalMix(fracs,mk,state){
   const breakevenPsf = sal>0? (1+mk.hurdle)*total/sal : 0;
   /* effAct is what the built schedule actually achieves against GFA; eff is what
      the plate model predicted. They differ only by the whole-unit rounding. */
-  const out={avg,upf,eff,effAct:state.plot.gfa>0? sal/state.plot.gfa : 0,salTarget,
+  const out={avg,upf,bua,eff,effAct:state.plot.gfa>0? sal/state.plot.gfa : 0,salTarget,
     sal,u,bays,resBays,gdv,hard,archd,archs,cont,auth,landsc,misc,park,mkt,dld,nonland,total,profit,
     mcost:profit/total,mgdv:profit/gdv,rlv,avgPricePsf,cpsfWith,cpsfNo,breakevenPsf,totalUnits};
   T.forEach((t,i)=> out[t.key]=fracs[i]);
@@ -1914,7 +1940,6 @@ function render(){
   document.getElementById('devstrip').innerHTML=
     `<div class="d"><div class="k">Total units</div><div class="v">${best.totalUnits}</div></div>
      <div class="d"><div class="k">Total sellable area</div><div class="v">${fN(best.sal)} sqft</div></div>
-     <div class="d"><div class="k">Avg. unit size</div><div class="v">${fN(best.avg)} sqft</div></div>
      <div class="d"><div class="k">Efficiency</div><div class="v">${fP(best.effAct)}</div></div>
      <div class="d"><div class="k">Parking bays</div><div class="v">${Math.ceil(best.bays)}</div></div>`;
   const effNote=document.getElementById('eff-note');
@@ -2642,6 +2667,7 @@ async function exportPDF(){
       body:[
         ['Total plot size', fN(STATE.plot.plotArea)+' sqft'],
         ['GFA (gross floor area)', fN(STATE.plot.gfa)+' sqft'],
+        ['BUA (built-up area)', fN(best.bua)+' sqft  ('+(STATE.plot.buaFactor||1.45)+'x GFA)'],
         ['Saleable (net) area', fN(best.sal)+' sqft'],
         ['Efficiency (saleable ÷ GFA)', fP(best.eff)],
       ],
