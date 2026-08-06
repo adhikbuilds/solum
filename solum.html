@@ -759,6 +759,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
     <button class="btn" id="btnCompareTop">Compare</button>
     <button class="btn primary" id="btnNewTop">+ New plot</button>
     <span class="divider-v" style="margin:0 4px"></span>
+    <button class="btn" id="btnPassword">Password</button>
     <button class="btn" id="btnSignoutTop">Sign out</button>
   </div>
 </div>
@@ -1220,6 +1221,24 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
   </div>
 </div>
 
+<!-- change password: the signed-in session can set its own, so this needs no
+     dashboard access and no service key -->
+<div class="modal-overlay" id="pwOverlay">
+  <div class="modal" style="max-width:440px">
+    <h3>Change password</h3>
+    <p class="sec-note">Sets the password for the account you are signed in as.</p>
+    <div class="lever"><div class="lab"><span>New password</span></div>
+      <div class="field"><input type="password" id="pw-new" autocomplete="new-password" placeholder="At least 6 characters"></div></div>
+    <div class="lever"><div class="lab"><span>Repeat it</span></div>
+      <div class="field"><input type="password" id="pw-again" autocomplete="new-password"></div></div>
+    <div class="sec-note" id="pw-status" style="min-height:1em"></div>
+    <div class="actions">
+      <button class="btn" id="pw-cancel">Cancel</button>
+      <button class="btn primary" id="pw-save">Set password</button>
+    </div>
+  </div>
+</div>
+
 <!-- delete confirm modal -->
 <div class="modal-overlay" id="deleteOverlay">
   <div class="modal" style="max-width:420px">
@@ -1535,8 +1554,9 @@ document.getElementById('btnNewTop').addEventListener('click',()=>{
    are keyed on the DLD area id. Match as soon as a location arrives, rather than
    waiting for someone to press a button on the next screen and hope. */
 let PENDING_AREA=null;      /* the DLD area actually bound to this new plot */
-function setPendingArea(id,name){
+function setPendingArea(id,name,learnFrom){
   PENDING_AREA = id!=null ? {id, name} : null;
+  if(learnFrom) rememberAlias(learnFrom, id);            /* next plot in this community matches itself */
   const el=document.getElementById('m-community');
   if(PENDING_AREA && el) el.value=name;
   renderAreaStatus();
@@ -1556,12 +1576,18 @@ function renderAreaStatus(){
   if(m.kind==='empty'){ out.textContent=''; return; }
   if(m.kind==='loading'){ out.textContent='Loading DLD areas…'; return; }
   if(m.kind==='exact'){ setPendingArea(m.id,m.name); return; }
+  if(m.kind==='alias'){
+    out.className='sec-note ok-note';
+    out.textContent='"'+typed+'" is already known to be DLD area '+m.name+'. Comps will be pulled on create.';
+    PENDING_AREA={id:m.id, name:m.name};                 /* keep the typed name visible */
+    return;
+  }
   if(m.kind==='near'){
     out.className='sec-note missing';
     out.innerHTML='No exact DLD area by that name. Closest is <b>'+m.name+'</b>. '
       + '<button type="button" class="linkbtn" id="m-area-accept">Use it</button>, or pick another from the list.';
     const btn=document.getElementById('m-area-accept');
-    if(btn) btn.addEventListener('click',()=>setPendingArea(m.id,m.name));
+    if(btn) btn.addEventListener('click',()=>setPendingArea(m.id,m.name,typed));
     return;
   }
   out.className='sec-note missing';
@@ -1618,10 +1644,41 @@ function validateModal(){
 }
 ['m-plotarea','m-gfa','m-floors','m-land','m-land-psf','m-name','m-plotnumber']
   .forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', validateModal); });
-document.getElementById('m-community').addEventListener('input', ()=>{ renderAreaStatus(); validateModal(); });
-initCommunityTypeahead('m-community','mCommunityDrop', (name,id)=>setPendingArea(id,name));
+document.getElementById('m-community').addEventListener('input', e=>{
+  e.target.dataset.lastTyped=e.target.value;             /* what they typed, before a pick overwrites it */
+  renderAreaStatus(); validateModal();
+});
+initCommunityTypeahead('m-community','mCommunityDrop', (name,id)=>{
+  const typed=(document.getElementById('m-community').dataset.lastTyped||'').trim();
+  setPendingArea(id,name,typed);
+});
 document.getElementById('m-land-total-btn').addEventListener('click',()=>{ setLandMode('total'); validateModal(); });
 document.getElementById('m-land-psf-btn').addEventListener('click',()=>{ setLandMode('psf'); validateModal(); });
+
+/* ---------------- change password ---------------- */
+(function(){
+  const ov=document.getElementById('pwOverlay'); if(!ov) return;
+  const st=document.getElementById('pw-status');
+  document.getElementById('btnPassword').addEventListener('click',()=>{
+    document.getElementById('pw-new').value=''; document.getElementById('pw-again').value='';
+    st.className='sec-note'; st.textContent=''; ov.classList.add('show');
+  });
+  document.getElementById('pw-cancel').addEventListener('click',()=>ov.classList.remove('show'));
+  document.getElementById('pw-save').addEventListener('click', async ()=>{
+    const a=document.getElementById('pw-new').value, b=document.getElementById('pw-again').value;
+    st.className='sec-note missing';
+    if(a.length<6){ st.textContent='Supabase requires at least 6 characters.'; return; }
+    if(a!==b){ st.textContent='The two entries do not match.'; return; }
+    if(!sb){ st.textContent='No connection to the auth service.'; return; }
+    const btn=document.getElementById('pw-save'); btn.disabled=true; btn.textContent='Setting…';
+    try{
+      const {error}=await sb.auth.updateUser({password:a});
+      if(error){ st.textContent=error.message; }
+      else { st.className='sec-note ok-note'; st.textContent='Password changed. It applies to the next sign in.'; }
+    }catch(e){ st.textContent='Could not reach the auth service.'; }
+    btn.disabled=false; btn.textContent='Set password';
+  });
+})();
 
 document.getElementById('m-cancel').addEventListener('click',()=>document.getElementById('modalOverlay').classList.remove('show'));
 document.getElementById('m-create').addEventListener('click', async ()=>{
@@ -3001,6 +3058,25 @@ async function enterApp(){
 }
 /* ---------------- DLD comps (Phase 2b) ---------------- */
 let LOCATIONS=[], LOC_BY_NAME={}, LOC_BY_ID={};
+/* Learned name-to-area mappings, shared across the client. A community someone
+   has already resolved by hand matches for everyone afterwards. */
+let ALIASES={};
+const aliasKey = s => (s||'').toLowerCase().replace(/\s+/g,' ').trim();
+async function loadAliases(){
+  if(!sb) return;
+  try{
+    const {data,error}=await sb.from('area_aliases').select('alias,area_id,area_name');
+    if(error) return;                                   /* table may not be migrated yet */
+    ALIASES={}; (data||[]).forEach(a=>{ ALIASES[a.alias]={id:a.area_id, name:a.area_name}; });
+  }catch(e){}
+}
+async function rememberAlias(raw, areaId){
+  const k=aliasKey(raw); if(!k || areaId==null) return;
+  if(LOC_BY_NAME[k]!=null) return;                      /* already a real area name */
+  ALIASES[k]={id:areaId, name:LOC_BY_ID[areaId]||raw};  /* optimistic, so this session benefits */
+  if(!sb) return;
+  try{ await sb.rpc('record_area_alias',{p_raw:raw, p_area_id:areaId}); }catch(e){}
+}
 async function loadLocations(){
   if(!sb || LOCATIONS.length) return;
   try{
@@ -3012,6 +3088,7 @@ async function loadLocations(){
       LOC_BY_NAME[(l.area_name_en||'').toLowerCase().trim()]=l.area_id;
       LOC_BY_ID[l.area_id]=l.area_name_en;
     });
+    await loadAliases();
   }catch(e){ console.error(e); }
 }
 function resolveAreaId(){
@@ -3053,13 +3130,16 @@ function matchArea(raw){
   if(!LOCATIONS.length) return {kind:'loading'};
   const exact=LOC_BY_NAME[raw.toLowerCase()];
   if(exact!=null) return {kind:'exact', id:exact, name:LOC_BY_ID[exact]||raw, score:1};
+  const al=ALIASES[aliasKey(raw)];                       /* someone already resolved this name */
+  if(al) return {kind:'alias', id:al.id, name:al.name, score:1};
   const top=nearestAreas(raw,1)[0];
   if(top && top.s>=NEAR_FLOOR) return {kind:'near', id:top.l.area_id, name:top.l.area_name_en, score:top.s};
   return {kind:'none'};
 }
 function resolveAreaBest(){
   const m=matchArea(document.getElementById('in-community').value);
-  return (m.kind==='exact'||m.kind==='near') ? {id:m.id, name:m.name, exact:m.kind==='exact', score:m.score} : null;
+  return (m.kind==='exact'||m.kind==='alias'||m.kind==='near')
+    ? {id:m.id, name:m.name, exact:m.kind!=='near', score:m.score} : null;
 }
 /* clickable community typeahead (native datalist is unreliable, esp. on Mac) */
 function initCommunityTypeahead(inputId, dropId, onPick){
