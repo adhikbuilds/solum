@@ -307,6 +307,9 @@ body.view-compare #portfolioView{display:none}
 }
 .landmode .segbtn.on{background:var(--accent-500); border-color:var(--accent-500); color:#fff}
 .missing{color:var(--accent-700); font-weight:var(--fw-semibold); min-height:1em; margin:10px 0 0}
+.ok-note{color:var(--ok, #2E7D53); font-weight:var(--fw-semibold)}
+.linkbtn{background:none; border:0; padding:0; font:inherit; color:var(--accent-600,var(--accent-700));
+         text-decoration:underline; cursor:pointer}
 .modal .btn.primary[disabled]{opacity:.45; cursor:not-allowed}
 /* the arithmetic behind the strip, spelled out so it can be checked by hand */
 .eff-note{margin-top:var(--sp-3); line-height:1.6}
@@ -1031,7 +1034,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <div class="lever"><div class="lab"><span>Sub-community (optional)</span></div>
               <div class="field"><input type="text" id="in-subcommunity" value=""></div></div>
             <div class="lever" style="grid-column:1/-1">
-              <button class="btn primary sm" id="btnPullComps" type="button">Pull DLD market comps for this community</button>
+              <button class="btn primary sm" id="btnPullComps" type="button">Refresh DLD market comps for this community</button>
               <div id="compsBasis" class="comps-basis" style="margin-top:8px"></div></div>
             <div class="lever"><div class="lab"><span>Max GFA</span><button class="info" data-pop="gfa">i</button></div>
               <div class="field"><input type="number" id="in-gfa" value="150131.47"><span class="suf">sqft</span></div></div>
@@ -1185,7 +1188,8 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
 
     <div class="fieldgrid2">
       <div class="lever"><div class="lab"><span>Location / area</span></div>
-        <div class="field"><input type="text" id="m-community" value=""></div></div>
+        <div class="field" style="position:relative"><input type="text" id="m-community" value="" autocomplete="off" placeholder="Search DLD areas…"><div id="mCommunityDrop" class="typeahead-drop"></div></div>
+        <div class="sec-note" id="m-area-status" style="margin:8px 0 0"></div></div>
       <div class="lever"><div class="lab"><span>Sub-community (optional)</span></div>
         <div class="field"><input type="text" id="m-subcommunity" value=""></div></div>
     </div>
@@ -1504,7 +1508,10 @@ document.getElementById('btnNewTop').addEventListener('click',()=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   setLandMode('total');
+  PENDING_AREA=null;
   clearPdfState();
+  loadLocations().then(renderAreaStatus);
+  renderAreaStatus();
   validateModal();
   document.getElementById('modalOverlay').classList.add('show');
 });
@@ -1524,6 +1531,43 @@ document.getElementById('btnNewTop').addEventListener('click',()=>{
    Land in Dubai is quoted both as a lump sum and as a rate on plot area. Both are
    offered and the other side is shown live, so a rate entered against the wrong
    denominator is visible immediately rather than silently 4x wrong. */
+/* The plot document's community is not always a verbatim DLD area name, and comps
+   are keyed on the DLD area id. Match as soon as a location arrives, rather than
+   waiting for someone to press a button on the next screen and hope. */
+let PENDING_AREA=null;      /* the DLD area actually bound to this new plot */
+function setPendingArea(id,name){
+  PENDING_AREA = id!=null ? {id, name} : null;
+  const el=document.getElementById('m-community');
+  if(PENDING_AREA && el) el.value=name;
+  renderAreaStatus();
+  if(typeof validateModal==='function') validateModal();
+}
+function renderAreaStatus(){
+  const out=document.getElementById('m-area-status'); if(!out) return;
+  const typed=(document.getElementById('m-community').value||'').trim();
+  if(PENDING_AREA && typed.toLowerCase()===PENDING_AREA.name.toLowerCase()){
+    out.className='sec-note ok-note';
+    out.textContent='Matched to DLD area: '+PENDING_AREA.name+'. Comps will be pulled on create.';
+    return;
+  }
+  PENDING_AREA=null;
+  const m=matchArea(typed);
+  out.className='sec-note';
+  if(m.kind==='empty'){ out.textContent=''; return; }
+  if(m.kind==='loading'){ out.textContent='Loading DLD areas…'; return; }
+  if(m.kind==='exact'){ setPendingArea(m.id,m.name); return; }
+  if(m.kind==='near'){
+    out.className='sec-note missing';
+    out.innerHTML='No exact DLD area by that name. Closest is <b>'+m.name+'</b>. '
+      + '<button type="button" class="linkbtn" id="m-area-accept">Use it</button>, or pick another from the list.';
+    const btn=document.getElementById('m-area-accept');
+    if(btn) btn.addEventListener('click',()=>setPendingArea(m.id,m.name));
+    return;
+  }
+  out.className='sec-note missing';
+  out.textContent='No DLD area matches that name. Pick the area this plot sits in from the list, or comps cannot be priced.';
+}
+
 let LAND_MODE='total';
 function setLandMode(mode){
   LAND_MODE=mode;
@@ -1558,11 +1602,12 @@ function syncFar(){
 }
 /* Every field the appraisal cannot run without. Nothing here has a fallback. */
 const M_REQUIRED=[['m-plotarea','plot area'],['m-gfa','Max GFA'],['m-floors','floors'],
-                  ['m-community','location'],['__land','land price']];
+                  ['__area','a matched DLD location'],['__land','land price']];
 function validateModal(){
   syncFar(); syncLand();
   const missing=M_REQUIRED.filter(([id])=>{
     if(id==='__land') return !(modalLandTotal()>0);
+    if(id==='__area') return !PENDING_AREA;
     const el=document.getElementById(id); const v=(el.value||'').trim();
     return el.type==='number' ? !(+v>0) : !v;
   }).map(([,label])=>label);
@@ -1571,8 +1616,10 @@ function validateModal(){
   document.getElementById('m-create').disabled = missing.length>0;
   return missing;
 }
-['m-plotarea','m-gfa','m-floors','m-community','m-land','m-land-psf','m-name','m-plotnumber']
+['m-plotarea','m-gfa','m-floors','m-land','m-land-psf','m-name','m-plotnumber']
   .forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', validateModal); });
+document.getElementById('m-community').addEventListener('input', ()=>{ renderAreaStatus(); validateModal(); });
+initCommunityTypeahead('m-community','mCommunityDrop', (name,id)=>setPendingArea(id,name));
 document.getElementById('m-land-total-btn').addEventListener('click',()=>{ setLandMode('total'); validateModal(); });
 document.getElementById('m-land-psf-btn').addEventListener('click',()=>{ setLandMode('psf'); validateModal(); });
 
@@ -1585,7 +1632,7 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   const plotArea=+document.getElementById('m-plotarea').value;
   const far=gfa/plotArea;                            /* derived, never entered */
   const plotNumber=document.getElementById('m-plotnumber').value||'';
-  const community=document.getElementById('m-community').value||'';
+  const community=PENDING_AREA.name;
   const subcommunity=document.getElementById('m-subcommunity').value||'';
   /* a name is a label, not an input to the model, so it can fall back */
   const name=(document.getElementById('m-name').value||'').trim()
@@ -1593,6 +1640,10 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   const land=modalLandTotal();                       /* GIS has no price — always user-entered */
   const ns=defaultState();
   ns.name=name; ns.plotNumber=plotNumber; ns.community=community; ns.subcommunity=subcommunity;
+  ns.areaId=PENDING_AREA.id;
+  /* Unit prices and sizes belong to a market, not to the app. Until comps land
+     for this area they are blank, so nobody inherits the demo plot's pricing. */
+  ns.types.forEach(t=>{ t.price=0; t.sourced=false; });   /* sizes stay: they are physical, and a zero divides */
   ns.plot={...ns.plot, gfa, plotArea, far, floors};   /* keep usage/basement/podium/notes defaults */
   ns.market={...ns.market, land};
   if(LAST_DDA_USAGE) ns.plot.usage=LAST_DDA_USAGE;
@@ -1603,6 +1654,8 @@ document.getElementById('m-create').addEventListener('click', async ()=>{
   document.getElementById('modalOverlay').classList.remove('show');
   switchView('plot');
   goToTab('details');   /* guided entry: start a new plot at Plot Details */
+  /* the area is bound, so the first comps pull needs no button press */
+  try{ await pullComps(); hydrateFromState(); }catch(e){}
 });
 
 /* ---------------- delete plot (demoted, always confirms via modal) ---------------- */
@@ -1960,11 +2013,22 @@ const VICON_SVG=(()=>{
 /* ---------------- render ---------------- */
 function render(){
   const mk=marketInputs(STATE);
-  const {best,cand}=optimise(mk,STATE);
+  /* An unpriced type would silently value at zero and return a confident PASS.
+     Better to show nothing and say why. */
+  const unpriced=STATE.types.filter(t=>t.on && !(t.price>0)).map(t=>t.name);
+  const {best,cand}=unpriced.length ? {best:null,cand:[]} : optimise(mk,STATE);
+
+  const noteEl=document.getElementById('eff-note');
+  if(unpriced.length && noteEl){
+    noteEl.className='sec-note missing';
+    noteEl.textContent='No price yet for '+unpriced.join(', ')
+      +'. Pull DLD comps for this location, or set the price per sqft on this page, before the appraisal can run.';
+  } else if(noteEl){ noteEl.className='sec-note eff-note'; }
 
   if(!best){
     ['vm-irr','vm-roi','vm-rop','vm-profit','sm-inv','sm-gross','sm-avgprice','sm-cpsf-w','sm-cpsf-n','cf-irr','cf-peak','cf-profit','cf-months'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent='—';});
-    document.getElementById('vm-verdict-cell').innerHTML='<span class="tag pass">no mix</span>';
+    document.getElementById('vm-verdict-cell').innerHTML = unpriced.length
+      ? '<span class="tag">no pricing</span>' : '<span class="tag pass">no mix</span>';
     const cfc=document.getElementById('cf-chart'); if(cfc) cfc.innerHTML='';
     document.getElementById('devstrip').innerHTML='';
     document.getElementById('buildupTable').innerHTML='';
@@ -2578,7 +2642,7 @@ async function fetchDdaPlot(){
     const data=await r.json().catch(()=>({}));
     if(!r.ok){ st.textContent=(data && data.error) || 'Could not fetch this plot.'; return; }
     const n=applyDdaExtraction(data.attributes);
-    validateModal();
+    renderAreaStatus(); validateModal();
     st.textContent = n>0 ? ('Filled '+n+' field'+(n>1?'s':'')+' from DDA. Review below, fill anything still missing, then create.') : 'Found the plot, but nothing usable came back.';
   }catch(e){ st.textContent='Could not reach the lookup service. Try again.'; }
   finally{ btn.disabled=false; btn.textContent=orig; }
@@ -2610,6 +2674,7 @@ function applyPdfExtraction(text){
     grab('Project',         /Project\s*Name\s*[:\-]?\s*\n?\s*([A-Za-z][A-Za-z0-9 .,'&\-()]{2,60})/i)
   ].filter(Boolean);
   LAST_PDF_NOTES = notes.length ? 'From plot PDF:\n'+notes.join('\n') : '';
+  renderAreaStatus();
   validateModal();   /* extraction may have satisfied, or left, required fields */
   return hits;
 }
@@ -2978,19 +3043,27 @@ function nearestAreas(name, k){
   if(!name || !LOCATIONS.length) return [];
   return LOCATIONS.map(l=>({l, s:_simLoc(name, l.area_name_en)})).sort((x,y)=>y.s-x.s).slice(0,k);
 }
-/* exact DLD match if the typed name is one; otherwise the nearest area above a
-   confidence floor. Returns {id, name, exact, score} or null. */
-function resolveAreaBest(){
-  const raw=(document.getElementById('in-community').value||'').trim();
+/* Match a name against the DLD area list. An exact hit binds straight away; a
+   near hit is returned as a suggestion and is never bound silently, because a
+   plot priced off the wrong community produces a confident, wrong appraisal. */
+const NEAR_FLOOR=0.55;
+function matchArea(raw){
+  raw=(raw||'').trim();
+  if(!raw) return {kind:'empty'};
+  if(!LOCATIONS.length) return {kind:'loading'};
   const exact=LOC_BY_NAME[raw.toLowerCase()];
-  if(exact!=null) return {id:exact, name:LOC_BY_ID[exact]||raw, exact:true, score:1};
+  if(exact!=null) return {kind:'exact', id:exact, name:LOC_BY_ID[exact]||raw, score:1};
   const top=nearestAreas(raw,1)[0];
-  if(top && top.s>=0.4) return {id:top.l.area_id, name:top.l.area_name_en, exact:false, score:top.s};
-  return null;
+  if(top && top.s>=NEAR_FLOOR) return {kind:'near', id:top.l.area_id, name:top.l.area_name_en, score:top.s};
+  return {kind:'none'};
+}
+function resolveAreaBest(){
+  const m=matchArea(document.getElementById('in-community').value);
+  return (m.kind==='exact'||m.kind==='near') ? {id:m.id, name:m.name, exact:m.kind==='exact', score:m.score} : null;
 }
 /* clickable community typeahead (native datalist is unreliable, esp. on Mac) */
-function initCommunityTypeahead(){
-  const input=document.getElementById('in-community'), drop=document.getElementById('communityDrop');
+function initCommunityTypeahead(inputId, dropId, onPick){
+  const input=document.getElementById(inputId||'in-community'), drop=document.getElementById(dropId||'communityDrop');
   if(!input || !drop || input._taBound) return; input._taBound=true;
   document.body.appendChild(drop);   /* escape any overflow:hidden card ancestor */
   const close=()=>{ drop.classList.remove('show'); drop.innerHTML=''; };
@@ -3011,9 +3084,14 @@ function initCommunityTypeahead(){
   drop.addEventListener('mousedown', e=>{
     const opt=e.target.closest('.typeahead-opt'); if(!opt) return;
     e.preventDefault();
-    input.value=opt.dataset.name; STATE.community=opt.dataset.name; STATE.areaId=+opt.dataset.id;
-    if(typeof updateTopbarPlot==='function') updateTopbarPlot();
-    scheduleSave(); close();
+    input.value=opt.dataset.name;
+    if(onPick){ onPick(opt.dataset.name, +opt.dataset.id); }
+    else {
+      STATE.community=opt.dataset.name; STATE.areaId=+opt.dataset.id;
+      if(typeof updateTopbarPlot==='function') updateTopbarPlot();
+      scheduleSave();
+    }
+    close();
   });
 }
 async function pullComps(){
