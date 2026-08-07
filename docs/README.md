@@ -32,6 +32,7 @@ the layout, or a locked decision.
 | `DECISIONS.md` | Running log of decisions, newest first. The lightweight record. |
 | `prd/TEMPLATE.md` | Copy this to start a new PRD. |
 | `prd/*.md` | One file per feature/change worth a spec. |
+| `feedback/*.md` | Client and demo feedback, one file per session. Their words first, our triage second, kept apart. |
 
 **Read order for a new session:** `WORKING_AGREEMENT.md` (rules of engagement) → `PROJECT_CONTEXT.md` (why) → `SOLUM_CONTEXT.md` (how) → this file (workflow).
 
