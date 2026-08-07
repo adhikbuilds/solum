@@ -8,6 +8,14 @@ Format: date · one-line decision · why (if not obvious) · link to PRD/commit 
 
 ---
 
+## 2026-08-07 — Al Mizan demo feedback recorded
+First client demo on live credentials. Feedback captured verbatim in
+`feedback/2026-08-almizan-demo.md`, with our triage kept separate from their
+words. Headline: no number was disputed, so the parking/efficiency/BUA
+corrections held. Everything raised is explainability or guidance. Next sprint
+leads with labelling every PSF denominator, explaining RLV on screen, and
+provenance on agent-entered plot data.
+
 ## 2026-07-18 — Astryx question resolved: Path B
 Dropped the Astryx design-system association and collapsed the token block to a
 single vocabulary (retired the `--pine*` / `--brass-deep` / `--surface2` /
