@@ -8,10 +8,12 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "demo": "vite-node demo.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
+    "vite-node": "^6.0.0",
     "vitest": "^2.1.4"
   }
 }
