@@ -1,0 +1,29 @@
+# Secrets — never commit credentials, including demo/client accounts
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Local
+.DS_Store
+*.log
+.vercel
+.idea/
+.vscode/
+
+# Client material — source documents live outside git until cleared for commit
+inbox/

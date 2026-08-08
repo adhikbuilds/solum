@@ -1,0 +1,17 @@
+{
+  "name": "solum",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "pnpm --filter @solum/engine test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  },
+  "packageManager": "pnpm@9.12.0"
+}
