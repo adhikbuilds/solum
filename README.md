@@ -60,7 +60,7 @@ downside; that single behaviour is what loses an account permanently.
 
 ## Docs
 
-[`docs/architecture.md`](docs/architecture.md) — why the prototype shape fails, the two data planes,
+- [`docs/architecture.md`](docs/architecture.md) — why the prototype shape fails, the two data planes,
 tenancy model, and what "scaling" means for a product whose entire value is a number being right.
 
 ## Running it
