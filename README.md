@@ -61,7 +61,11 @@ downside; that single behaviour is what loses an account permanently.
 ## Docs
 
 - [`docs/architecture.md`](docs/architecture.md) — why the prototype shape fails, the two data planes,
-tenancy model, and what "scaling" means for a product whose entire value is a number being right.
+  tenancy model, and what "scaling" means for a product whose entire value is a number being right.
+- [`docs/competitive-landscape.md`](docs/competitive-landscape.md) — who we are actually against,
+  with published pricing. Three claims from the earlier analysis did not survive checking.
+- [`docs/domain-model.md`](docs/domain-model.md) — the Dubai escrow and payment-plan mechanics the
+  wedge depends on, sourced and tagged, with the open questions listed.
 
 ## Running it
 
