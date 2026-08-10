@@ -124,12 +124,80 @@ selling auditability. Our trace is not a novel idea — it is table stakes we cu
 
 ---
 
-## 5. The wedge, and the negative evidence for it
+## 4b. RealCube — the competitor that actually overlaps, found 2026-08-11
 
-Searched specifically for any competitor modelling Dubai escrow, Oqood, RERA or off-plan payment
-plans. **Nothing.** Feasly is GCC-positioned and models senior debt, mezzanine and profit splits —
-that is the *lender-funded* structure. No product found models the buyer-funded structure.
-`[verified — negative result]`
+**This section corrects §5 below. The "nobody models Dubai mechanics" claim was wrong.**
+
+RealCube, by **Exalogic Consulting** (Dubai-headquartered), is an AI-powered real estate ERP for the
+GCC. Its **PMIS Pre-Construction / Land Acquisition & Feasibility** module is, feature for feature,
+substantially the product Solum is trying to be. `[verified]`
+
+What it ships:
+
+| Capability | RealCube | Solum |
+|---|---|---|
+| Lead pipeline with plot ownership, coordinates, land-use, plot number, system-generated Parcel IDs | ✅ | partial |
+| **GIS plot rendering** | ✅ | ❌ |
+| Colour-coded feasibility states for prioritising acquisitions | ✅ | ❌ |
+| Land parcel & **GFA calculators with building-mix planning** | ✅ | ✅ engine |
+| **Efficiency %** (roads, green areas, utilities) → auto **Net GFA** and **Price per sq.ft** | ✅ | ❌ |
+| Multiple efficiency versions for comparison | ✅ | ❌ |
+| **Bell-curve sales velocity over 12 / 18 / 24 months** | ✅ | ❌ |
+| Revenue recognition adjustments | ✅ | ❌ |
+| Comparables stored alongside the financial model | ✅ | ✅ engine input |
+| ROI scenarios "before design begins" | ✅ | ✅ engine |
+| Escrow-linked milestone payments | ✅ | ❌ |
+| **Oqood** + Title Deed registration | ✅ | ❌ |
+| RERA compliance, Ejari, UAE Pass KYC, VAT-aware accounting | ✅ | ❌ |
+| NOVA AI: CapEx/feasibility insights, predictive revenue forecasting, anomaly detection | ✅ | ❌ |
+| Residual land value as the primary metric | not shown publicly | ✅ engine |
+| Derivation trace on every number | ❌ | ✅ engine |
+| Refuses a verdict on contradictory inputs | ❌ | ✅ engine |
+| Uncertainty as distributions rather than an assumed curve | ❌ bell curve | ❌ |
+
+Scale claimed: **100,000+ units, 150,000+ active users.** `[verified via search; not confirmed on
+their own site]`
+
+### What this means
+
+**The regulatory plumbing we identified as the moat is already built by an incumbent with an
+installed base.** Escrow-linked milestone payments, Oqood, Title Deed, RERA, VAT — RealCube has all
+of it. That is a far harder asset to replicate than an appraisal formula, and they are much better
+placed to deepen their feasibility maths than we are to build their compliance stack and their
+distribution.
+
+Their sales-velocity model is a **bell curve over 12/18/24 months** — a shape assumption, not a
+fitted forecast. That is the one place their approach is beatable on merit: a model fitted to DLD
+transactions beats an assumed curve. But we have neither today, so this is a plan, not an advantage.
+
+**Two honest distinctions remain, and they are about buyer moment, not features:**
+
+1. **RealCube is an ERP.** Land acquisition is the front door to sales, lease, community, facility
+   management, finance and procurement. That is a long enterprise sale to a developer's whole
+   organisation. Solum can be a standalone tool an analyst uses on a Tuesday afternoon without a
+   six-month implementation.
+2. **RealCube's escrow features are operational, not predictive.** They administer real payments on
+   real sold units — collection, compliance, reconciliation. That is a different job from
+   *forecasting* a hypothetical collection curve against an S-curve to decide whether to bid. The
+   wedge survives, but narrowed: it is now **pre-acquisition collection-curve forecasting**, not
+   "Dubai mechanics" generally.
+
+**The strategic risk, stated plainly:** if RealCube adds residual land value and a proper absorption
+model, Solum's remaining differentiation is the trace and the refusal behaviour. Those are good, and
+they are days of work rather than years — which means they are also days of work for RealCube.
+
+---
+
+## 5. The wedge, as originally stated — now qualified
+
+> **Superseded in part by §4b.** The claim below was based on a search that missed RealCube. Read
+> both. What survives is narrower: no competitor was found doing *pre-acquisition collection-curve
+> forecasting*. RealCube does the operational side.
+
+Searched for any competitor modelling Dubai escrow, Oqood, RERA or off-plan payment plans. Among the
+appraisal tools — Aprao, ARGUS, Feasly, Forbury, Caldes, ProVal — **nothing.** Feasly is
+GCC-positioned and models senior debt, mezzanine and profit splits: the *lender-funded* structure.
+None of them model the buyer-funded one. That part holds. `[verified]`
 
 This matters because Dubai off-plan inverts the funding question:
 
@@ -171,16 +239,28 @@ require owning the data.
 
 ## 7. What to say in the meeting
 
-1. Our competitor list is wrong. Three of the four are consultancies, and two of those are our
-   distribution channel, not our rivals.
-2. The competitor nobody named is **Feasly** — GCC-specific, shipping, **$49–$149 per seat**. Our
+1. **Our competitor list was wrong in both directions.** Three of the four names given are
+   consultancies — and two of those are our distribution channel, not our rivals. Meanwhile the two
+   companies that actually compete with us were not on it at all.
+2. **RealCube (Exalogic, Dubai) is the real threat.** Its PMIS Pre-Construction module already does
+   land pipeline with GIS plot rendering, GFA and efficiency calculators, price per sq.ft,
+   building-mix planning, ROI scenarios, bell-curve sales velocity, *and* escrow-linked milestone
+   payments, Oqood and Title Deed registration. Claimed 100k+ units. The Dubai regulatory plumbing we
+   called our moat is already built by an incumbent with distribution.
+3. **Feasly is the second one nobody named** — GCC-specific, shipping, **$49–$149 per seat**. Our
    pricing assumption was anchored to an unverified USD 7,000 consulting figure. Reset it.
-3. Aprao and Feasly both ship Finance and Cashflow. We ship neither, and our landing page says we do.
-4. Don't out-feature a nine-year head start. The two things we can hold are **every number shows its
-   derivation** and **the tool refuses to call a deal when the inputs contradict each other**. Both
-   are built and tested.
-5. The defensible ground is Dubai's escrow and payment-plan mechanics — 20% pre-funding, milestone
-   releases, 5% one-year retention, 40–60% post-handover. Verified, and no competitor models it.
+4. **Aprao and Feasly both ship Finance and Cashflow. We ship neither, and our landing page says we
+   do.** That claim should come down until it is true.
+5. **Don't try to out-feature any of them.** What we hold today: every number shows its derivation,
+   and the tool refuses to call a deal when the inputs contradict each other. Both are built and
+   tested. Neither competitor does either.
+6. **The narrowed wedge:** pre-acquisition collection-curve forecasting. RealCube administers real
+   escrow payments; nobody forecasts a hypothetical collection curve against an S-curve to decide
+   whether to bid. Their sales velocity is an *assumed bell curve* — a model fitted to DLD
+   transactions beats that. We have neither yet, so it is a plan, not an advantage.
+7. **Honest position:** we are not early in an empty market. We are late in an occupied one, with two
+   genuine assets — auditability and refusal — and a plausible technical edge on absorption if we get
+   DLD data. That is a real business, but it is not the story of a blue ocean.
 
 ---
 
@@ -204,3 +284,14 @@ Regulatory: [Kayrouz & Associates — RERA developer obligations](https://www.ka
 Not reachable: [investmentmap.ai](https://investmentmap.ai/?m=p) — TLS certificate chain could not be
 verified. Worth a look in a browser; it appeared in our list as a map-first product and the 3D
 question is open.
+
+## Sources added 2026-08-11 (RealCube)
+
+[realcube.estate](https://www.realcube.estate/),
+[PMIS — Land Acquisition & Feasibility](https://www.realcube.estate/pmis),
+[PMIS Pre-Construction](https://www.realcube.estate/pmis/pmis-pre-construction),
+[PropTech software for Dubai developers](https://www.realcube.estate/blog/top-proptech-software-solutions-for-dubai-real-estate-developers).
+
+The 100,000-units / 150,000-users figure and the escrow/Oqood/UAE-Pass/VAT list came via search
+summary of RealCube's own marketing pages, not from a page fetched directly. Confirm before quoting
+either in a client or investor setting.
