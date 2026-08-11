@@ -69,8 +69,11 @@ export const isRemote = !isLocalHost;
  */
 export const isPooledEndpoint = /-pooler\./.test(connectionString);
 
+// Re-bound after the guard above so closures see a plain string, not string | undefined.
+const DSN: string = connectionString;
+
 export function describeTarget(): string {
-  const host = /@([^/:]+)/.exec(connectionString)?.[1] ?? 'unknown host';
+  const host = /@([^/:]+)/.exec(DSN)?.[1] ?? 'unknown host';
   return `${host}${isPooledEndpoint ? ' (pooled)' : ''}`;
 }
 

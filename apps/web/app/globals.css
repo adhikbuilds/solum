@@ -55,6 +55,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * Reset the block margins the browser puts on headings and paragraphs.
+ *
+ * Without this every <p> carries a 1em top and bottom margin, which is where the loose, bloated
+ * spacing came from — a three-line stack in a list row was silently 48px taller than its content.
+ * Spacing is declared where it is wanted, not inherited from a 1996 default.
+ */
+h1, h2, h3, h4, p, dl, dd, figure {
+  margin: 0;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -1986,3 +1997,22 @@ details[open] .led-caret { transform: rotate(90deg); }
 /* Panels share a row: keep both charts the same height so the row does not look broken. */
 .panel-grid > .panel { display: flex; flex-direction: column; }
 .panel-grid > .panel > .panel-body { flex: 1; }
+
+/* ── Pipeline rows: dense, scannable ─────────────────────────────────────── */
+
+.row {
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem 2rem;
+  padding: 0.95rem 1.2rem;
+  align-items: center;
+}
+
+.row-name { margin-bottom: 0.35rem; font-size: 0.98rem; }
+
+.row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; }
+
+.row-verdict { line-height: 1.1; }
+.row-figure { margin-top: 0.1rem; line-height: 1.15; }
+.row-figure-k { margin-top: 0; line-height: 1.2; }
+
+.pipeline { gap: 0.5rem; }
