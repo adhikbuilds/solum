@@ -56,7 +56,7 @@ export default async function PipelinePage() {
                         Asking <b>AED {aed(Number(row.landCostFils))}</b>
                       </span>
                       {row.verdict === 'NO_VERDICT' ? (
-                        <span style={{ color: '#e0705a' }}>
+                        <span style={{ color: 'var(--annot)' }}>
                           {row.blockerCount} blocking{' '}
                           {row.blockerCount === 1 ? 'issue' : 'issues'}
                         </span>
@@ -112,7 +112,7 @@ function Headroom({
 
   return (
     <>
-      <p className="row-figure num" style={{ color: room ? '#9fc95c' : '#cf7a63' }}>
+      <p className="row-figure num" style={{ color: room ? 'var(--endorse)' : 'var(--annot)' }}>
         {room ? '+' : '−'}AED {aed(Math.abs(gap))}
       </p>
       <p className="row-figure-k">
