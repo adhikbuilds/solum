@@ -1083,3 +1083,289 @@ details[open] .led-caret { transform: rotate(90deg); }
   background: var(--endorse-soft);
   color: var(--ink);
 }
+
+/* ── Portal navigation ───────────────────────────────────────────────────── */
+
+.rail-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.rail-nav a {
+  font-size: 0.78rem;
+  color: #9c948a;
+  text-decoration: none;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid transparent;
+  transition: color 100ms ease, border-color 100ms ease;
+}
+
+.rail-nav a:hover {
+  color: var(--sheet);
+  border-bottom-color: var(--survey);
+}
+
+.rail-cta {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--desk);
+  background: var(--sheet);
+  padding: 0.32rem 0.7rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.rail-cta:hover { background: #fff; }
+
+.page-actions {
+  margin: -1.5rem 0 2rem;
+  font-size: 0.82rem;
+}
+
+.page-actions a {
+  color: #7fb3ae;
+  text-decoration: none;
+  border-bottom: 1px solid #2f4b49;
+}
+
+.page-actions a:hover { color: #a6d3ce; }
+
+.frame-narrow { max-width: 46rem; }
+
+/* ── Forms on a sheet ────────────────────────────────────────────────────── */
+
+.sheet-form .field select {
+  width: 100%;
+  font: inherit;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--sheet-rule);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+}
+
+.sheet-form .field select:focus-visible {
+  outline: 2px solid var(--survey);
+  outline-offset: -1px;
+}
+
+.derived {
+  border: 1px dashed var(--sheet-rule);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  margin: 0.6rem 0 1.2rem;
+  background: var(--sheet-sunk);
+}
+
+.derived-h {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.6rem;
+}
+
+.derived-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.9rem;
+}
+
+.derived-row span {
+  display: block;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.derived-row b { font-weight: 640; }
+
+.derived-row em {
+  display: block;
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--survey);
+  margin-top: 0.2rem;
+}
+
+/* ── Pickers ─────────────────────────────────────────────────────────────── */
+
+.picker {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--desk-raised);
+  border: 1px solid var(--desk-line);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.pick:has(input:checked) { border-color: var(--survey); }
+
+.pick:has(input:focus-visible) {
+  outline: 2px solid var(--survey);
+  outline-offset: 2px;
+}
+
+.pick-v {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8d857a;
+}
+
+.pick-v[data-v='PASS']       { color: #9fc95c; }
+.pick-v[data-v='MARGINAL']   { color: #dfa945; }
+.pick-v[data-v='FAIL']       { color: #cf7a63; }
+.pick-v[data-v='NO_VERDICT'] { color: #e0705a; }
+
+.picker button {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--sheet);
+  color: var(--desk);
+  cursor: pointer;
+}
+
+.picker button:focus-visible {
+  outline: 2px solid var(--survey);
+  outline-offset: 2px;
+}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+
+.cmp-scroll {
+  overflow-x: auto;
+  background: var(--sheet);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55);
+}
+
+.cmp {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-size: 0.85rem;
+  min-width: 40rem;
+}
+
+.cmp th,
+.cmp td {
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--sheet-line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cmp th[scope='row'] {
+  text-align: left;
+  font-weight: 550;
+  color: var(--ink-soft);
+  width: 14rem;
+}
+
+.cmp th[scope='row'] em {
+  display: block;
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+}
+
+.cmp thead th {
+  text-align: right;
+  font-weight: 640;
+  color: var(--ink);
+  background: var(--sheet-sunk);
+  vertical-align: bottom;
+  white-space: normal;
+  min-width: 11rem;
+}
+
+.cmp thead th a { text-decoration: none; }
+.cmp thead th a:hover { text-decoration: underline; }
+
+.cmp-verdict td {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 650;
+}
+
+.cmp-verdict td[data-v='PASS']       { color: var(--endorse); }
+.cmp-verdict td[data-v='MARGINAL']   { color: var(--caution); }
+.cmp-verdict td[data-v='FAIL']       { color: var(--annot); }
+.cmp-verdict td[data-v='NO_VERDICT'] { color: var(--annot); }
+
+.cmp td[data-tone='good'] { color: var(--endorse); font-weight: 620; }
+.cmp td[data-tone='bad']  { color: var(--annot);   font-weight: 620; }
+
+/* ── Market ──────────────────────────────────────────────────────────────── */
+
+.method {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: 0.85rem 0 0;
+  max-width: 46rem;
+}
+
+.led-table.plain td {
+  padding: 0.45rem 1rem;
+}
+
+.trend {
+  border: 1px solid var(--sheet-line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 0.5rem 0.5rem 0.35rem;
+}
+
+.trend svg {
+  width: 100%;
+  height: 190px;
+  display: block;
+}
+
+.trend-bar {
+  fill: var(--survey);
+  opacity: 0.82;
+}
+
+.trend-bar:hover { opacity: 1; }
+
+.trend-label {
+  fill: var(--ink-faint);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.trend-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  padding: 0.3rem 0.4rem 0.15rem;
+  border-top: 1px solid var(--sheet-line);
+  margin-top: 0.35rem;
+}

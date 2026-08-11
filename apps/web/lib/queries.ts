@@ -256,3 +256,220 @@ function toIsoDate(value: unknown): string {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   return String(value).slice(0, 10);
 }
+
+/* ── Portal surfaces ─────────────────────────────────────────────────────── */
+
+export interface CommunityOption {
+  id: string;
+  name: string;
+  transactionCount: number;
+  latestSnapshotId: string | null;
+  latestSnapshotAsOf: string | null;
+}
+
+/** Communities we hold market data for. A plot cannot be appraised without one. */
+export async function listCommunities(organisationId: string): Promise<CommunityOption[]> {
+  return withTenant(organisationId, async (client) => {
+    const { rows } = await client.query(
+      `SELECT c.id, c.name,
+              (SELECT count(*) FROM dld_transactions t WHERE t.community_id = c.id) AS tx,
+              s.id AS snapshot_id, s.as_of
+       FROM communities c
+       LEFT JOIN LATERAL (
+         SELECT id, as_of FROM comparable_snapshots
+         WHERE community_id = c.id ORDER BY as_of DESC LIMIT 1
+       ) s ON true
+       ORDER BY c.name`,
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      transactionCount: Number(r.tx),
+      latestSnapshotId: r.snapshot_id,
+      latestSnapshotAsOf: r.as_of ? new Date(r.as_of).toISOString().slice(0, 10) : null,
+    }));
+  });
+}
+
+export interface ComparePlot {
+  plotId: string;
+  name: string;
+  dldPlotNumber: string | null;
+  landAreaSqft: number;
+  farValue: number | null;
+  gfaSqft: number | null;
+  saleableAreaSqft: number | null;
+  landCostFils: number | null;
+  verdict: string;
+  verdictReason: string;
+  residualLandValueFils: number | null;
+  profitOnCost: number | null;
+  gdvFils: number | null;
+  totalCostFils: number | null;
+  constructionFils: number | null;
+  blendedPsfFils: number | null;
+  blockerCount: number;
+  scenarios: { name: string; profitOnCost: number | null }[];
+}
+
+export async function getComparison(
+  organisationId: string,
+  plotIds: string[],
+): Promise<ComparePlot[]> {
+  if (plotIds.length === 0) return [];
+  return withTenant(organisationId, async (client) => {
+    const { rows } = await client.query(
+      `SELECT DISTINCT ON (p.id)
+              p.id AS plot_id, p.name, p.dld_plot_number, p.land_area_sqft, p.far,
+              p.gfa_sqft, p.saleable_area_sqft, p.land_cost_fils,
+              r.verdict, r.verdict_reason, r.outputs, r.flags
+       FROM plots p
+       JOIN appraisals a      ON a.plot_id = p.id
+       JOIN assumption_sets s ON s.appraisal_id = a.id
+       JOIN results r         ON r.assumption_set_id = s.id
+       WHERE p.id = ANY($1::uuid[])
+       ORDER BY p.id, r.computed_at DESC`,
+      [plotIds],
+    );
+
+    const byId = new Map(
+      rows.map((r) => {
+        const o = r.outputs as Record<string, unknown>;
+        const flags = (r.flags as FlagRow[]) ?? [];
+        const scen = (o['scenarios'] as { name: string; profitOnCost: number | null }[]) ?? [];
+        return [
+          r.plot_id as string,
+          {
+            plotId: r.plot_id,
+            name: r.name,
+            dldPlotNumber: r.dld_plot_number,
+            landAreaSqft: Number(r.land_area_sqft),
+            farValue: r.far === null ? null : Number(r.far),
+            gfaSqft: r.gfa_sqft === null ? null : Number(r.gfa_sqft),
+            saleableAreaSqft: r.saleable_area_sqft === null ? null : Number(r.saleable_area_sqft),
+            landCostFils: numeric(r.land_cost_fils),
+            verdict: r.verdict,
+            verdictReason: r.verdict_reason,
+            residualLandValueFils: numeric(o['residualLandValue']),
+            profitOnCost: typeof o['profitOnCost'] === 'number' ? o['profitOnCost'] : null,
+            gdvFils: numeric(o['grossDevelopmentValue']),
+            totalCostFils: numeric(o['totalDevelopmentCost']),
+            constructionFils: numeric(o['constructionCost']),
+            blendedPsfFils: numeric(o['blendedPricePsf']),
+            blockerCount: flags.filter((f) => f.severity === 'blocker').length,
+            scenarios: scen.map((s) => ({ name: s.name, profitOnCost: s.profitOnCost })),
+          } satisfies ComparePlot,
+        ];
+      }),
+    );
+
+    // Preserve the order the user selected them in, not the database's.
+    return plotIds.map((id) => byId.get(id)).filter((p): p is ComparePlot => Boolean(p));
+  });
+}
+
+export interface MarketMonth {
+  month: string;
+  medianPsfFils: number;
+  volume: number;
+  offPlanShare: number;
+}
+
+export interface MarketView {
+  community: string;
+  asOf: string;
+  method: string;
+  bandLow: number;
+  bandMedian: number;
+  bandHigh: number;
+  sampleSize: number;
+  source: string;
+  totalTransactions: number;
+  months: MarketMonth[];
+  unitBands: { unitType: string; pricePsfFils: number; medianArea: number; sampleN: number }[];
+  launches: {
+    projectName: string;
+    pricePsfFils: number;
+    pctSold: number | null;
+    completion: string | null;
+    source: string;
+  }[];
+}
+
+export async function getMarket(
+  organisationId: string,
+  communityId?: string,
+): Promise<MarketView | null> {
+  return withTenant(organisationId, async (client) => {
+    const snap = await client.query(
+      `SELECT s.id, s.as_of, s.method, s.low_psf_fils, s.median_psf_fils, s.high_psf_fils,
+              s.sample_size, s.source, s.community_id, c.name
+       FROM comparable_snapshots s JOIN communities c ON c.id = s.community_id
+       ${communityId ? 'WHERE s.community_id = $1' : ''}
+       ORDER BY s.as_of DESC LIMIT 1`,
+      communityId ? [communityId] : [],
+    );
+    const s = snap.rows[0];
+    if (!s) return null;
+
+    // Monthly median rather than mean: a single large penthouse should not move the line.
+    const months = await client.query(
+      `SELECT to_char(date_trunc('month', transaction_date), 'YYYY-MM') AS month,
+              percentile_disc(0.5) WITHIN GROUP (ORDER BY price_psf_fils) AS median_psf,
+              count(*) AS volume,
+              avg(CASE WHEN is_off_plan THEN 1.0 ELSE 0.0 END) AS off_plan_share
+       FROM dld_transactions
+       WHERE community_id = $1
+       GROUP BY 1 ORDER BY 1`,
+      [s.community_id],
+    );
+
+    const bands = await client.query(
+      `SELECT unit_type, price_psf_fils, median_area, sample_n
+       FROM snapshot_unit_bands WHERE snapshot_id = $1 ORDER BY unit_type`,
+      [s.id],
+    );
+
+    const launches = await client.query(
+      `SELECT project_name, price_psf_fils, pct_sold, completion, source
+       FROM comparable_launches WHERE community_id = $1 ORDER BY price_psf_fils DESC`,
+      [s.community_id],
+    );
+
+    const total = await client.query(
+      `SELECT count(*) AS n FROM dld_transactions WHERE community_id = $1`,
+      [s.community_id],
+    );
+
+    return {
+      community: s.name,
+      asOf: new Date(s.as_of).toISOString().slice(0, 10),
+      method: s.method,
+      bandLow: Number(s.low_psf_fils),
+      bandMedian: Number(s.median_psf_fils),
+      bandHigh: Number(s.high_psf_fils),
+      sampleSize: s.sample_size,
+      source: s.source,
+      totalTransactions: Number(total.rows[0].n),
+      months: months.rows.map((m) => ({
+        month: m.month,
+        medianPsfFils: Number(m.median_psf),
+        volume: Number(m.volume),
+        offPlanShare: Number(m.off_plan_share),
+      })),
+      unitBands: bands.rows.map((b) => ({
+        unitType: b.unit_type,
+        pricePsfFils: Number(b.price_psf_fils),
+        medianArea: Number(b.median_area),
+        sampleN: b.sample_n,
+      })),
+      launches: launches.rows.map((l) => ({
+        projectName: l.project_name,
+        pricePsfFils: Number(l.price_psf_fils),
+        pctSold: l.pct_sold === null ? null : Number(l.pct_sold),
+        completion: l.completion,
+        source: l.source,
+      })),
+    };
+  });
+}

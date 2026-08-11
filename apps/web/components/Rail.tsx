@@ -23,11 +23,19 @@ export function Rail({
       <Link href="/" className="rail-mark">
         Solum
       </Link>
+      <nav className="rail-nav">
+        <Link href="/">Pipeline</Link>
+        <Link href="/compare">Compare</Link>
+        <Link href="/market">Market</Link>
+      </nav>
       <span className="rail-ctx">
         <b>{organisation}</b>
         {workspace ? ` · ${workspace}` : null}
       </span>
       <span className="rail-spacer" />
+      <Link href="/plots/new" className="rail-cta">
+        New plot
+      </Link>
       <span className="rail-note" title="Market data in this environment is generated, not observed.">
         Seeded market data
       </span>

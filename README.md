@@ -99,6 +99,30 @@ Checked by command, not by clicking once: `pnpm db:verify-auth` (15 checks — s
 expiry, revocation, session unguessability, and that the app role cannot read the sessions table at
 all) and `pnpm db:verify-rls` (6 checks).
 
+## The portal
+
+Four surfaces, reachable from the rail.
+
+**Pipeline** — every plot with its verdict and its headroom against the walk-away price.
+
+**New plot** — six inputs: name, community, plot number, plot area, FAR, asking price, unit count.
+GFA, BUA and saleable area are *derived* and update live as you type, rather than being asked for.
+That is deliberate: Al Mizan flagged agent-supplied GFA as the input most likely to be wrong, so a
+figure the tool computed from two inputs it was given is more defensible than one it was handed. The
+plot is appraised immediately against the community's latest snapshot, using Dubai defaults that are
+all editable afterwards.
+
+**Compare** — two to four plots side by side, ranked by headroom. The page states its own limit:
+timeline and capital rotation are not modelled, so it compares profitability rather than
+risk-adjusted return on capital. Al Mizan's closing insight was that a lower-FAR plot completing
+sooner can beat a larger one, and this table cannot yet see that.
+
+**Market** — the comparables band with its method, median price by month, per-unit-type bands, and
+nearby launches. Launches are labelled as marketing figures for schemes still selling, not
+registered transactions: they show where competitors are *asking*, not where units *cleared*. The
+band is area-wide and says so, which is the wrong basis for a scheme positioned above or below the
+mean — segmentation is the next piece.
+
 ## The interface
 
 `apps/web` — Next.js, server-rendered from Postgres. Every read goes through `withTenant`, so

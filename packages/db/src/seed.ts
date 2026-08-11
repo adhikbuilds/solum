@@ -108,6 +108,21 @@ function stableStringify(value: unknown): string {
 
 async function main(): Promise<void> {
   await withAdmin(async (client) => {
+    /*
+     * Refuse to seed on top of existing data.
+     *
+     * Seeding twice silently doubles the transaction count and the comparables band drifts with no
+     * indication why. In a demo that reads as the tool being unreliable, which is the one thing it
+     * cannot afford to look like.
+     */
+    const existing = await client.query<{ n: string }>('SELECT count(*) AS n FROM organisations');
+    if (Number(existing.rows[0]?.n ?? 0) > 0 && process.env['SEED_FORCE'] !== '1') {
+      throw new Error(
+        'The database already contains data. Run `pnpm db:reset && pnpm db:migrate` first, ' +
+          'or set SEED_FORCE=1 to add another organisation alongside it.',
+      );
+    }
+
     await client.query('BEGIN');
     try {
       // ── Tenancy ──────────────────────────────────────────────────────────

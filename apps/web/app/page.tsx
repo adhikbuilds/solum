@@ -22,6 +22,13 @@ export default async function PipelinePage() {
           Each row is the latest appraisal on that plot. A withheld plot is not a failure of the
           plot — it means the inputs contradict each other and no honest call can be made yet.
         </p>
+        {rows.length > 1 ? (
+          <p className="page-actions">
+            <Link href={`/compare?${rows.slice(0, 4).map((r) => `p=${r.plotId}`).join('&')}`}>
+              Compare the first {Math.min(rows.length, 4)} →
+            </Link>
+          </p>
+        ) : null}
 
         {rows.length === 0 ? (
           <NoPlots />
@@ -120,8 +127,13 @@ function NoPlots() {
     <div className="empty">
       <h2>No plots in this workspace</h2>
       <p>
-        Run <code>pnpm db:seed</code> to load four worked examples — one endorsed, one held, one
-        declined, and one withheld because its pricing contradicts its own comparables.
+        Add one, or run <code>pnpm db:seed</code> to load four worked examples — one endorsed, one
+        held, one declined, and one withheld because its pricing contradicts its own comparables.
+      </p>
+      <p>
+        <Link href="/plots/new" className="rail-cta">
+          New plot
+        </Link>
       </p>
     </div>
   );
