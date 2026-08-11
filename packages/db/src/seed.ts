@@ -118,8 +118,10 @@ async function main(): Promise<void> {
     const existing = await client.query<{ n: string }>('SELECT count(*) AS n FROM organisations');
     if (Number(existing.rows[0]?.n ?? 0) > 0 && process.env['SEED_FORCE'] !== '1') {
       throw new Error(
-        'The database already contains data. Run `pnpm db:reset && pnpm db:migrate` first, ' +
-          'or set SEED_FORCE=1 to add another organisation alongside it.',
+        'The database already contains data, and seeding on top of it would double the ' +
+          'transaction count and drift the comparables band.\n' +
+          '  To start over:        pnpm db:fresh\n' +
+          '  To add a second org:  SEED_FORCE=1 pnpm db:seed',
       );
     }
 

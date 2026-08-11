@@ -10,6 +10,7 @@
     "demo": "pnpm --filter @solum/engine demo",
     "typecheck": "pnpm -r typecheck",
     "db:up": "docker compose up -d",
+    "db:fresh": "pnpm db:reset && pnpm db:migrate && pnpm db:seed",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @solum/db migrate",
     "db:seed": "pnpm --filter @solum/db seed",

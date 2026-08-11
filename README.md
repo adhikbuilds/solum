@@ -171,11 +171,10 @@ read as a bug.
 cp .env.example .env
 pnpm install
 pnpm db:up          # local Postgres in Docker on :5433
-pnpm db:migrate
-pnpm db:seed        # synthetic transactions; the comparables band is DERIVED from them
-pnpm demo           # the engine, on the prototype's own numbers
+pnpm db:fresh       # reset, migrate, seed — the one to reach for
 pnpm dev            # the app on http://localhost:3100
-pnpm verify         # tests + typecheck + tenant-isolation checks
+pnpm demo           # the engine, on the prototype's own numbers
+pnpm verify         # tests + typecheck + isolation and auth checks
 ```
 
 Node 20+ and Docker. Nothing cloud-specific: Neon is Postgres, so moving there is a `DATABASE_URL`
