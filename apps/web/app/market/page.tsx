@@ -114,24 +114,44 @@ export default async function MarketPage({
                   <span className="sect-rule" />
                   <span className="sect-note">competing supply, not transactions</span>
                 </div>
-                <div className="ledger">
-                  <table className="led-table plain">
-                    <tbody>
-                      {market.launches.map((l) => (
-                        <tr key={l.projectName}>
-                          <td>
-                            <b>{l.projectName}</b>
-                            {l.completion ? ` · ${l.completion}` : ''}
-                            {l.pctSold !== null ? ` · ${l.pctSold.toFixed(0)}% sold` : ''}{' '}
-                            <span className="chip" data-p={l.source === 'seed' ? 'seed' : 'derived'}>
-                              {l.source}
-                            </span>
-                          </td>
-                          <td className="num">AED {psf(l.pricePsfFils)} per sqft</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="launches">
+                  {market.launches.map((l) => {
+                    const vsMedian = l.pricePsfFils / market.bandMedian - 1;
+                    const inBand =
+                      l.pricePsfFils >= market.bandLow && l.pricePsfFils <= market.bandHigh;
+                    return (
+                      <article className="launch" key={l.projectName}>
+                        <div className="launch-top">
+                          <h3>{l.projectName}</h3>
+                          <span className="chip" data-p={l.source === 'seed' ? 'seed' : 'derived'}>
+                            {l.source}
+                          </span>
+                        </div>
+                        <p className="launch-price num">
+                          AED {psf(l.pricePsfFils)}
+                          <em>per sqft of saleable area</em>
+                        </p>
+                        <p className="launch-delta num" data-tone={vsMedian >= 0 ? 'up' : 'down'}>
+                          {vsMedian >= 0 ? '+' : ''}
+                          {(vsMedian * 100).toFixed(1)}% vs median
+                          <span className="launch-band">
+                            {inBand ? 'inside the band' : 'outside the band'}
+                          </span>
+                        </p>
+                        {l.pctSold !== null ? (
+                          <div className="launch-sold">
+                            <div className="launch-bar" aria-hidden="true">
+                              <span style={{ width: `${Math.min(100, l.pctSold)}%` }} />
+                            </div>
+                            <span className="num">{l.pctSold.toFixed(0)}% sold</span>
+                          </div>
+                        ) : null}
+                        <p className="launch-foot">
+                          {l.completion ? `Handover ${l.completion}` : 'Handover not stated'}
+                        </p>
+                      </article>
+                    );
+                  })}
                 </div>
                 <p className="method">
                   These are marketing figures for schemes still selling, not registered

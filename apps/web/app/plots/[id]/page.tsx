@@ -1,325 +1,269 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Rail } from '@/components/Rail';
-import { Ledger } from '@/components/Ledger';
-import { getAppraisal, listRuns, type FlagRow } from '@/lib/queries';
+import { PlotTabs, isTab, type TabKey } from '@/components/PlotTabs';
+import { SummaryTab } from '@/components/tabs/Summary';
+import { MixTab, AssumptionsTab, PlotTab, ReportTab } from '@/components/tabs/Detail';
+import { RerunPanel, type Lever } from '@/components/RerunPanel';
+import { getAppraisal, listRuns, type AppraisalDetail } from '@/lib/queries';
 import { requireUser } from '@/lib/session';
 import { canWrite } from '@solum/db';
-import { RerunPanel, type Lever } from '@/components/RerunPanel';
-import {
-  aed,
-  count,
-  DENOMINATOR,
-  pct,
-  psf,
-  sqft,
-  VERDICT_COPY,
-  formatValue,
-  humanise,
-} from '@/lib/format';
+import { aed, pct, psf, sqft, VERDICT_COPY } from '@/lib/format';
 import { suggestRemedies, type Remedy } from '@solum/engine';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PlotPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PlotPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = await params;
-  const user = await requireUser();
+  const { tab } = await searchParams;
+  const active: TabKey = isTab(tab) ? tab : 'summary';
 
+  const user = await requireUser();
   const a = await getAppraisal(user.organisationId, id);
   if (!a) notFound();
   const runs = await listRuns(user.organisationId, id);
 
   const copy = VERDICT_COPY[a.verdict] ?? { word: a.verdict, sub: '' };
-  const landPsf =
-    a.landCostFils && Number(a.landAreaSqft) > 0
-      ? Number(a.landCostFils) / Number(a.landAreaSqft)
-      : null;
-  const residualPsf =
-    a.residualLandValueFils && Number(a.landAreaSqft) > 0
-      ? a.residualLandValueFils / Number(a.landAreaSqft)
-      : null;
-
-  // Remedies are computed from the stored inputs and the stored result, so they can never
-  // disagree with the verdict shown above them.
-  const remedies = safeRemedies(a.inputs, a.outputs, a.flags, a.verdict);
-
-  const blockers = a.flags.filter((f) => f.severity === 'blocker');
-  const warnings = a.flags.filter((f) => f.severity !== 'blocker');
+  const hurdle =
+    typeof a.inputs['targetProfitOnCost'] === 'number' ? a.inputs['targetProfitOnCost'] : 0.2;
+  const remedies = safeRemedies(a);
 
   return (
     <>
       <Rail organisation={user.organisationName} workspace="Dubai land pipeline" user={user} />
-      <main className="frame">
-        <Link href="/" className="back">
-          ← All plots
-        </Link>
 
-        <article className="sheet">
-          <header className="sheet-head">
-            <div className="sheet-head-main">
-              <p className="sheet-kicker">
-                {a.community ?? 'Community unknown'} · Plot {a.dldPlotNumber ?? '—'}
-              </p>
-              <h1 className="sheet-title">{a.name}</h1>
-              <div className="sheet-facts num">
-                <span>
-                  <b>{sqft(a.landAreaSqft)}</b> sqft plot
-                </span>
-                <span>
-                  FAR <b>{a.far ?? '—'}</b>
-                </span>
-                <span>
-                  <b>{sqft(a.gfaSqft)}</b> sqft GFA
-                </span>
-                <span>
-                  <b>{sqft(a.saleableAreaSqft)}</b> sqft saleable
-                </span>
+      {/* Identity and verdict stay visible across every tab. */}
+      <header className="plot-head">
+        <div className="frame frame-wide plot-head-in">
+          <div className="plot-head-main">
+            <Link href="/" className="back">
+              ← All plots
+            </Link>
+            <h1 className="plot-title">{a.name}</h1>
+            <div className="plot-facts num">
+              <span>{a.community ?? 'Community unknown'}</span>
+              <span>Plot {a.dldPlotNumber ?? '—'}</span>
+              <span>{sqft(a.landAreaSqft)} sqft</span>
+              <span>FAR {a.far ?? '—'}</span>
+              <span>{sqft(a.saleableAreaSqft)} sqft saleable</span>
+            </div>
+          </div>
+          <div className="plot-verdict" data-v={a.verdict}>
+            <span className="plot-verdict-w">{copy.word}</span>
+            <span className="plot-verdict-s">{copy.sub}</span>
+          </div>
+        </div>
+        <div className="frame frame-wide">
+          <PlotTabs plotId={a.plotId} active={active} />
+        </div>
+      </header>
+
+      <main className="frame frame-wide">
+        {active === 'summary' ? <SummaryTab a={a} remedies={remedies} hurdle={hurdle} /> : null}
+        {active === 'mix' ? <MixTab a={a} /> : null}
+        {active === 'assumptions' ? <AssumptionsTab a={a} /> : null}
+        {active === 'plot' ? <PlotTab a={a} /> : null}
+        {active === 'report' ? (
+          <Report a={a} runs={runs} hurdle={hurdle} remedies={remedies} />
+        ) : null}
+
+        {/* Testing an assumption belongs beside the numbers it changes, not in a settings page. */}
+        {active === 'summary' || active === 'mix' || active === 'assumptions' ? (
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Test an assumption</h2>
+              <span className="panel-note">leave a field blank to keep it</span>
+            </div>
+            <div className="panel-body">
+              <RerunPanel
+                plotId={a.plotId}
+                canWrite={canWrite(user.role)}
+                role={user.role}
+                levers={buildLevers(a)}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {runs.length > 1 && active !== 'report' ? (
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Runs</h2>
+              <span className="panel-note">{runs.length} on this plot · nothing overwritten</span>
+            </div>
+            <div className="panel-body panel-flush">
+              <div className="tbl-scroll">
+                <table className="tbl">
+                  <thead>
+                    <tr>
+                      <th>Verdict</th>
+                      <th>When</th>
+                      <th>Note</th>
+                      <th className="r">Land</th>
+                      <th className="r">Return</th>
+                      <th className="r">Walk-away</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {runs.map((r, i) => (
+                      <tr key={r.appraisalId}>
+                        <td>
+                          <b>{VERDICT_COPY[r.verdict]?.word ?? r.verdict}</b>
+                          {i === 0 ? <em> current</em> : null}
+                        </td>
+                        <td className="num">{r.computedAt.slice(0, 16).replace('T', ' ')}</td>
+                        <td>{r.note ?? '—'}</td>
+                        <td className="r num">{aed(r.landCostFils)}</td>
+                        <td className="r num">{pct(r.profitOnCost)}</td>
+                        <td className="r num">{aed(r.residualLandValueFils)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            <div className="stamp" data-v={a.verdict} role="img" aria-label={`Verdict: ${copy.word}`}>
-              <span className="stamp-word">{copy.word}</span>
-              <span className="stamp-sub">{copy.sub}</span>
-            </div>
-          </header>
+          </section>
+        ) : null}
 
-          <div className="sheet-body">
-            {/* ── The headline figure, with its denominator and its definition ── */}
-            <section className="headline">
-              <p className="headline-label">Residual land value</p>
-              <p className="headline-value num">
-                <span className="cur">AED</span>
-                {aed(a.residualLandValueFils)}
-              </p>
-              <p className="denominator num">
-                AED {psf(residualPsf)} {DENOMINATOR.plot}
-                {landPsf !== null ? <> · asking AED {psf(landPsf)} on the same basis</> : null}
-              </p>
-              <p className="headline-defn">
-                The most that can be paid for this land and still return{' '}
-                {pct(rate(a.inputs, 'targetProfitOnCost'), 0)} on total cost. Above it the scheme
-                returns less than the hurdle; below it, more. It is the walk-away number in a
-                negotiation, and it is derived — not quoted.
-              </p>
-            </section>
-
-            {/* ── Why the verdict is what it is ───────────────────────────────── */}
-            {blockers.map((f) => (
-              <FlagBand key={f.code} flag={f} sev="blocker" heading="Verdict withheld" />
-            ))}
-            {warnings.map((f) => (
-              <FlagBand key={f.code} flag={f} sev="warn" heading="Flagged for review" />
-            ))}
-
-            {blockers.length === 0 && warnings.length === 0 ? null : null}
-
-            {/* ── What would make this work ───────────────────────────────────── */}
-            {remedies.length > 0 ? (
-              <>
-                <div className="sect">
-                  <h2>What would make this work</h2>
-                  <span className="sect-rule" />
-                  <span className="sect-note">one lever at a time</span>
-                </div>
-                <div className="remedies">
-                  {remedies.map((r, i) => (
-                    <div className="remedy" key={`${r.lever}-${i}`}>
-                      <p className="remedy-head">
-                        <span className="remedy-lever">{r.lever.replace(/_/g, ' ')}</span>
-                        {r.headline}
-                      </p>
-                      <p>{r.detail}</p>
-                      <p className="remedy-feas" data-f={r.feasibility}>
-                        {r.feasibility.replace(/_/g, ' ')}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
-
-            {/* ── Metrics, each with its denominator ──────────────────────────── */}
-            <div className="sect">
-              <h2>Appraisal</h2>
-              <span className="sect-rule" />
-              <span className="sect-note">{a.verdictReason.split('.')[0]}.</span>
-            </div>
-            <div className="metrics">
-              <Metric
-                k="Gross development value"
-                v={`AED ${aed(num(a.outputs['grossDevelopmentValue']))}`}
-              />
-              <Metric
-                k="Blended sale price"
-                v={`AED ${psf(num(a.outputs['blendedPricePsf']))}`}
-                per={DENOMINATOR.saleable}
-              />
-              <Metric
-                k="Construction"
-                v={`AED ${aed(num(a.outputs['constructionCost']))}`}
-                per={DENOMINATOR.bua}
-              />
-              <Metric
-                k="Total cost"
-                v={`AED ${aed(num(a.outputs['totalDevelopmentCost']))}`}
-              />
-              <Metric k="Return on cost" v={pct(a.profitOnCost)} />
-            </div>
-
-            {/* ── Comparables, stated where the price is judged ───────────────── */}
-            <div className="sect">
-              <h2>Comparables</h2>
-              <span className="sect-rule" />
-              <span className="sect-note">
-                as of {a.comparables.asOf} · n = {a.comparables.sampleSize}
-              </span>
-            </div>
-            <div className="metrics">
-              <Metric
-                k="Band low"
-                v={`AED ${psf(a.comparables.lowPsfFils)}`}
-                per={DENOMINATOR.saleable}
-              />
-              <Metric k="Median" v={`AED ${psf(a.comparables.medianPsfFils)}`} />
-              <Metric k="Band high" v={`AED ${psf(a.comparables.highPsfFils)}`} />
-              <Metric
-                k="Segment"
-                v={a.comparables.segment ?? 'Area-wide'}
-                per={
-                  a.comparables.segment
-                    ? undefined
-                    : 'not segmented — wrong basis for a luxury scheme'
-                }
-              />
-            </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--ink-soft)', margin: '0.85rem 0 0' }}>
-              <span className="chip" data-p={a.comparables.source === 'seed' ? 'seed' : 'derived'}>
-                {a.comparables.source === 'seed' ? 'Seeded' : 'Derived'}
-              </span>{' '}
-              {a.comparables.method}.
-            </p>
-
-            {a.unitBands.length > 0 ? (
-              <>
-                <div className="sect">
-                  <h2>By unit type</h2>
-                  <span className="sect-rule" />
-                  <span className="sect-note">
-                    P5–P95 trimmed, one-year half-life recency weight
-                  </span>
-                </div>
-                <div className="ledger">
-                  <table className="led-table" style={{ padding: '0.5rem' }}>
-                    <tbody>
-                      {a.unitBands.map((b) => (
-                        <tr key={b.unitType}>
-                          <td style={{ paddingLeft: '1rem' }}>
-                            {b.unitType} · median {count(b.medianArea)} sqft · n = {b.sampleN}
-                          </td>
-                          <td className="num" style={{ paddingRight: '1rem' }}>
-                            AED {psf(b.pricePsfFils)} {DENOMINATOR.saleable}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            ) : null}
-
-            {/* ── Change an assumption and recompute ──────────────────────────── */}
-            <div className="sect">
-              <h2>Test an assumption</h2>
-              <span className="sect-rule" />
-              <span className="sect-note">leave a field blank to keep it</span>
-            </div>
-            <RerunPanel
-              plotId={a.plotId}
-              canWrite={canWrite(user.role)}
-              role={user.role}
-              levers={buildLevers(a)}
-            />
-
-            {/* ── Run history ─────────────────────────────────────────────────── */}
-            {runs.length > 1 ? (
-              <>
-                <div className="sect">
-                  <h2>Runs</h2>
-                  <span className="sect-rule" />
-                  <span className="sect-note">
-                    {runs.length} on this plot · nothing overwritten
-                  </span>
-                </div>
-                <div className="ledger">
-                  <table className="led-table" style={{ padding: '0.4rem 0' }}>
-                    <tbody>
-                      {runs.map((r, i) => (
-                        <tr key={r.appraisalId}>
-                          <td style={{ paddingLeft: '1rem', width: 'auto' }}>
-                            <b>{VERDICT_COPY[r.verdict]?.word ?? r.verdict}</b>
-                            {i === 0 ? ' · current' : ''}
-                            {r.note ? ` — ${r.note}` : ''}
-                            <br />
-                            <span style={{ color: 'var(--ink-faint)', fontSize: '0.72rem' }}>
-                              {r.computedAt.slice(0, 16).replace('T', ' ')} · engine{' '}
-                              {r.engineVersion} · land AED {aed(r.landCostFils)}
-                            </span>
-                          </td>
-                          <td className="num" style={{ paddingRight: '1rem' }}>
-                            {pct(r.profitOnCost)} on cost
-                            <br />
-                            <span style={{ color: 'var(--ink-faint)', fontSize: '0.72rem' }}>
-                              RLV AED {aed(r.residualLandValueFils)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            ) : null}
-
-            {/* ── The ledger ──────────────────────────────────────────────────── */}
-            <div className="sect">
-              <h2>Derivation</h2>
-              <span className="sect-rule" />
-              <span className="sect-note">{a.trace.length} steps · open any row</span>
-            </div>
-            <Ledger steps={a.trace} />
-          </div>
-
-          <footer className="sheet-foot">
-            <span>Engine {a.engineVersion}</span>
-            <span>Comparables {a.comparables.asOf}</span>
-            <span>Appraisal {a.appraisalId.slice(0, 8)}</span>
-            <span>Not yet modelled: finance · cashflow · collection curve · absorption</span>
-          </footer>
-        </article>
+        <p className="foot-note">
+          Engine {a.engineVersion} · comparables {a.comparables.asOf} · appraisal{' '}
+          {a.appraisalId.slice(0, 8)} · not yet modelled: finance, cashflow, collection curve,
+          absorption
+        </p>
       </main>
     </>
   );
 }
 
 /**
- * The levers worth exposing.
+ * The report keeps the instrument-sheet treatment.
  *
- * Not every input — a form with forty fields is the clutter problem again. These four plus the
- * per-unit prices are the ones that actually move a verdict, and each is pre-filled with its
- * current value as a placeholder rather than a default, so nothing is resubmitted by accident.
+ * It is the artifact a developer hands to a partner or a credit committee, so it is built to be
+ * read and printed rather than operated — which is exactly why it should not also be the working
+ * interface. It renders from the same stored result as every tab, so the two can never disagree.
  */
-function buildLevers(a: Awaited<ReturnType<typeof getAppraisal>> & object): Lever[] {
+function Report({
+  a,
+  runs,
+  hurdle,
+  remedies,
+}: {
+  a: AppraisalDetail;
+  runs: Awaited<ReturnType<typeof listRuns>>;
+  hurdle: number;
+  remedies: Remedy[];
+}) {
+  const copy = VERDICT_COPY[a.verdict] ?? { word: a.verdict, sub: '' };
+  const residualPsf =
+    a.residualLandValueFils && Number(a.landAreaSqft) > 0
+      ? a.residualLandValueFils / Number(a.landAreaSqft)
+      : null;
+  const landPsf =
+    a.landCostFils && Number(a.landAreaSqft) > 0
+      ? Number(a.landCostFils) / Number(a.landAreaSqft)
+      : null;
+
+  return (
+    <>
+      <p className="report-actions">
+        A document to hand over. Print, or save as PDF, from your browser.
+      </p>
+      <article className="sheet">
+        <header className="sheet-head">
+          <div className="sheet-head-main">
+            <p className="sheet-kicker">
+              {a.community ?? 'Community unknown'} · Plot {a.dldPlotNumber ?? '—'} ·{' '}
+              {runs.length > 1 ? `run ${runs.length}` : 'first underwrite'}
+            </p>
+            <h2 className="sheet-title">{a.name}</h2>
+            <div className="sheet-facts num">
+              <span>
+                <b>{sqft(a.landAreaSqft)}</b> sqft plot
+              </span>
+              <span>
+                FAR <b>{a.far ?? '—'}</b>
+              </span>
+              <span>
+                <b>{sqft(a.gfaSqft)}</b> sqft GFA
+              </span>
+              <span>
+                <b>{sqft(a.saleableAreaSqft)}</b> sqft saleable
+              </span>
+            </div>
+          </div>
+          <div className="stamp" data-v={a.verdict} role="img" aria-label={`Verdict: ${copy.word}`}>
+            <span className="stamp-word">{copy.word}</span>
+            <span className="stamp-sub">{copy.sub}</span>
+          </div>
+        </header>
+
+        <div className="sheet-body">
+          <section className="headline">
+            <p className="headline-label">Residual land value</p>
+            <p className="headline-value num">
+              <span className="cur">AED</span>
+              {aed(a.residualLandValueFils)}
+            </p>
+            <p className="denominator num">
+              AED {psf(residualPsf)} per sqft of plot area
+              {landPsf !== null ? <> · asking AED {psf(landPsf)} on the same basis</> : null}
+            </p>
+            <p className="headline-defn">
+              The most that can be paid for this land and still return {pct(hurdle, 0)} on total
+              cost. It is the walk-away number in a negotiation, and it is derived — not quoted.
+            </p>
+          </section>
+
+          <p className="report-verdict">{a.verdictReason}</p>
+
+          {remedies.length > 0 ? (
+            <div className="remedies">
+              {remedies.map((r, i) => (
+                <div className="remedy" key={`${r.lever}-${i}`}>
+                  <p className="remedy-head">
+                    <span className="remedy-lever">{r.lever.replace(/_/g, ' ')}</span>
+                    <span>{r.headline}</span>
+                  </p>
+                  <p>{r.detail}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <ReportTab a={a} />
+        </div>
+
+        <footer className="sheet-foot">
+          <span>Engine {a.engineVersion}</span>
+          <span>Comparables {a.comparables.asOf}</span>
+          <span>
+            {a.comparables.source === 'seed' ? 'Seeded market data — not observed' : 'DLD data'}
+          </span>
+        </footer>
+      </article>
+    </>
+  );
+}
+
+function buildLevers(a: AppraisalDetail): Lever[] {
   const inputs = a.inputs as {
     costs?: { constructionPsf?: unknown };
     targetProfitOnCost?: number;
     scenarios?: { name: string; salePriceDelta: number }[];
     units?: { code: string; label: string; pricePsf: unknown; enabled: boolean }[];
   };
-
-  const bigintish = (v: unknown): number | null => {
-    if (typeof v === 'string' && v.endsWith('n')) return Number(v.slice(0, -1));
-    if (typeof v === 'number') return v;
-    return null;
-  };
+  const big = (v: unknown): number | null =>
+    typeof v === 'string' && v.endsWith('n')
+      ? Number(v.slice(0, -1))
+      : typeof v === 'number'
+        ? v
+        : null;
 
   const downside = inputs.scenarios?.find((s) => s.name === 'Downside');
   const levers: Lever[] = [
@@ -328,24 +272,24 @@ function buildLevers(a: Awaited<ReturnType<typeof getAppraisal>> & object): Leve
       label: 'Land price',
       current: aed(Number(a.landCostFils)),
       suffix: 'AED',
-      hint: `walk-away is ${aed(a.residualLandValueFils)}`,
+      hint: `walk-away ${aed(a.residualLandValueFils)}`,
     },
     {
       name: 'constructionPsf',
       label: 'Construction',
-      current: psf(bigintish(inputs.costs?.constructionPsf)),
-      suffix: 'AED / sqft BUA',
+      current: psf(big(inputs.costs?.constructionPsf)),
+      suffix: '/sqft BUA',
       hint: 'BUA, not GFA',
     },
     {
       name: 'hurdlePct',
       label: 'Hurdle',
       current: ((inputs.targetProfitOnCost ?? 0.2) * 100).toFixed(0),
-      suffix: '% on cost',
+      suffix: '%',
     },
     {
       name: 'downsidePricePct',
-      label: 'Downside price fall',
+      label: 'Downside fall',
       current: Math.abs((downside?.salePriceDelta ?? -0.1) * 100).toFixed(0),
       suffix: '%',
     },
@@ -355,107 +299,34 @@ function buildLevers(a: Awaited<ReturnType<typeof getAppraisal>> & object): Leve
     if (!u.enabled) continue;
     levers.push({
       name: `price_${u.code}`,
-      label: `${u.label} price`,
-      current: psf(bigintish(u.pricePsf)),
-      suffix: 'AED / sqft saleable',
+      label: u.label,
+      current: psf(big(u.pricePsf)),
+      suffix: '/sqft',
     });
   }
-
   return levers;
 }
 
-function Metric({ k, v, per }: { k: string; v: string; per?: string }) {
-  return (
-    <div className="metric">
-      <p className="metric-k">{k}</p>
-      <p className="metric-v num">{v}</p>
-      {per ? <p className="metric-per">{per}</p> : null}
-    </div>
-  );
-}
-
-function FlagBand({
-  flag,
-  sev,
-  heading,
-}: {
-  flag: FlagRow;
-  sev: 'blocker' | 'warn';
-  heading: string;
-}) {
-  // Only the evidence a reader can act on. Ids and hashes are noise on the page.
-  const shown = Object.entries(flag.evidence).filter(
-    ([k]) => !k.toLowerCase().includes('id') && k !== 'snapshotId',
-  );
-
-  return (
-    <div className="annot" data-sev={sev}>
-      <p className="annot-head">
-        {heading}
-        <span className="annot-code">{flag.code}</span>
-      </p>
-      <p>{flag.message}</p>
-      {shown.length > 0 ? (
-        <div className="annot-evidence">
-          {shown.slice(0, 6).map(([k, v]) => (
-            <span key={k}>
-              {humanise(k)} <b>{formatValue(k, v)}</b>
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function num(value: unknown): number | null {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const n = Number(value.endsWith('n') ? value.slice(0, -1) : value);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-function rate(inputs: Record<string, unknown>, key: string): number {
-  const v = inputs[key];
-  return typeof v === 'number' ? v : 0.2;
-}
-
-/**
- * Rehydrate the stored inputs and outputs enough for the remedy engine.
- *
- * The stored JSON encodes bigints as "1234n" strings, so they have to be converted back before the
- * engine sees them. If anything about the shape is unexpected, return no remedies rather than a
- * wrong one — a bad recommendation in a negotiation is worse than none.
- */
-function safeRemedies(
-  inputs: Record<string, unknown>,
-  outputs: Record<string, unknown>,
-  flags: FlagRow[],
-  verdict: string,
-): Remedy[] {
+function safeRemedies(a: AppraisalDetail): Remedy[] {
   try {
-    const revive = (v: unknown): unknown => {
-      if (typeof v === 'string' && /^-?\d+n$/.test(v)) return BigInt(v.slice(0, -1));
-      if (Array.isArray(v)) return v.map(revive);
-      if (v && typeof v === 'object') {
-        return Object.fromEntries(Object.entries(v).map(([k, val]) => [k, revive(val)]));
-      }
-      return v;
-    };
+    const revive = (v: unknown): unknown =>
+      typeof v === 'string' && /^-?\d+n$/.test(v)
+        ? BigInt(v.slice(0, -1))
+        : Array.isArray(v)
+          ? v.map(revive)
+          : v && typeof v === 'object'
+            ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, revive(x)]))
+            : v;
 
-    const input = revive(inputs) as Parameters<typeof suggestRemedies>[0];
-    const result = {
+    return suggestRemedies(revive(a.inputs) as Parameters<typeof suggestRemedies>[0], {
       engineVersion: '',
       comparablesSnapshotId: '',
-      verdict: verdict as never,
+      verdict: a.verdict as never,
       verdictReason: '',
-      outputs: revive(outputs) as never,
-      flags: flags as never,
+      outputs: revive(a.outputs) as never,
+      flags: a.flags as never,
       trace: [],
-    };
-    return suggestRemedies(input, result);
+    });
   } catch {
     return [];
   }
