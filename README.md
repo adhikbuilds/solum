@@ -35,8 +35,9 @@ build through a RERA-escrowed payment plan, not the lender.** Aprao, ARGUS and e
 model UK-style development debt. The collection curve is a structurally different engine, and nobody
 has built it.
 
-Four modelling problems, in dependency order. None are built yet, and all three of the later ones
-need a DLD transaction store that does not exist:
+Four modelling problems, in dependency order. None are built yet — but the prototype already has a
+`dld_transactions` store and a working ingest script, so these are no longer blocked on data access
+the way I first assumed:
 
 1. **Price model** — price per sqft as a function of community, unit type, size, floor, completion
    date and time, fitted on DLD transactions. Replaces a hardcoded number with a band, a confidence
