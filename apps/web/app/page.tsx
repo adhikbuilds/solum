@@ -9,11 +9,12 @@ export const dynamic = 'force-dynamic';
 export default async function PipelinePage() {
   const user = await requireUser();
   const rows = await listPipeline(user.organisationId);
+  const totals = summarise(rows);
 
   return (
     <>
       <Rail organisation={user.organisationName} workspace="Dubai land pipeline" user={user} />
-      <main className="frame">
+      <main className="frame frame-wide">
         <p className="eyebrow">Land pipeline</p>
         <h1 className="page-h">
           {rows.length === 1 ? 'One plot' : `${rows.length} plots`} under consideration
@@ -33,55 +34,102 @@ export default async function PipelinePage() {
         {rows.length === 0 ? (
           <NoPlots />
         ) : (
-          <div className="pipeline">
-            {rows.map((row) => {
-              const copy = VERDICT_COPY[row.verdict] ?? { word: row.verdict, sub: '' };
-              return (
-                <Link
-                  key={row.plotId}
-                  href={`/plots/${row.plotId}`}
-                  className="row"
-                  data-v={row.verdict}
-                >
-                  <div>
-                    <p className="row-name">{row.name}</p>
-                    <div className="row-meta num">
-                      <span>
-                        Plot <b>{row.dldPlotNumber ?? '—'}</b>
-                      </span>
-                      <span>
-                        <b>{sqft(row.landAreaSqft)}</b> sqft plot
-                      </span>
-                      <span>
-                        Asking <b>AED {aed(Number(row.landCostFils))}</b>
-                      </span>
-                      {row.verdict === 'NO_VERDICT' ? (
-                        <span style={{ color: 'var(--annot)' }}>
-                          {row.blockerCount} blocking{' '}
-                          {row.blockerCount === 1 ? 'issue' : 'issues'}
-                        </span>
-                      ) : (
+          <>
+            <div className="kpis">
+              <div className="kpi">
+                <p className="kpi-k">Plots</p>
+                <p className="kpi-v">{rows.length}</p>
+                <p className="kpi-sub">in the pipeline</p>
+              </div>
+              <div className="kpi" data-tone={totals.endorsed > 0 ? 'good' : undefined}>
+                <p className="kpi-k">Endorsed</p>
+                <p className="kpi-v">{totals.endorsed}</p>
+                <p className="kpi-sub">clear the hurdle</p>
+              </div>
+              <div className="kpi" data-tone={totals.attention > 0 ? 'bad' : undefined}>
+                <p className="kpi-k">Needs attention</p>
+                <p className="kpi-v">{totals.attention}</p>
+                <p className="kpi-sub">declined or withheld</p>
+              </div>
+              <div className="kpi" data-tone={totals.headroomFils > 0 ? 'good' : undefined}>
+                <p className="kpi-k">Total headroom</p>
+                <p className="kpi-v num">
+                  <span className="kpi-cur">AED</span>
+                  {aed(totals.headroomFils)}
+                </p>
+                <p className="kpi-sub">summed across endorsed and held plots</p>
+              </div>
+            </div>
+            <div className="pipeline">
+              {rows.map((row) => {
+                const copy = VERDICT_COPY[row.verdict] ?? { word: row.verdict, sub: '' };
+                return (
+                  <Link
+                    key={row.plotId}
+                    href={`/plots/${row.plotId}`}
+                    className="row"
+                    data-v={row.verdict}
+                  >
+                    <div>
+                      <p className="row-name">{row.name}</p>
+                      <div className="row-meta num">
                         <span>
-                          Return <b>{pct(row.profitOnCost)}</b> on cost
+                          Plot <b>{row.dldPlotNumber ?? '—'}</b>
                         </span>
-                      )}
+                        <span>
+                          <b>{sqft(row.landAreaSqft)}</b> sqft plot
+                        </span>
+                        <span>
+                          Asking <b>AED {aed(Number(row.landCostFils))}</b>
+                        </span>
+                        {row.verdict === 'NO_VERDICT' ? (
+                          <span style={{ color: 'var(--annot)' }}>
+                            {row.blockerCount} blocking{' '}
+                            {row.blockerCount === 1 ? 'issue' : 'issues'}
+                          </span>
+                        ) : (
+                          <span>
+                            Return <b>{pct(row.profitOnCost)}</b> on cost
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="row-right">
-                    <p className="row-verdict">{copy.word}</p>
-                    <Headroom
-                      askingFils={Number(row.landCostFils)}
-                      residualFils={row.residualLandValueFils}
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                    <div className="row-right">
+                      <p className="row-verdict">{copy.word}</p>
+                      <Headroom
+                        askingFils={Number(row.landCostFils)}
+                        residualFils={row.residualLandValueFils}
+                      />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </main>
     </>
   );
+}
+
+/** Portfolio-level counts and totals for the KPI strip above the list. */
+function summarise(rows: Awaited<ReturnType<typeof listPipeline>>) {
+  let endorsed = 0;
+  let attention = 0;
+  let headroomFils = 0;
+
+  for (const row of rows) {
+    if (row.verdict === 'PASS') endorsed++;
+    if (row.verdict === 'FAIL' || row.verdict === 'NO_VERDICT') attention++;
+
+    const asking = Number(row.landCostFils);
+    if (row.residualLandValueFils !== null && Number.isFinite(asking) && asking > 0) {
+      const gap = row.residualLandValueFils - asking;
+      if (gap > 0) headroomFils += gap;
+    }
+  }
+
+  return { endorsed, attention, headroomFils };
 }
 
 /**
