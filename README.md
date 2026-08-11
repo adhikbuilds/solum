@@ -63,6 +63,35 @@ loss — it raises a blocking flag and returns no verdict at all. Being able to 
 is what makes the calls it does make worth something. The beta printed PASS on a loss-making
 downside; that single behaviour is what loses an account permanently.
 
+## The interface
+
+`apps/web` — Next.js, server-rendered from Postgres. Every read goes through `withTenant`, so
+row-level security does the filtering; no query carries a `WHERE organisation_id` clause, because
+authorisation the application has to remember to apply is authorisation that gets forgotten.
+
+The direction is **document-on-desk**, not dashboard. The characteristic artifacts of Dubai land are
+the affection plan and the engineer's completion certificate that gates every escrow release — both
+stamped, dated, endorsed documents. So an appraisal is an instrument sheet with an endorsement
+stamp, and the stamp reads **Withheld** when the engine declines to call the deal. Vermilion is
+reserved absolutely for annotation and withholding, the way a checker marks up a survey drawing in
+red; if something is red on the page, a human needs to look at it.
+
+Three things it does that the prototype did not, each from Al Mizan's feedback:
+
+- **Every figure names its denominator** — sale price per sqft of saleable, construction per sqft of
+  BUA, land per sqft of plot. Their first question was exactly this.
+- **Every number opens to its derivation** — the ledger gives the rule in surveyor's notation and
+  the inputs that went in. Collapsed by default: the clutter problem was not too much information,
+  it was information arriving with equal weight whether or not it was wanted.
+- **A declined plot says what would fix it** — one lever at a time, with the exact figure. A FAIL
+  becomes "negotiate the land to AED 90,054,101, 25% below asking"; a withheld plot becomes "reprice
+  1BR to AED 1,816 and the blend moves to AED 1,798". Where it is a judgement rather than
+  arithmetic, it says so and declines to decide.
+
+The pipeline shows headroom against the walk-away price rather than the residual land value itself —
+residual is a property of the scheme, so plots sharing a mix share it, and two identical figures
+read as a bug.
+
 ## Docs
 
 - [`docs/architecture.md`](docs/architecture.md) — why the prototype shape fails, the two data planes,
@@ -81,6 +110,7 @@ pnpm db:up          # local Postgres in Docker on :5433
 pnpm db:migrate
 pnpm db:seed        # synthetic transactions; the comparables band is DERIVED from them
 pnpm demo           # the engine, on the prototype's own numbers
+pnpm dev            # the app on http://localhost:3100
 pnpm verify         # tests + typecheck + tenant-isolation checks
 ```
 

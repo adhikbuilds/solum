@@ -1,0 +1,816 @@
+/*
+ * Direction: document-on-desk.
+ *
+ * The characteristic artifacts of Dubai land are not charts — they are the affection plan (an
+ * official plot drawing) and the engineer's completion certificate that gates every escrow
+ * release. Both are stamped, dated, endorsed documents. So the appraisal is rendered as an
+ * instrument sheet resting on a work surface, not as a dashboard of tiles.
+ *
+ * Vermilion is reserved absolutely for annotation and withholding, the way a checker marks up a
+ * survey drawing in red. It never appears as decoration. That is the whole discipline of the
+ * palette: if something is red, a human needs to look at it.
+ */
+
+:root {
+  /* Work surface — deep, warm graphite. Not black; black reads as a terminal. */
+  --desk: #1c1b19;
+  --desk-raised: #262421;
+  --desk-line: #35322e;
+
+  /* The instrument sheet — warm paper, very slightly off-white. */
+  --sheet: #f7f4ee;
+  --sheet-sunk: #eeeae1;
+  --sheet-line: #ddd7ca;
+  --sheet-rule: #c8c0ae;
+
+  /* Ink */
+  --ink: #171614;
+  --ink-soft: #524d45;
+  --ink-faint: #857e72;
+
+  /* Survey teal — measured, derived, computed. */
+  --survey: #1d6f6a;
+  --survey-soft: #d7e8e6;
+
+  /* Vermilion — annotation and withholding only. */
+  --annot: #b8321f;
+  --annot-soft: #f6ddd7;
+
+  /* Endorsed */
+  --endorse: #4a6b23;
+  --endorse-soft: #e4ecd4;
+
+  /* Held — marginal */
+  --caution: #8a5a11;
+  --caution-soft: #f5e7cd;
+
+  --sheet-w: 66rem;
+  --radius: 2px;
+
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
+  --sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--sheet);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Figures always align in columns. In an audit document that is functional, not stylistic. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+a {
+  color: inherit;
+}
+
+/* ── Top rail ─────────────────────────────────────────────────────────────── */
+
+.rail {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--desk-line);
+  background: var(--desk);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex-wrap: wrap;
+}
+
+.rail-mark {
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--sheet);
+  text-decoration: none;
+}
+
+.rail-ctx {
+  font-size: 0.75rem;
+  color: #8d857a;
+  letter-spacing: 0.04em;
+}
+
+.rail-ctx b {
+  color: #c4bcae;
+  font-weight: 550;
+}
+
+.rail-spacer {
+  flex: 1;
+}
+
+.rail-note {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--annot);
+  border: 1px solid #4a2a22;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius);
+}
+
+/* ── Page frame ───────────────────────────────────────────────────────────── */
+
+.frame {
+  max-width: var(--sheet-w);
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 6rem;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8d857a;
+  margin: 0 0 0.6rem;
+}
+
+.page-h {
+  font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 620;
+  margin: 0 0 0.5rem;
+  color: var(--sheet);
+}
+
+.page-sub {
+  color: #9c948a;
+  margin: 0 0 2.25rem;
+  max-width: 46rem;
+  font-size: 0.95rem;
+}
+
+/* ── The instrument sheet ─────────────────────────────────────────────────── */
+
+.sheet {
+  background: var(--sheet);
+  color: var(--ink);
+  border-radius: var(--radius);
+  /* Sitting on a surface, lit from above. */
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px -12px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.sheet-head {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 1.5rem 1.75rem 1.25rem;
+  border-bottom: 1px solid var(--sheet-line);
+  flex-wrap: wrap;
+}
+
+.sheet-head-main {
+  flex: 1;
+  min-width: 16rem;
+}
+
+.sheet-kicker {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.4rem;
+}
+
+.sheet-title {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 620;
+  margin: 0 0 0.65rem;
+}
+
+.sheet-facts {
+  display: flex;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.sheet-facts span b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sheet-body {
+  padding: 1.75rem;
+}
+
+.sheet-foot {
+  padding: 0.85rem 1.75rem;
+  border-top: 1px solid var(--sheet-line);
+  background: var(--sheet-sunk);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+/* ── The stamp. The one place boldness is spent. ─────────────────────────── */
+
+.stamp {
+  flex-shrink: 0;
+  transform: rotate(-3.5deg);
+  border: 2.5px solid currentColor;
+  border-radius: 3px;
+  padding: 0.5rem 0.9rem 0.55rem;
+  text-align: center;
+  /* Ink absorbed unevenly into paper. */
+  opacity: 0.86;
+  position: relative;
+}
+
+.stamp-word {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  line-height: 1;
+  display: block;
+}
+
+.stamp-sub {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+  opacity: 0.75;
+}
+
+.stamp::after {
+  /* A second, fainter impression — the paper texture under the ink. */
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.stamp[data-v='NO_VERDICT'] { color: var(--annot); }
+.stamp[data-v='PASS']       { color: var(--endorse); }
+.stamp[data-v='MARGINAL']   { color: var(--caution); }
+.stamp[data-v='FAIL']       { color: var(--annot); }
+
+/* ── Headline figure, with its denominator ───────────────────────────────── */
+
+.headline {
+  border-bottom: 1px solid var(--sheet-line);
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.headline-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.5rem;
+}
+
+.headline-value {
+  font-size: clamp(2.1rem, 5.5vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 640;
+  margin: 0;
+}
+
+.headline-value .cur {
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  vertical-align: 0.45em;
+  margin-right: 0.35em;
+}
+
+/* The denominator. This is the fix for Al Mizan's first question, and it is deliberately
+   given the same visual weight as the figure it qualifies rather than being a footnote. */
+.denominator {
+  margin: 0.7rem 0 0;
+  font-size: 0.82rem;
+  color: var(--survey);
+  border-left: 2px solid var(--survey);
+  padding-left: 0.7rem;
+}
+
+.headline-defn {
+  margin: 0.9rem 0 0;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  max-width: 44rem;
+}
+
+/* ── Annotation band — withheld reasons and flags ────────────────────────── */
+
+.annot {
+  border: 1px solid var(--annot);
+  border-left-width: 3px;
+  background: var(--annot-soft);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.annot[data-sev='warn'] {
+  border-color: var(--caution);
+  background: var(--caution-soft);
+}
+
+.annot-head {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+  color: var(--annot);
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.annot[data-sev='warn'] .annot-head { color: var(--caution); }
+
+.annot-code {
+  opacity: 0.65;
+}
+
+.annot p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.annot-evidence {
+  margin: 0.7rem 0 0;
+  display: flex;
+  gap: 0.4rem 1rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+.annot-evidence span b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ── Remedies — "what would make this work" ──────────────────────────────── */
+
+.remedies {
+  margin-bottom: 1.5rem;
+}
+
+.remedy {
+  border: 1px solid var(--sheet-line);
+  border-left: 3px solid var(--survey);
+  border-radius: var(--radius);
+  padding: 0.95rem 1.1rem;
+  margin-bottom: 0.6rem;
+  background: #fff;
+}
+
+.remedy-head {
+  font-weight: 600;
+  font-size: 0.94rem;
+  margin: 0 0 0.4rem;
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+}
+
+.remedy-lever {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--survey);
+  background: var(--survey-soft);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.remedy p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.remedy-feas {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+  color: var(--ink-faint);
+}
+
+.remedy-feas[data-f='unlikely'] { color: var(--annot); }
+
+/* ── Metric row ──────────────────────────────────────────────────────────── */
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0;
+  border: 1px solid var(--sheet-line);
+  border-radius: var(--radius);
+  margin-bottom: 1.75rem;
+  overflow: hidden;
+}
+
+.metric {
+  padding: 0.9rem 1rem;
+  border-right: 1px solid var(--sheet-line);
+  background: #fff;
+}
+
+.metric:last-child { border-right: 0; }
+
+.metric-k {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.35rem;
+}
+
+.metric-v {
+  font-size: 1.15rem;
+  font-weight: 620;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.metric-per {
+  font-size: 0.68rem;
+  color: var(--survey);
+  margin: 0.25rem 0 0;
+}
+
+/* ── Section headings inside the sheet ───────────────────────────────────── */
+
+.sect {
+  margin: 2rem 0 0.9rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+}
+
+.sect h2 {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.sect-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--sheet-rule);
+}
+
+.sect-note {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ── Derivation ledger — the signature element ───────────────────────────── */
+
+.ledger {
+  border: 1px solid var(--sheet-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+.ledger details {
+  border-bottom: 1px solid var(--sheet-line);
+}
+
+.ledger details:last-child { border-bottom: 0; }
+
+.ledger summary {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(9rem, 14rem) 1fr auto;
+  gap: 0.9rem;
+  align-items: baseline;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  transition: background 90ms ease;
+}
+
+.ledger summary::-webkit-details-marker { display: none; }
+
+.ledger summary:hover { background: var(--sheet-sunk); }
+
+.ledger summary:focus-visible {
+  outline: 2px solid var(--survey);
+  outline-offset: -2px;
+}
+
+.led-caret {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  transition: transform 120ms ease;
+}
+
+details[open] .led-caret { transform: rotate(90deg); }
+
+.led-id {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--survey);
+  letter-spacing: 0.02em;
+}
+
+.led-rule {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.led-out {
+  font-weight: 620;
+  font-size: 0.88rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.led-inputs {
+  padding: 0.2rem 1rem 1rem 3rem;
+  background: var(--sheet-sunk);
+  border-top: 1px dashed var(--sheet-rule);
+}
+
+.led-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0.85rem 0 0.45rem;
+}
+
+.led-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.led-table td {
+  padding: 0.28rem 0.6rem 0.28rem 0;
+  border-bottom: 1px solid var(--sheet-line);
+  vertical-align: top;
+}
+
+.led-table tr:last-child td { border-bottom: 0; }
+
+.led-table td:first-child {
+  font-family: var(--mono);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  width: 14rem;
+}
+
+.led-table td:last-child {
+  text-align: right;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.led-caveat {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--annot);
+  max-width: 42rem;
+}
+
+/* ── Provenance chips ────────────────────────────────────────────────────── */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.16rem 0.42rem;
+  border-radius: var(--radius);
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.chip[data-p='derived']   { color: var(--survey);  border-color: #a9cdca; background: var(--survey-soft); }
+.chip[data-p='seed']      { color: var(--caution); border-color: #dcc38a; background: var(--caution-soft); }
+.chip[data-p='authority'] { color: var(--endorse); border-color: #b3c68f; background: var(--endorse-soft); }
+.chip[data-p='agent']     { color: var(--annot);   border-color: #e0aa9e; background: var(--annot-soft); }
+
+/* ── Pipeline list ───────────────────────────────────────────────────────── */
+
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+  background: var(--desk-raised);
+  border: 1px solid var(--desk-line);
+  border-left: 3px solid var(--desk-line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 110ms ease, transform 110ms ease, background 110ms ease;
+}
+
+.row:hover {
+  background: #2c2925;
+  transform: translateX(2px);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--survey);
+  outline-offset: 2px;
+}
+
+.row[data-v='NO_VERDICT'] { border-left-color: var(--annot); }
+.row[data-v='PASS']       { border-left-color: #7ea33c; }
+.row[data-v='MARGINAL']   { border-left-color: #c08a2a; }
+.row[data-v='FAIL']       { border-left-color: #8a4433; }
+
+.row-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.01em;
+}
+
+.row-meta {
+  display: flex;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  color: #8d857a;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-meta b { color: #c4bcae; font-weight: 550; }
+
+.row-right {
+  text-align: right;
+}
+
+.row-verdict {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 650;
+}
+
+.row[data-v='NO_VERDICT'] .row-verdict { color: #e0705a; }
+.row[data-v='PASS']       .row-verdict { color: #9fc95c; }
+.row[data-v='MARGINAL']   .row-verdict { color: #dfa945; }
+.row[data-v='FAIL']       .row-verdict { color: #cf7a63; }
+
+.row-figure {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.28rem;
+}
+
+.row-figure-k {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7d766c;
+  margin-top: 0.2rem;
+}
+
+/* ── Back link ───────────────────────────────────────────────────────────── */
+
+.back {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8d857a;
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+}
+
+.back:hover { color: var(--sheet); }
+
+/* ── Empty / error states: direction, not mood ───────────────────────────── */
+
+.empty {
+  border: 1px dashed var(--desk-line);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  text-align: left;
+  max-width: 34rem;
+}
+
+.empty h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.empty p {
+  margin: 0 0 0.9rem;
+  color: #9c948a;
+  font-size: 0.9rem;
+}
+
+.empty code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: var(--desk-raised);
+  border: 1px solid var(--desk-line);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius);
+  color: var(--sheet);
+}
+
+/* ── Accessibility floor ─────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .row:hover { transform: none; }
+}
+
+@media (max-width: 46rem) {
+  .ledger summary {
+    grid-template-columns: 1.1rem 1fr auto;
+  }
+  .led-rule { display: none; }
+  .led-inputs { padding-left: 1rem; }
+  .led-table td:first-child { width: auto; white-space: normal; }
+  .sheet-body, .sheet-head { padding-left: 1.1rem; padding-right: 1.1rem; }
+  .sheet-foot { padding-left: 1.1rem; padding-right: 1.1rem; }
+}

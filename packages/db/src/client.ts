@@ -1,13 +1,39 @@
 import { Pool, type PoolClient } from 'pg';
 import { config } from 'dotenv';
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
-config({ path: resolve(import.meta.dirname, '../../../.env'), quiet: true });
+/**
+ * Find `.env` by walking up from the working directory.
+ *
+ * `import.meta.dirname` is undefined once this module is bundled — by Next, or by anything else
+ * that inlines it — so resolving relative to the source file only works when running from source.
+ * Walking up from cwd works in both cases, and finds the repo-root `.env` whether the caller is a
+ * script in `packages/db` or a Next server in `apps/web`.
+ */
+function loadEnv(): void {
+  if (process.env['DATABASE_URL']) return; // already provided by the host
+
+  let dir = process.cwd();
+  for (let depth = 0; depth < 6; depth++) {
+    const candidate = join(dir, '.env');
+    if (existsSync(candidate)) {
+      config({ path: candidate, quiet: true });
+      return;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+}
+
+loadEnv();
 
 const connectionString = process.env['DATABASE_URL'];
 if (!connectionString) {
   throw new Error(
-    'DATABASE_URL is not set. Copy .env.example to .env, then `docker compose up -d`.',
+    'DATABASE_URL is not set. Copy .env.example to .env at the repository root, ' +
+      'then run `pnpm db:up`.',
   );
 }
 

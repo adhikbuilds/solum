@@ -12,6 +12,7 @@ export {
   parkingCost,
 } from './defaults.js';
 export { decideVerdict } from './verdict.js';
+export { suggestRemedies, type Remedy, type RemedyLever } from './remedy.js';
 export { irr, npv, type IrrResult, type IrrFailure } from './irr.js';
 export { Trace, type CalculationStep } from './trace.js';
 export {
