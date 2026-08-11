@@ -1,5 +1,16 @@
 export { appraise, ENGINE_VERSION } from './appraise.js';
 export { computeUnitMix } from './unitMix.js';
+export {
+  BUA_FACTOR,
+  BASE_EFFICIENCY,
+  HURDLE,
+  DUBAI_DEFAULT_COSTS,
+  DUBAI_DEFAULT_TIMELINE,
+  DUBAI_DEFAULT_UNIT_TYPES,
+  UNIT_TYPE_4BR,
+  bayCount,
+  parkingCost,
+} from './defaults.js';
 export { decideVerdict } from './verdict.js';
 export { irr, npv, type IrrResult, type IrrFailure } from './irr.js';
 export { Trace, type CalculationStep } from './trace.js';

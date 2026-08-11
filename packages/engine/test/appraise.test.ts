@@ -38,16 +38,41 @@ describe('appraise — the beta case end to end', () => {
 });
 
 describe('costs and profit', () => {
-  it('computes non-land cost from the stated rates', () => {
+  it('prices construction on BUA, not GFA', () => {
+    // The correction that matters most. BUA = 198,000 GFA × 1.45 = 287,100 sqft.
+    // At AED 345/sqft of BUA that is AED 99,049,500. Pricing the same scheme on GFA would give
+    // AED 68,310,000 — understating construction by 45%, which is the largest single correctness
+    // risk in the appraisal and exactly what Al Mizan's first question was about.
     const result = appraise(betaAppraisal({ units: betaUnits(185_000n) }));
 
-    // Construction: 198,000 GFA × AED 650 = AED 128,700,000
-    expect(toAed(result.outputs.constructionCost)).toBe(128_700_000);
+    expect(toAed(result.outputs.constructionCost)).toBe(99_049_500);
 
+    const step = result.trace.find((s) => s.id === 'cost.construction')!;
+    expect(step.inputs['constructionAreaSqft']).toBeCloseTo(287_100, 6);
+    expect(step.inputs['basis']).toBe('bua');
+    // The trace states the denominator in words, so a report can label the figure.
+    expect(step.inputs['denominator']).toBe('per sqft of built-up area');
+  });
+
+  it('splits the architect fee into design and supervision', () => {
+    const result = appraise(betaAppraisal({ units: betaUnits(185_000n) }));
     const step = result.trace.find((s) => s.id === 'cost.non_land')!;
-    // Fees 7% and contingency 5% of construction; marketing 3% of GDV; plus AED 12m fixed.
-    expect(step.inputs['professionalFees']).toBe(Number(aed(9_009_000)));
-    expect(step.inputs['contingency']).toBe(Number(aed(6_435_000)));
+
+    // 2.5% each on construction, contracted and invoiced separately.
+    expect(step.inputs['architectDesign']).toBe(Number(aed(2_476_237.5)));
+    expect(step.inputs['architectSupervision']).toBe(Number(aed(2_476_237.5)));
+    // 10% contingency on construction.
+    expect(step.inputs['contingency']).toBe(Number(aed(9_904_950)));
+  });
+
+  it('counts parking bays from the mix and adds visitor provision', () => {
+    const result = appraise(betaAppraisal({ units: betaUnits(185_000n) }));
+    const step = result.trace.find((s) => s.id === 'cost.non_land')!;
+
+    // Resident bays: 1BR 96×1 + 2BR 30×2 + 3BR 21×2 = 198. Studio is off, so it contributes none.
+    // Visitor at 15% of 198 = 29.7, rounded up to 30. Total 228 bays at AED 55,000.
+    expect(step.inputs['parkingBays']).toBe(228);
+    expect(step.inputs['parking']).toBe(Number(aed(12_540_000)));
   });
 
   it('nets profit against land cost plus DLD duty', () => {

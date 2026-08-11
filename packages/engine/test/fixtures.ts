@@ -1,4 +1,5 @@
 import { aed } from '../src/money.js';
+import { DUBAI_DEFAULT_COSTS } from '../src/defaults.js';
 import type { AppraisalInput, ComparablesBand, UnitType } from '../src/types.js';
 
 /**
@@ -31,6 +32,7 @@ export function betaUnits(oneBedPricePsf = 200_000n): UnitType[] {
       unitCount: 40,
       avgAreaSqft: 480,
       pricePsf: 167_500n,
+      bays: 1,
     },
     {
       code: '1BR',
@@ -39,6 +41,7 @@ export function betaUnits(oneBedPricePsf = 200_000n): UnitType[] {
       unitCount: 96,
       avgAreaSqft: 827, // 96 × 827 = 79,392
       pricePsf: oneBedPricePsf,
+      bays: 1,
     },
     {
       code: '2BR',
@@ -47,6 +50,7 @@ export function betaUnits(oneBedPricePsf = 200_000n): UnitType[] {
       unitCount: 30,
       avgAreaSqft: 1549, // 30 × 1,549 = 46,470
       pricePsf: 180_000n,
+      bays: 2,
     },
     {
       code: '3BR',
@@ -55,6 +59,7 @@ export function betaUnits(oneBedPricePsf = 200_000n): UnitType[] {
       unitCount: 21,
       avgAreaSqft: 1548, // 21 × 1,548 = 32,508
       pricePsf: 175_000n,
+      bays: 2,
     },
   ];
 }
@@ -70,14 +75,8 @@ export function betaAppraisal(overrides: Partial<AppraisalInput> = {}): Appraisa
       landCost: aed(83_000_000),
     },
     units: betaUnits(),
-    costs: {
-      constructionPsfGfa: 65_000n, // AED 650/sqft GFA
-      professionalFeesRate: 0.07,
-      contingencyRate: 0.05,
-      marketingRate: 0.03,
-      dldTransferRate: 0.04, // [relayed] verify against current DLD regulation
-      otherFixed: aed(12_000_000),
-    },
+    // The prototype's real Dubai defaults, not invented ones. See src/defaults.ts.
+    costs: { ...DUBAI_DEFAULT_COSTS },
     comparables: BETA_COMPS,
     scenarios: [
       { name: 'Base', salePriceDelta: 0, constructionCostDelta: 0 },
@@ -85,7 +84,7 @@ export function betaAppraisal(overrides: Partial<AppraisalInput> = {}): Appraisa
       { name: 'Upside', salePriceDelta: 0.08, constructionCostDelta: -0.03 },
     ],
     targetProfitOnCost: 0.2,
-    passThreshold: 0.2,
+    passThreshold: 0.2, // the prototype's 20% hurdle
     marginalThreshold: 0.12,
     ...overrides,
   };

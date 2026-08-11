@@ -12,7 +12,7 @@
  * observed market data is worse than no data, because it cannot be corrected by anyone downstream.
  */
 import { createHash } from 'node:crypto';
-import { appraise, ENGINE_VERSION } from '@solum/engine';
+import { appraise, ENGINE_VERSION, DUBAI_DEFAULT_COSTS } from '@solum/engine';
 import type { AppraisalInput, ComparablesBand, UnitType } from '@solum/engine';
 import { withAdmin, close } from './client.js';
 import type { PoolClient } from 'pg';
@@ -81,12 +81,13 @@ const LAUNCHES = [
   { name: 'Meydan Gardens', psf: 191_000n, sold: 82, completion: 'Q1 2027' },
 ];
 
-function seedUnits(): UnitType[] {
+function seedUnits(onePsf: bigint): UnitType[] {
+  // bays is parking provision per unit: 1 for studio and 1BR, 2 for 2BR and above (Dubai practice).
   return [
-    { code: 'STUDIO', label: 'Studio', enabled: false, unitCount: 40, avgAreaSqft: 480, pricePsf: 167_500n },
-    { code: '1BR', label: '1 bedroom', enabled: true, unitCount: 96, avgAreaSqft: 827, pricePsf: 200_000n },
-    { code: '2BR', label: '2 bedroom', enabled: true, unitCount: 30, avgAreaSqft: 1549, pricePsf: 180_000n },
-    { code: '3BR', label: '3 bedroom', enabled: true, unitCount: 21, avgAreaSqft: 1548, pricePsf: 175_000n },
+    { code: 'STUDIO', label: 'Studio', enabled: false, unitCount: 40, avgAreaSqft: 480, pricePsf: 167_500n, bays: 1 },
+    { code: '1BR', label: '1 bedroom', enabled: true, unitCount: 96, avgAreaSqft: 827, pricePsf: onePsf, bays: 1 },
+    { code: '2BR', label: '2 bedroom', enabled: true, unitCount: 30, avgAreaSqft: 1549, pricePsf: 180_000n, bays: 2 },
+    { code: '3BR', label: '3 bedroom', enabled: true, unitCount: 21, avgAreaSqft: 1548, pricePsf: 175_000n, bays: 2 },
   ];
 }
 
@@ -198,20 +199,33 @@ async function main(): Promise<void> {
         [snapshot.id, community.id, AS_OF],
       );
 
-      // ── A plot, and an appraisal computed by the real engine ─────────────
-      const plot = await one<{ id: string }>(
-        client,
-        `INSERT INTO plots
-           (organisation_id, workspace_id, community_id, name, dld_plot_number,
-            land_area_sqft, far, gfa_sqft, saleable_area_sqft, land_cost_fils,
-            centroid_lat, centroid_lng, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
-        [
-          org.id, workspace.id, community.id, 'Wadi Al Safa 3 — Plot 4471',
-          '6452471', 62_000, 3.194, 198_000, 158_370, (83_000_000_00).toString(),
-          25.0731, 55.2913, user.id,
-        ],
-      );
+      // ── Plots, each appraised by the real engine ─────────────────────────
+      // Four deliberately different outcomes, so the pipeline shows the full range including a
+      // refusal. Only the 1BR price and the land cost vary; everything else is held constant.
+      const PLOTS = [
+        {
+          name: 'Wadi Al Safa 3 — Plot 4471', dldNumber: '6452471',
+          lat: 25.0731, lng: 55.2913, landAed: 83_000_000, onePsf: 200_000n,
+          harshDownside: false, note: 'priced above the comparables band — engine withholds',
+        },
+        {
+          name: 'Wadi Al Safa 3 — Plot 3902', dldNumber: '6452390',
+          lat: 25.0688, lng: 55.2864, landAed: 60_000_000, onePsf: 178_000n,
+          harshDownside: false, note: 'clears the 20% hurdle comfortably',
+        },
+        {
+          // Harsher stress test (-20% price, +20% cost) than the others, as a developer might
+          // apply to a deal they are less sure of. Base case clears, downside does not.
+          name: 'Wadi Al Safa 3 — Plot 5118', dldNumber: '6452511',
+          lat: 25.0762, lng: 55.2951, landAed: 83_000_000, onePsf: 178_000n,
+          harshDownside: true, note: 'base clears but the downside runs at a loss — downgraded',
+        },
+        {
+          name: 'Wadi Al Safa 3 — Plot 2274', dldNumber: '6452227',
+          lat: 25.0705, lng: 55.2822, landAed: 120_000_000, onePsf: 178_000n,
+          harshDownside: false, note: 'land too expensive',
+        },
+      ] as const;
 
       const comparables: ComparablesBand = {
         snapshotId: snapshot.id,
@@ -223,76 +237,96 @@ async function main(): Promise<void> {
         sampleSize: snapshot.sample_size,
       };
 
-      const input: AppraisalInput = {
-        plot: {
-          plotId: plot.id,
-          community: COMMUNITY,
-          landAreaSqft: 62_000,
-          gfaSqft: 198_000,
-          saleableAreaSqft: 158_370,
-          landCost: 8_300_000_000n,
-        },
-        units: seedUnits(),
-        costs: {
-          constructionPsfGfa: 65_000n,
-          professionalFeesRate: 0.07,
-          contingencyRate: 0.05,
-          marketingRate: 0.03,
-          dldTransferRate: 0.04,
-          otherFixed: 1_200_000_000n,
-        },
-        comparables,
-        scenarios: [
-          { name: 'Base', salePriceDelta: 0, constructionCostDelta: 0 },
-          { name: 'Downside', salePriceDelta: -0.1, constructionCostDelta: 0.1 },
-          { name: 'Upside', salePriceDelta: 0.08, constructionCostDelta: -0.03 },
-        ],
-        targetProfitOnCost: 0.2,
-        passThreshold: 0.2,
-        marginalThreshold: 0.12,
-      };
+      const created: { name: string; verdict: string; flags: string[]; note: string }[] = [];
 
-      const appraisal = await one<{ id: string }>(
-        client,
-        `INSERT INTO appraisals
-           (organisation_id, plot_id, comparable_snapshot_id, label, status, created_by)
-         VALUES ($1,$2,$3,$4,'computed',$5) RETURNING id`,
-        [org.id, plot.id, snapshot.id, 'Initial underwrite', user.id],
-      );
+      for (const def of PLOTS) {
+        const plot = await one<{ id: string }>(
+          client,
+          `INSERT INTO plots
+             (organisation_id, workspace_id, community_id, name, dld_plot_number,
+              land_area_sqft, far, gfa_sqft, saleable_area_sqft, land_cost_fils,
+              centroid_lat, centroid_lng, created_by)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+          [
+            org.id, workspace.id, community.id, def.name, def.dldNumber,
+            62_000, 3.194, 198_000, 158_370, (def.landAed * 100).toString(),
+            def.lat, def.lng, user.id,
+          ],
+        );
 
-      const serialised = stableStringify(input);
-      const set = await one<{ id: string }>(
-        client,
-        `INSERT INTO assumption_sets
-           (organisation_id, appraisal_id, inputs, input_hash, created_by)
-         VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-        [
-          org.id, appraisal.id, serialised,
-          createHash('sha256').update(serialised).digest('hex').slice(0, 32), user.id,
-        ],
-      );
+        const input: AppraisalInput = {
+          plot: {
+            plotId: plot.id,
+            community: COMMUNITY,
+            landAreaSqft: 62_000,
+            gfaSqft: 198_000,
+            saleableAreaSqft: 158_370,
+            landCost: BigInt(def.landAed) * 100n,
+          },
+          units: seedUnits(def.onePsf),
+          // The prototype's real Dubai defaults — construction on BUA at AED 345/sqft, architect
+          // fees split 2.5/2.5, 10% contingency, parking at AED 55,000 a bay. See engine defaults.ts.
+          costs: { ...DUBAI_DEFAULT_COSTS },
+          comparables,
+          scenarios: [
+            { name: 'Base', salePriceDelta: 0, constructionCostDelta: 0 },
+            def.harshDownside
+              ? { name: 'Downside', salePriceDelta: -0.2, constructionCostDelta: 0.2 }
+              : { name: 'Downside', salePriceDelta: -0.1, constructionCostDelta: 0.1 },
+            { name: 'Upside', salePriceDelta: 0.08, constructionCostDelta: -0.03 },
+          ],
+          targetProfitOnCost: 0.2,
+          passThreshold: 0.2,
+          marginalThreshold: 0.12,
+        };
 
-      const result = appraise(input);
-      await client.query(
-        `INSERT INTO results
-           (organisation_id, assumption_set_id, engine_version, verdict, verdict_reason,
-            outputs, trace, flags)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [
-          org.id, set.id, result.engineVersion, result.verdict, result.verdictReason,
-          stableStringify(result.outputs), JSON.stringify(result.trace),
-          JSON.stringify(result.flags),
-        ],
-      );
+        const appraisal = await one<{ id: string }>(
+          client,
+          `INSERT INTO appraisals
+             (organisation_id, plot_id, comparable_snapshot_id, label, status, created_by)
+           VALUES ($1,$2,$3,$4,'computed',$5) RETURNING id`,
+          [org.id, plot.id, snapshot.id, 'Initial underwrite', user.id],
+        );
+
+        const serialised = stableStringify(input);
+        const set = await one<{ id: string }>(
+          client,
+          `INSERT INTO assumption_sets
+             (organisation_id, appraisal_id, inputs, input_hash, created_by)
+           VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+          [
+            org.id, appraisal.id, serialised,
+            createHash('sha256').update(serialised).digest('hex').slice(0, 32), user.id,
+          ],
+        );
+
+        const result = appraise(input);
+        await client.query(
+          `INSERT INTO results
+             (organisation_id, assumption_set_id, engine_version, verdict, verdict_reason,
+              outputs, trace, flags)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            org.id, set.id, result.engineVersion, result.verdict, result.verdictReason,
+            stableStringify(result.outputs), JSON.stringify(result.trace),
+            JSON.stringify(result.flags),
+          ],
+        );
+
+        created.push({
+          name: def.name,
+          verdict: result.verdict,
+          flags: result.flags.map((f) => `${f.severity}:${f.code}`),
+          note: def.note,
+        });
+      }
 
       await client.query('COMMIT');
 
       const fmt = (f: string): string => `AED ${(Number(f) / 100).toFixed(0)}/sqft`;
       console.log(`\nSeeded.\n`);
       console.log(`  organisation_id  ${org.id}`);
-      console.log(`  workspace        ${workspace.id}`);
-      console.log(`  plot             ${plot.id}`);
-      console.log(`  appraisal        ${appraisal.id}\n`);
+      console.log(`  workspace        ${workspace.id}\n`);
       console.log(`  ${transactions.length} synthetic DLD transactions over 24 months`);
       console.log(`  comparables band DERIVED from them, not stated:`);
       console.log(`    low     ${fmt(snapshot.low)}`);
@@ -307,9 +341,10 @@ async function main(): Promise<void> {
         );
       }
       console.log();
-      console.log(`  engine ${ENGINE_VERSION} → verdict ${result.verdict}`);
-      for (const flag of result.flags) {
-        console.log(`    [${flag.severity}] ${flag.code}`);
+      console.log(`  engine ${ENGINE_VERSION} — ${created.length} plots appraised:`);
+      for (const c of created) {
+        console.log(`    ${c.verdict.padEnd(11)} ${c.name}`);
+        console.log(`                ${c.note}${c.flags.length ? `  [${c.flags.join(', ')}]` : ''}`);
       }
       console.log(`\n  All market rows tagged source='seed'. Surface that in the UI.\n`);
     } catch (error) {

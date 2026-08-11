@@ -1,4 +1,5 @@
 import { mulByArea, mulByRate, ratio, type Fils } from './money.js';
+import { bayCount, parkingCost } from './defaults.js';
 import type { Flag } from './flags.js';
 import { Trace } from './trace.js';
 import { computeUnitMix } from './unitMix.js';
@@ -38,8 +39,33 @@ export function appraise(input: AppraisalInput): AppraisalResult {
   const areaFlag = checkAreaReconciliation(mix.saleableAreaSqft, plot.saleableAreaSqft);
   if (areaFlag) flags.push(areaFlag);
 
-  const construction = mulByArea(costs.constructionPsfGfa, plot.gfaSqft);
-  const base = buildCosts(construction, mix.grossDevelopmentValue, costs, trace);
+  // Construction is priced on BUA, not GFA. BUA = GFA × buaFactor (1.45 by Dubai default).
+  // Pricing on GFA understates construction by 45%, which is the single largest correctness risk
+  // in the whole appraisal.
+  const constructionAreaSqft =
+    costs.costBasis === 'bua' ? plot.gfaSqft * costs.buaFactor : plot.gfaSqft;
+  const construction = mulByArea(costs.constructionPsf, constructionAreaSqft);
+
+  trace.record({
+    id: 'cost.construction',
+    label: 'Construction',
+    rule:
+      costs.costBasis === 'bua'
+        ? 'GFA × buaFactor × cost per sqft of BUA'
+        : 'GFA × cost per sqft of GFA',
+    inputs: {
+      gfaSqft: plot.gfaSqft,
+      buaFactor: costs.costBasis === 'bua' ? costs.buaFactor : null,
+      constructionAreaSqft,
+      basis: costs.costBasis,
+      denominator: costs.costBasis === 'bua' ? 'per sqft of built-up area' : 'per sqft of GFA',
+      costPsf: Number(costs.constructionPsf),
+    },
+    output: Number(construction),
+  });
+
+  const bays = bayCount(input.units, costs.visitorBayRate);
+  const base = buildCosts(construction, mix.grossDevelopmentValue, bays, costs, trace);
 
   // Residual land value: what the land can be worth and still return the target profit.
   //   GDV = costs(excluding land) + land + DLD duty on land + target profit on total cost
@@ -88,7 +114,7 @@ export function appraise(input: AppraisalInput): AppraisalResult {
   }
 
   const scenarios = input.scenarios.map((s) =>
-    runScenario(s, input, mix.grossDevelopmentValue, construction, landCost, dldDuty),
+    runScenario(s, input, mix.grossDevelopmentValue, construction, bays, landCost, dldDuty),
   );
 
   trace.record({
@@ -138,24 +164,43 @@ export function appraise(input: AppraisalInput): AppraisalResult {
 function buildCosts(
   construction: Fils,
   gdv: Fils,
+  bays: number,
   costs: CostInputs,
   trace?: Trace,
 ): Fils {
-  const fees = mulByRate(construction, costs.professionalFeesRate);
+  const archDesign = mulByRate(construction, costs.archDesignRate);
+  const archSuper = mulByRate(construction, costs.archSuperRate);
   const contingency = mulByRate(construction, costs.contingencyRate);
   const marketing = mulByRate(gdv, costs.marketingRate);
-  const total = construction + fees + contingency + marketing + costs.otherFixed;
+  const parking = parkingCost(bays, costs.parkingBayCost);
+  const total =
+    construction +
+    archDesign +
+    archSuper +
+    contingency +
+    costs.authoritiesFixed +
+    costs.landscapeFixed +
+    costs.miscFixed +
+    marketing +
+    parking;
 
   trace?.record({
     id: 'cost.non_land',
     label: 'Development cost excluding land',
-    rule: 'construction + fees + contingency + marketing + other',
+    rule:
+      'construction + architect (design + supervision) + contingency + authorities + ' +
+      'landscaping + miscellaneous + marketing + parking',
     inputs: {
       construction: Number(construction),
-      professionalFees: Number(fees),
+      architectDesign: Number(archDesign),
+      architectSupervision: Number(archSuper),
       contingency: Number(contingency),
+      authorities: Number(costs.authoritiesFixed),
+      landscaping: Number(costs.landscapeFixed),
+      miscellaneous: Number(costs.miscFixed),
       marketing: Number(marketing),
-      otherFixed: Number(costs.otherFixed),
+      parkingBays: bays,
+      parking: Number(parking),
     },
     output: Number(total),
   });
@@ -168,12 +213,13 @@ function runScenario(
   input: AppraisalInput,
   baseGdv: Fils,
   baseConstruction: Fils,
+  bays: number,
   landCost: Fils | undefined,
   dldDuty: Fils,
 ): ScenarioResult {
   const gdv = mulByRate(baseGdv, 1 + scenario.salePriceDelta);
   const construction = mulByRate(baseConstruction, 1 + scenario.constructionCostDelta);
-  const nonLand = buildCosts(construction, gdv, input.costs);
+  const nonLand = buildCosts(construction, gdv, bays, input.costs);
   const totalCost = landCost === undefined ? nonLand : nonLand + landCost + dldDuty;
   const netProfit = gdv - totalCost;
 

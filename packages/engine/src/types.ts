@@ -29,23 +29,48 @@ export interface UnitType {
   /** Excluded types stay in the input so the mix decision is visible in the trace. */
   enabled: boolean;
   unitCount: number;
+  /** Average area per unit, in sqft of saleable area. */
   avgAreaSqft: number;
+  /** Sale price per sqft of **saleable** area. */
   pricePsf: FilsPerSqft;
+  /** Parking bays per unit. Dubai practice: 1 for studio and 1BR, 2 for 2BR and above. */
+  bays: number;
 }
 
+/**
+ * Cost lines, matching the prototype's structure so its defaults transfer without reinterpretation.
+ * See `defaults.ts` for the values and their provenance.
+ *
+ * Three different denominators appear here and they must never be conflated: construction is per
+ * sqft of BUA, marketing is a rate on GDV (itself per sqft of saleable), and DLD is a rate on land.
+ */
 export interface CostInputs {
-  /** Construction cost per sqft of gross floor area. */
-  constructionPsfGfa: FilsPerSqft;
-  /** Professional fees, as a rate on construction cost. */
-  professionalFeesRate: Rate;
-  /** Contingency, as a rate on construction cost. */
+  /** Construction cost per sqft of whichever basis `costBasis` names. */
+  constructionPsf: FilsPerSqft;
+  /** Which area construction is priced on. Dubai practice is BUA. */
+  costBasis: 'bua' | 'gfa';
+  /** BUA = GFA × this. Ignored when `costBasis` is 'gfa'. */
+  buaFactor: number;
+  /** Architect's design fee, as a rate on construction. */
+  archDesignRate: Rate;
+  /** Architect's supervision fee, as a rate on construction. Contracted separately from design. */
+  archSuperRate: Rate;
+  /** Contingency, as a rate on construction. */
   contingencyRate: Rate;
+  /** Authority fees, absolute. */
+  authoritiesFixed: Fils;
+  /** Landscaping, absolute. */
+  landscapeFixed: Fils;
+  /** Miscellaneous, absolute. */
+  miscFixed: Fils;
   /** Marketing and sales, as a rate on gross development value. */
   marketingRate: Rate;
+  /** Cost per parking bay. */
+  parkingBayCost: Fils;
+  /** Visitor bays as a share of resident bays. */
+  visitorBayRate: Rate;
   /** DLD transfer duty on land acquisition. Verify against current regulation before relying on it. */
   dldTransferRate: Rate;
-  /** Anything not covered above, as an absolute amount. */
-  otherFixed: Fils;
 }
 
 export interface PlotInput {
