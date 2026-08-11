@@ -10,7 +10,8 @@
     "seed": "vite-node src/seed.ts",
     "reset": "vite-node src/reset.ts",
     "typecheck": "tsc --noEmit",
-    "verify-rls": "vite-node src/verify-rls.ts"
+    "verify-rls": "vite-node src/verify-rls.ts",
+    "verify-auth": "vite-node src/verify-auth.ts"
   },
   "dependencies": {
     "pg": "^8.13.1"

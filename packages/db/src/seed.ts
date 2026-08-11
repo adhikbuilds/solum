@@ -15,12 +15,19 @@ import { createHash } from 'node:crypto';
 import { appraise, ENGINE_VERSION, DUBAI_DEFAULT_COSTS } from '@solum/engine';
 import type { AppraisalInput, ComparablesBand, UnitType } from '@solum/engine';
 import { withAdmin, close } from './client.js';
+import { hashPassword } from './auth.js';
 import type { PoolClient } from 'pg';
 
 const COMMUNITY = 'Wadi Al Safa 3';
 const AS_OF = '2026-07-12';
 const ORG_NAME = 'Al Mizan (demo)';
 const DEMO_EMAIL = 'demo@almizan.ae';
+/*
+ * Local demo password. Overridable, and deliberately NOT the credential that was shared over chat
+ * for the deployed beta — a password in a git-tracked seed file must never be one that works
+ * anywhere real.
+ */
+const DEMO_PASSWORD = process.env['SEED_DEMO_PASSWORD'] ?? 'solum-local-demo';
 
 /**
  * Deterministic PRNG. The engine forbids randomness; a seed script may use it, but it must be
@@ -111,9 +118,11 @@ async function main(): Promise<void> {
       );
       const user = await one<{ id: string }>(
         client,
-        `INSERT INTO users (email, full_name) VALUES ($1, $2)
-         ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name RETURNING id`,
-        [DEMO_EMAIL, 'Al Mizan demo user'],
+        `INSERT INTO users (email, full_name, password_hash) VALUES ($1, $2, $3)
+         ON CONFLICT (email) DO UPDATE
+           SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
+         RETURNING id`,
+        [DEMO_EMAIL, 'Al Mizan demo user', await hashPassword(DEMO_PASSWORD)],
       );
       await client.query(
         `INSERT INTO memberships (organisation_id, user_id, role) VALUES ($1, $2, 'owner')`,
@@ -326,7 +335,8 @@ async function main(): Promise<void> {
       const fmt = (f: string): string => `AED ${(Number(f) / 100).toFixed(0)}/sqft`;
       console.log(`\nSeeded.\n`);
       console.log(`  organisation_id  ${org.id}`);
-      console.log(`  workspace        ${workspace.id}\n`);
+      console.log(`  workspace        ${workspace.id}`);
+      console.log(`  sign in as       ${DEMO_EMAIL} / ${DEMO_PASSWORD}\n`);
       console.log(`  ${transactions.length} synthetic DLD transactions over 24 months`);
       console.log(`  comparables band DERIVED from them, not stated:`);
       console.log(`    low     ${fmt(snapshot.low)}`);

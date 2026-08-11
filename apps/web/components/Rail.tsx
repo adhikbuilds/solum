@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { logout } from '@/app/login/actions';
+import type { SessionUser } from '@solum/db';
 
 /**
  * The rail carries the seeded-data warning permanently.
@@ -7,7 +9,15 @@ import Link from 'next/link';
  * it, and synthetic data presented as observed data is worse than no data — nobody downstream can
  * correct it. It comes down when real DLD data lands, not before.
  */
-export function Rail({ organisation, workspace }: { organisation: string; workspace?: string }) {
+export function Rail({
+  organisation,
+  workspace,
+  user,
+}: {
+  organisation: string;
+  workspace?: string;
+  user?: SessionUser;
+}) {
   return (
     <header className="rail">
       <Link href="/" className="rail-mark">
@@ -21,6 +31,18 @@ export function Rail({ organisation, workspace }: { organisation: string; worksp
       <span className="rail-note" title="Market data in this environment is generated, not observed.">
         Seeded market data
       </span>
+      {user ? (
+        <>
+          <span className="rail-ctx rail-who">
+            {user.email} · <b>{user.role}</b>
+          </span>
+          <form action={logout}>
+            <button type="submit" className="rail-out">
+              Sign out
+            </button>
+          </form>
+        </>
+      ) : null}
     </header>
   );
 }

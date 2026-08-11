@@ -15,9 +15,10 @@
     "db:seed": "pnpm --filter @solum/db seed",
     "db:reset": "pnpm --filter @solum/db reset",
     "db:verify-rls": "pnpm --filter @solum/db verify-rls",
-    "verify": "pnpm test && pnpm typecheck && pnpm db:verify-rls",
+    "verify": "pnpm test && pnpm typecheck && pnpm db:verify-rls && pnpm db:verify-auth",
     "dev": "pnpm --filter @solum/web dev",
-    "build": "pnpm --filter @solum/web build"
+    "build": "pnpm --filter @solum/web build",
+    "db:verify-auth": "pnpm --filter @solum/db verify-auth"
   },
   "devDependencies": {
     "typescript": "^5.6.3",

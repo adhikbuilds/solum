@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Rail } from '@/components/Rail';
 import { Ledger } from '@/components/Ledger';
-import { getAppraisal, resolveOrganisation, type FlagRow } from '@/lib/queries';
+import { getAppraisal, listRuns, type FlagRow } from '@/lib/queries';
+import { requireUser } from '@/lib/session';
+import { canWrite } from '@solum/db';
+import { RerunPanel, type Lever } from '@/components/RerunPanel';
 import {
   aed,
   count,
@@ -20,11 +23,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function PlotPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const org = await resolveOrganisation();
-  if (!org) notFound();
+  const user = await requireUser();
 
-  const a = await getAppraisal(org.id, id);
+  const a = await getAppraisal(user.organisationId, id);
   if (!a) notFound();
+  const runs = await listRuns(user.organisationId, id);
 
   const copy = VERDICT_COPY[a.verdict] ?? { word: a.verdict, sub: '' };
   const landPsf =
@@ -45,7 +48,7 @@ export default async function PlotPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <Rail organisation={org.name} workspace="Dubai land pipeline" />
+      <Rail organisation={user.organisationName} workspace="Dubai land pipeline" user={user} />
       <main className="frame">
         <Link href="/" className="back">
           ← All plots
@@ -223,6 +226,59 @@ export default async function PlotPage({ params }: { params: Promise<{ id: strin
               </>
             ) : null}
 
+            {/* ── Change an assumption and recompute ──────────────────────────── */}
+            <div className="sect">
+              <h2>Test an assumption</h2>
+              <span className="sect-rule" />
+              <span className="sect-note">leave a field blank to keep it</span>
+            </div>
+            <RerunPanel
+              plotId={a.plotId}
+              canWrite={canWrite(user.role)}
+              role={user.role}
+              levers={buildLevers(a)}
+            />
+
+            {/* ── Run history ─────────────────────────────────────────────────── */}
+            {runs.length > 1 ? (
+              <>
+                <div className="sect">
+                  <h2>Runs</h2>
+                  <span className="sect-rule" />
+                  <span className="sect-note">
+                    {runs.length} on this plot · nothing overwritten
+                  </span>
+                </div>
+                <div className="ledger">
+                  <table className="led-table" style={{ padding: '0.4rem 0' }}>
+                    <tbody>
+                      {runs.map((r, i) => (
+                        <tr key={r.appraisalId}>
+                          <td style={{ paddingLeft: '1rem', width: 'auto' }}>
+                            <b>{VERDICT_COPY[r.verdict]?.word ?? r.verdict}</b>
+                            {i === 0 ? ' · current' : ''}
+                            {r.note ? ` — ${r.note}` : ''}
+                            <br />
+                            <span style={{ color: 'var(--ink-faint)', fontSize: '0.72rem' }}>
+                              {r.computedAt.slice(0, 16).replace('T', ' ')} · engine{' '}
+                              {r.engineVersion} · land AED {aed(r.landCostFils)}
+                            </span>
+                          </td>
+                          <td className="num" style={{ paddingRight: '1rem' }}>
+                            {pct(r.profitOnCost)} on cost
+                            <br />
+                            <span style={{ color: 'var(--ink-faint)', fontSize: '0.72rem' }}>
+                              RLV AED {aed(r.residualLandValueFils)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
+
             {/* ── The ledger ──────────────────────────────────────────────────── */}
             <div className="sect">
               <h2>Derivation</h2>
@@ -242,6 +298,70 @@ export default async function PlotPage({ params }: { params: Promise<{ id: strin
       </main>
     </>
   );
+}
+
+/**
+ * The levers worth exposing.
+ *
+ * Not every input — a form with forty fields is the clutter problem again. These four plus the
+ * per-unit prices are the ones that actually move a verdict, and each is pre-filled with its
+ * current value as a placeholder rather than a default, so nothing is resubmitted by accident.
+ */
+function buildLevers(a: Awaited<ReturnType<typeof getAppraisal>> & object): Lever[] {
+  const inputs = a.inputs as {
+    costs?: { constructionPsf?: unknown };
+    targetProfitOnCost?: number;
+    scenarios?: { name: string; salePriceDelta: number }[];
+    units?: { code: string; label: string; pricePsf: unknown; enabled: boolean }[];
+  };
+
+  const bigintish = (v: unknown): number | null => {
+    if (typeof v === 'string' && v.endsWith('n')) return Number(v.slice(0, -1));
+    if (typeof v === 'number') return v;
+    return null;
+  };
+
+  const downside = inputs.scenarios?.find((s) => s.name === 'Downside');
+  const levers: Lever[] = [
+    {
+      name: 'landCostAed',
+      label: 'Land price',
+      current: aed(Number(a.landCostFils)),
+      suffix: 'AED',
+      hint: `walk-away is ${aed(a.residualLandValueFils)}`,
+    },
+    {
+      name: 'constructionPsf',
+      label: 'Construction',
+      current: psf(bigintish(inputs.costs?.constructionPsf)),
+      suffix: 'AED / sqft BUA',
+      hint: 'BUA, not GFA',
+    },
+    {
+      name: 'hurdlePct',
+      label: 'Hurdle',
+      current: ((inputs.targetProfitOnCost ?? 0.2) * 100).toFixed(0),
+      suffix: '% on cost',
+    },
+    {
+      name: 'downsidePricePct',
+      label: 'Downside price fall',
+      current: Math.abs((downside?.salePriceDelta ?? -0.1) * 100).toFixed(0),
+      suffix: '%',
+    },
+  ];
+
+  for (const u of inputs.units ?? []) {
+    if (!u.enabled) continue;
+    levers.push({
+      name: `price_${u.code}`,
+      label: `${u.label} price`,
+      current: psf(bigintish(u.pricePsf)),
+      suffix: 'AED / sqft saleable',
+    });
+  }
+
+  return levers;
 }
 
 function Metric({ k, v, per }: { k: string; v: string; per?: string }) {

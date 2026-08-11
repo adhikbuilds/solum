@@ -1,22 +1,23 @@
 import Link from 'next/link';
 import { Rail } from '@/components/Rail';
-import { listPipeline, resolveOrganisation } from '@/lib/queries';
+import { listPipeline } from '@/lib/queries';
+import { requireUser } from '@/lib/session';
 import { aed, pct, sqft, VERDICT_COPY } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PipelinePage() {
-  const org = await resolveOrganisation();
-  if (!org) return <NoDatabase />;
-
-  const rows = await listPipeline(org.id);
+  const user = await requireUser();
+  const rows = await listPipeline(user.organisationId);
 
   return (
     <>
-      <Rail organisation={org.name} workspace="Dubai land pipeline" />
+      <Rail organisation={user.organisationName} workspace="Dubai land pipeline" user={user} />
       <main className="frame">
         <p className="eyebrow">Land pipeline</p>
-        <h1 className="page-h">Four plots under consideration</h1>
+        <h1 className="page-h">
+          {rows.length === 1 ? 'One plot' : `${rows.length} plots`} under consideration
+        </h1>
         <p className="page-sub">
           Each row is the latest appraisal on that plot. A withheld plot is not a failure of the
           plot — it means the inputs contradict each other and no honest call can be made yet.
@@ -110,29 +111,6 @@ function Headroom({
       <p className="row-figure-k">
         {room ? 'under the walk-away price' : 'over the walk-away price'}
       </p>
-    </>
-  );
-}
-
-function NoDatabase() {
-  return (
-    <>
-      <Rail organisation="No organisation" />
-      <main className="frame">
-        <p className="eyebrow">Not set up yet</p>
-        <h1 className="page-h">The database has no organisation</h1>
-        <div className="empty">
-          <h2>Start Postgres and seed it</h2>
-          <p>Three commands from the repository root:</p>
-          <p>
-            <code>pnpm db:up</code> <code>pnpm db:migrate</code> <code>pnpm db:seed</code>
-          </p>
-          <p>
-            The seed writes synthetic DLD transactions and derives the comparables band from them,
-            so the query path is exercised rather than bypassed.
-          </p>
-        </div>
-      </main>
     </>
   );
 }

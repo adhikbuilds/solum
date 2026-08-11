@@ -1,4 +1,4 @@
-import { withTenant, withAdmin } from '@solum/db';
+import { withTenant } from '@solum/db';
 
 /**
  * Every read goes through `withTenant`, which sets the organisation context inside a transaction
@@ -40,6 +40,7 @@ export interface AppraisalDetail extends PipelineRow {
     sampleSize: number;
     source: string;
     segment: string | null;
+    snapshotId: string;
   };
   unitBands: {
     unitType: string;
@@ -64,13 +65,54 @@ export interface FlagRow {
   evidence: Record<string, unknown>;
 }
 
-/** The demo organisation. Real auth replaces this; the query shape does not change. */
-export async function resolveOrganisation(): Promise<{ id: string; name: string } | null> {
-  return withAdmin(async (client) => {
-    const { rows } = await client.query<{ id: string; name: string }>(
-      'SELECT id, name FROM organisations ORDER BY created_at LIMIT 1',
+/**
+ * Every run ever computed for this plot, newest first.
+ *
+ * This is what the immutable schema buys. The prototype stored a plot as one jsonb blob overwritten
+ * in place, so "how did our view of this site change" was unanswerable. Here it is a query.
+ */
+export interface RunRow {
+  appraisalId: string;
+  label: string;
+  note: string | null;
+  verdict: string;
+  computedAt: string;
+  engineVersion: string;
+  residualLandValueFils: number | null;
+  landCostFils: number | null;
+  profitOnCost: number | null;
+}
+
+export async function listRuns(organisationId: string, plotId: string): Promise<RunRow[]> {
+  return withTenant(organisationId, async (client) => {
+    const { rows } = await client.query(
+      `SELECT a.id AS appraisal_id, a.label, a.note, r.verdict, r.computed_at,
+              r.engine_version, r.outputs, s.inputs
+       FROM appraisals a
+       JOIN assumption_sets s ON s.appraisal_id = a.id
+       JOIN results r         ON r.assumption_set_id = s.id
+       WHERE a.plot_id = $1
+       ORDER BY r.computed_at DESC`,
+      [plotId],
     );
-    return rows[0] ?? null;
+
+    return rows.map((r) => {
+      const outputs = r.outputs as Record<string, unknown>;
+      // Stored inputs encode bigints as "1234n"; Number() on that is NaN, which renders as an
+      // em dash and silently hides the land price the run was computed against.
+      const inputs = r.inputs as { plot?: { landCost?: unknown } };
+      return {
+        appraisalId: r.appraisal_id,
+        label: r.label,
+        note: r.note,
+        verdict: r.verdict,
+        computedAt: new Date(r.computed_at).toISOString(),
+        engineVersion: r.engine_version,
+        residualLandValueFils: numeric(outputs['residualLandValue']),
+        landCostFils: numeric(inputs.plot?.landCost),
+        profitOnCost: typeof outputs['profitOnCost'] === 'number' ? outputs['profitOnCost'] : null,
+      } satisfies RunRow;
+    });
   });
 }
 
@@ -129,8 +171,8 @@ export async function getAppraisal(
               a.id AS appraisal_id,
               s.inputs,
               r.verdict, r.verdict_reason, r.outputs, r.trace, r.flags, r.engine_version,
-              cs.as_of, cs.method, cs.low_psf_fils, cs.median_psf_fils, cs.high_psf_fils,
-              cs.sample_size, cs.source, cs.segment
+              cs.id AS snapshot_id, cs.as_of, cs.method, cs.low_psf_fils, cs.median_psf_fils,
+              cs.high_psf_fils, cs.sample_size, cs.source, cs.segment
        FROM plots p
        LEFT JOIN communities c        ON c.id = p.community_id
        JOIN appraisals a              ON a.plot_id = p.id
@@ -188,6 +230,7 @@ export async function getAppraisal(
         sampleSize: row.sample_size,
         source: row.source,
         segment: row.segment,
+        snapshotId: row.snapshot_id,
       },
       unitBands: bands.rows.map((b) => ({
         unitType: b.unit_type,

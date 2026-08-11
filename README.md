@@ -74,6 +74,31 @@ is what makes the calls it does make worth something.
 > `PASS / MARGINAL / FAIL / NO_VERDICT` and the interface renders them as
 > Endorsed / Held / Declined / Withheld.
 
+## It is a platform, not a report
+
+Auth is real and tenant context comes from the session, not from "the first organisation in the
+table". Row-level security can only isolate tenants if something actually chooses which tenant a
+request is for.
+
+- **Sign in** with opaque server-side sessions rather than a stateless token, because revocation has
+  to take effect immediately — an analyst leaves, a laptop goes missing, and access stops now.
+  Deleting a row does that; invalidating a signed token needs a denylist, which is a session table
+  with extra steps. scrypt from the standard library, salted per password.
+- **Roles.** A `viewer` reads an appraisal and its derivation but cannot re-run it.
+- **Change an assumption and recompute.** Land price, construction cost per sqft of BUA, hurdle,
+  downside severity, and each unit type's price. Fields are pre-filled as placeholders rather than
+  defaults, so nothing is resubmitted by accident, and a blank field means "leave this alone".
+- **Nothing is ever overwritten.** A re-run writes a new appraisal linked to the one it supersedes,
+  a new assumption set and a new result, against the *same* pinned comparables snapshot — so it is a
+  re-run of the same view of the market, not a refresh of it. Verified: a plot went Declined at
+  AED 120,000,000 to Endorsed at AED 90,054,101, and the original run is byte-identical afterwards.
+- **Run history** on every plot. The prototype stored a plot as one jsonb blob overwritten in place,
+  so "how did our view of this site change" was unanswerable. Here it is a query.
+
+Checked by command, not by clicking once: `pnpm db:verify-auth` (15 checks — salting, timing,
+expiry, revocation, session unguessability, and that the app role cannot read the sessions table at
+all) and `pnpm db:verify-rls` (6 checks).
+
 ## The interface
 
 `apps/web` — Next.js, server-rendered from Postgres. Every read goes through `withTenant`, so
