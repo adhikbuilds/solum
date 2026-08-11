@@ -8,7 +8,14 @@
   "scripts": {
     "test": "pnpm --filter @solum/engine test",
     "demo": "pnpm --filter @solum/engine demo",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @solum/db migrate",
+    "db:seed": "pnpm --filter @solum/db seed",
+    "db:reset": "pnpm --filter @solum/db reset",
+    "db:verify-rls": "pnpm --filter @solum/db verify-rls",
+    "verify": "pnpm test && pnpm typecheck && pnpm db:verify-rls"
   },
   "devDependencies": {
     "typescript": "^5.6.3",

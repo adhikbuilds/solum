@@ -6,22 +6,26 @@ A beta prototype is deployed at `solum-beta-navy.vercel.app`. This repo is the r
 entirely locally — no cloud dependency — and is structured so it can move to AWS later without
 reshaping the code.
 
-## What the beta actually is
+## What the prototype actually is
 
-Checked directly on 2026-08-09:
+Source at `github.com/DKubadia/solum`, available here as the `prototype` remote (fetched, not
+merged). Read [`docs/prototype-audit.md`](docs/prototype-audit.md) before anything else — several
+claims made from black-box inspection of the deployed page were wrong, and they are corrected there.
 
-- One 223KB HTML file. No build step, no framework. Supabase loaded from a CDN `<script>` tag.
-- Three database tables: `plots`, `dld_locations`, `area_aliases`.
-- No transactions table, so comparables cannot be derived from data.
-- Comparable project names are string literals in the page source.
-- No regression, no forecasting, no model of any kind.
+It has more than the page suggests: a `dld_transactions` store of roughly 4,000 rows, a real
+comparables method (`get_comps()` — P5–P95 outlier trim per unit type, recency weighting on a
+one-year half-life), a working DLD ingest script, RLS correctly enabled, seven migrations, written
+PRDs, and a competitor analysis.
+
+What it lacks is structural, and it is what this rebuild addresses: plots are scoped per user
+(`user_id = auth.uid()`) rather than per organisation; a plot is a single `data jsonb` blob
+overwritten in place, so there is no appraisal history; comparables are computed live against
+`current_date`, so a saved plot silently re-prices as data moves; and the calculation runs in a
+218KB single-file page with no build step.
 
 Tabs are Summary, Unit Matrix, Assumptions, Plot Details, Market insights. There is no Finance tab
 and no Cashflow tab, while the landing page advertises "Cashflow & Timeline — peak funding, time to
 handover, payment plan modeling" as a shipped feature.
-
-This is a form, some arithmetic, and a plot store. Treat it as a source of decisions someone already
-made about Dubai cost lines, not as a foundation.
 
 ## Where the value actually is
 
@@ -70,25 +74,49 @@ downside; that single behaviour is what loses an account permanently.
 ## Running it
 
 ```bash
+cp .env.example .env
 pnpm install
-pnpm test          # engine unit tests, hand-computed expected values
+pnpm db:up          # local Postgres in Docker on :5433
+pnpm db:migrate
+pnpm db:seed        # synthetic transactions; the comparables band is DERIVED from them
+pnpm demo           # the engine, on the prototype's own numbers
+pnpm verify         # tests + typecheck + tenant-isolation checks
 ```
 
-Node 20+. Nothing else required — no Docker, no database, no cloud account.
+Node 20+ and Docker. Nothing cloud-specific. Neon is Postgres, so moving there is a `DATABASE_URL`
+change — see `.env.example`.
+
+Seeded market data is tagged `source = 'seed'` at the row level and must be surfaced as such in the
+UI. It flows through the real query path rather than being hardcoded in a component, so the pipeline
+is genuinely exercised while DLD access is settled. Synthetic data presented as observed market data
+is worse than no data, because nobody downstream can correct it.
+
+## What to build next
+
+Ordered by Al Mizan's own triage (`docs/feedback/2026-08-almizan-demo.md`, 2026-08-07), not ours.
+Their note is blunt: not one item was a bug report — it is almost entirely explainability. And they
+warned explicitly against building the AI layer before the numbers can explain themselves.
+
+**Blocks trust:** label every PSF with its denominator (sale = saleable, construction = BUA,
+land = plot — three denominators on one screen, none labelled); explain residual land value on
+screen; separate authority data from agent-entered data.
+
+**Blocks use:** 4BR as a unit type; segment-aware comparables (their v1 heuristic: top 5% of
+transactions = luxury); timeline and payment plan asked at plot creation; and *"this does not work —
+here is what would make it viable"* instead of a bare verdict.
+
+**The strategic one:** FAR drives timeline, timeline drives capital rotation, so **IRR not ROI** is
+the comparison that matters. Cheap first step is making timeline a function of floors and basements
+rather than a constant.
 
 ## Open blockers
 
-**Two documents were referenced when this was scoped and never arrived.** Both matter more than
-further competitor research:
-
-1. **AIRE sample feasibility report** — the end-outcome artifact. What a deliverable must contain to
-   be accepted by a Dubai developer or lender. This drives the result data model more than any
-   screen does.
-2. **Land Sterling proposal** — described as setting out methodology in detail. The closest available
-   written spec of how the incumbent consultancies actually compute their numbers.
-
-Also unresolved: **how DLD data is obtained** (official API, licensed reseller, or manual). This
-blocks the entire market-data side and therefore all four models above.
+1. **AIRE sample feasibility report** — never arrived. The output artifact drives the result data
+   model more than any screen does.
+2. **Land Sterling proposal** — methodology in detail; the closest available spec of how the
+   incumbent consultancies actually compute their numbers.
+3. **Did Al Mizan reconcile anything against their own Excel?** Their own triage calls this "the
+   single most important unknown." It still is.
 
 ## Conventions
 

@@ -1,0 +1,23 @@
+# Local Postgres. Nothing here is Neon-specific — Neon is Postgres, so moving over is a
+# connection-string change, not a code change.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: solum-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: solum
+      POSTGRES_PASSWORD: solum
+      POSTGRES_DB: solum
+    ports:
+      - '5433:5432' # 5433 to avoid colliding with any local Postgres already on 5432
+    volumes:
+      - solum-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U solum -d solum']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  solum-pgdata:
