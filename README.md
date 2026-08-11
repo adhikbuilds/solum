@@ -160,6 +160,10 @@ read as a bug.
   with published pricing. Three claims from the earlier analysis did not survive checking.
 - [`docs/domain-model.md`](docs/domain-model.md) — the Dubai escrow and payment-plan mechanics the
   wedge depends on, sourced and tagged, with the open questions listed.
+- [`docs/neon.md`](docs/neon.md) — deploying the database, and the RLS bug Neon surfaced that was
+  invisible on a local superuser.
+- [`docs/prototype-audit.md`](docs/prototype-audit.md) — what the prototype really contains, and the
+  claims I got wrong reading it from the outside.
 
 ## Running it
 
@@ -174,8 +178,8 @@ pnpm dev            # the app on http://localhost:3100
 pnpm verify         # tests + typecheck + tenant-isolation checks
 ```
 
-Node 20+ and Docker. Nothing cloud-specific. Neon is Postgres, so moving there is a `DATABASE_URL`
-change — see `.env.example`.
+Node 20+ and Docker. Nothing cloud-specific: Neon is Postgres, so moving there is a `DATABASE_URL`
+change — see [`docs/neon.md`](docs/neon.md).
 
 Seeded market data is tagged `source = 'seed'` at the row level and must be surfaced as such in the
 UI. It flows through the real query path rather than being hardcoded in a component, so the pipeline

@@ -44,11 +44,35 @@ if (!connectionString) {
  * edge runtime, swap to @neondatabase/serverless — that is a client change, not a schema or
  * query change, which is the whole point of staying on ordinary Postgres.
  */
+const isLocalHost = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(connectionString);
+
 export const pool = new Pool({
   connectionString,
-  ssl: connectionString.includes('sslmode=require') ? { rejectUnauthorized: true } : undefined,
+  /*
+   * TLS on for anything that is not localhost, whether or not the URL says sslmode=require.
+   * Neon requires it, and relying on the caller to remember a query parameter is how a land
+   * valuation ends up crossing the internet in clear text.
+   */
+  ssl: isLocalHost ? undefined : { rejectUnauthorized: true },
   max: 10,
 });
+
+/** True when DATABASE_URL points somewhere other than this machine. */
+export const isRemote = !isLocalHost;
+
+/**
+ * Neon serves two endpoints per branch: a direct one and a pooled one whose host carries `-pooler`.
+ *
+ * The pooler runs in transaction mode, which silently breaks two things this schema depends on —
+ * session-level `SET ROLE` and advisory locks — and makes DDL unreliable. Migrations must use the
+ * direct endpoint; the application is fine on either.
+ */
+export const isPooledEndpoint = /-pooler\./.test(connectionString);
+
+export function describeTarget(): string {
+  const host = /@([^/:]+)/.exec(connectionString)?.[1] ?? 'unknown host';
+  return `${host}${isPooledEndpoint ? ' (pooled)' : ''}`;
+}
 
 /**
  * Run work inside a transaction with tenant context set.
@@ -63,6 +87,15 @@ export async function withTenant<T>(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    /*
+     * Drop to the unprivileged role for the whole transaction.
+     *
+     * Without this, tenant queries run as the table owner. On a local Docker Postgres that owner is
+     * a superuser and bypasses RLS entirely — so the policies look like they work while never being
+     * exercised. Assuming the role makes isolation behave the same everywhere, and `SET LOCAL`
+     * scopes it to this transaction so a pooled connection cannot leak it into the next request.
+     */
+    await client.query('SET LOCAL ROLE solum_app');
     await client.query('SELECT set_config($1, $2, true)', [
       'solum.organisation_id',
       organisationId,

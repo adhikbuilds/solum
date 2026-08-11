@@ -6,11 +6,21 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { withAdmin, close } from './client.js';
+import { withAdmin, close, isPooledEndpoint, isRemote, describeTarget } from './client.js';
 
 const MIGRATIONS_DIR = resolve(import.meta.dirname, '../migrations');
 
 async function main(): Promise<void> {
+  if (isPooledEndpoint) {
+    throw new Error(
+      `Refusing to migrate through a pooled endpoint (${describeTarget()}).\n` +
+        `  Neon's pooler runs in transaction mode, which breaks session-level SET ROLE and makes\n` +
+        `  DDL unreliable. Use the direct connection string — the host without '-pooler'.`,
+    );
+  }
+
+  console.log(`\n  target: ${describeTarget()}${isRemote ? '  \x1b[33m(remote)\x1b[0m' : ''}\n`);
+
   await withAdmin(async (client) => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (

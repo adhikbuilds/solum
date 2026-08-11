@@ -10,7 +10,7 @@
  *
  * Exits non-zero on failure so it can gate a deploy.
  */
-import { withAdmin, close } from './client.js';
+import { withAdmin, withTenant, close } from './client.js';
 import type { PoolClient } from 'pg';
 
 const FAKE_ORG = '00000000-0000-0000-0000-000000000000';
@@ -70,6 +70,35 @@ const checks: Check[] = [
   {
     name: 'market data is readable by any tenant',
     run: async (c, org) => (await countAs(c, 'comparable_snapshots', org)) > 0,
+  },
+  {
+    // The check that matters most: this goes through withTenant, the same code path the
+    // application uses, rather than switching role by hand.
+    name: 'the real application path is isolated, not just a hand-rolled SET ROLE',
+    run: async (_c, org) => {
+      const mine = await withTenant(org, async (t) => {
+        const { rows } = await t.query<{ n: string }>('SELECT count(*) AS n FROM plots');
+        return Number(rows[0]?.n ?? 0);
+      });
+      const theirs = await withTenant(FAKE_ORG, async (t) => {
+        const { rows } = await t.query<{ n: string }>('SELECT count(*) AS n FROM plots');
+        return Number(rows[0]?.n ?? 0);
+      });
+      return mine > 0 && theirs === 0;
+    },
+  },
+  {
+    name: 'the application path cannot write market data',
+    run: async (_c, org) => {
+      try {
+        await withTenant(org, async (t) => {
+          await t.query('UPDATE comparable_snapshots SET high_psf_fils = 1');
+        });
+        return false;
+      } catch {
+        return true;
+      }
+    },
   },
   {
     name: 'app role cannot modify a pinned comparables snapshot',
