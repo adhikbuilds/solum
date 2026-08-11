@@ -7,7 +7,13 @@ export const SESSION_COOKIE = 'solum_session';
 /** The signed-in user, or null. Never throws — callers decide what an absent session means. */
 export async function currentUser(): Promise<SessionUser | null> {
   const jar = await cookies();
-  return getSessionUser(jar.get(SESSION_COOKIE)?.value);
+  const token =
+    jar.get(SESSION_COOKIE)?.value ??
+    // Headless-browser visual QA has no cookie jar to sign in with. Outside production only, a
+    // real session token (inserted by hand for a seeded user) can be supplied by env instead of
+    // cookie — this still runs the actual lookup below, it just skips the browser login form.
+    (process.env.NODE_ENV !== 'production' ? process.env.SOLUM_SHOT_SESSION : undefined);
+  return getSessionUser(token);
 }
 
 /**
