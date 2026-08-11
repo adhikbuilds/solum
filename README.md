@@ -23,9 +23,12 @@ overwritten in place, so there is no appraisal history; comparables are computed
 `current_date`, so a saved plot silently re-prices as data moves; and the calculation runs in a
 218KB single-file page with no build step.
 
-Tabs are Summary, Unit Matrix, Assumptions, Plot Details, Market insights. There is no Finance tab
-and no Cashflow tab, while the landing page advertises "Cashflow & Timeline — peak funding, time to
-handover, payment plan modeling" as a shipped feature.
+It also has a **full quarterly cashflow** — `cashflow()` in `solum.html` — with cost inflation,
+price growth, off-plan share and a 20/50/30 booking / construction / handover split, plus peak
+funding and an annualised IRR. There is no Finance or Cashflow *tab*, which is what misled me from
+the outside, but the logic exists. It even hit the same IRR sign-change problem this engine guards
+against, and solved it the same way: launch follows acquisition rather than sitting at period zero.
+What it does not have is an S-curve — construction spreads linearly with escalation.
 
 ## Where the value actually is
 
@@ -60,8 +63,16 @@ that produced it plus a full trace of how each number was derived.
 It implements the credibility fix first: **the engine can refuse.** When inputs contradict each
 other — a launch price above the tool's own comparables band, or a downside scenario running at a
 loss — it raises a blocking flag and returns no verdict at all. Being able to decline to call a deal
-is what makes the calls it does make worth something. The beta printed PASS on a loss-making
-downside; that single behaviour is what loses an account permanently.
+is what makes the calls it does make worth something.
+
+> **A correction worth keeping.** The earlier analysis held that the prototype "printed PASS on a
+> loss-making downside" and treated that as the defect losing the account. Its verdict vocabulary is
+> `PURSUE / NEGOTIATE / PASS`, where **PASS means pass on the deal** — decline it. The tool was
+> saying the right thing and the analysis misread the label. Al Mizan's feedback contains no bug
+> report at all. The refusal behaviour here is still worth having, but as explainability, not as a
+> fix for a bug that was never there. This engine avoids the ambiguity entirely: verdicts are
+> `PASS / MARGINAL / FAIL / NO_VERDICT` and the interface renders them as
+> Endorsed / Held / Declined / Withheld.
 
 ## The interface
 
