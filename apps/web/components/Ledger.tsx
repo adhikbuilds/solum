@@ -5,8 +5,10 @@ import type { TraceStep } from '@/lib/queries';
  * The derivation ledger — the signature element.
  *
  * Al Mizan asked, in four different forms, to be told what a number means and where it came from.
- * This is the answer: every headline figure is a row, every row states the rule that produced it in
- * notation a surveyor would recognise, and opening a row shows the inputs that went in.
+ * This is the answer: every headline figure is a row, named in plain English, and opening a row
+ * shows the inputs that went in. The underlying identifier and formula notation (e.g. `gdv.total`,
+ * `Σ(area_i × psf_i)`) are real and available — behind the small hint mark, not printed by default.
+ * A buyer reading this over someone's shoulder should see a ledger, not a spreadsheet.
  *
  * Collapsed by default. The clutter problem in the prototype was that everything was on screen at
  * once with equal weight; the fix is not less information, it is information that arrives when
@@ -21,8 +23,12 @@ export function Ledger({ steps }: { steps: TraceStep[] }) {
             <span className="led-caret" aria-hidden="true">
               ▸
             </span>
-            <span className="led-id">{step.id}</span>
-            <span className="led-rule">{step.rule}</span>
+            <span className="led-name">
+              {step.label}
+              <span className="led-hint" title={`${step.id}  ·  ${step.rule}`}>
+                ?
+              </span>
+            </span>
             <span className="led-out num">{renderOutput(step)}</span>
           </summary>
           <div className="led-inputs">

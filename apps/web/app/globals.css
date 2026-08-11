@@ -546,7 +546,7 @@ a {
 
 .ledger summary {
   display: grid;
-  grid-template-columns: 1.1rem minmax(9rem, 14rem) 1fr auto;
+  grid-template-columns: 1.1rem 1fr auto;
   gap: 0.9rem;
   align-items: baseline;
   padding: 0.7rem 1rem;
@@ -573,20 +573,31 @@ a {
 
 details[open] .led-caret { transform: rotate(90deg); }
 
-.led-id {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  letter-spacing: 0.02em;
+.led-name {
+  font-size: 0.88rem;
+  font-weight: 550;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-.led-rule {
+/* The formula notation and internal id live here, not in the row itself — a hint for whoever
+   wants it, not a default the whole table has to look at. */
+.led-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 1px solid var(--sheet-rule);
+  color: var(--ink-faint);
   font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--ink-soft);
-  overflow-wrap: anywhere;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.6rem;
+  font-weight: 600;
+  cursor: help;
+  flex-shrink: 0;
 }
 
 /* Grid children must be allowed to shrink or a long rule pushes the value column off-screen. */
@@ -825,10 +836,6 @@ details[open] .led-caret { transform: rotate(90deg); }
 }
 
 @media (max-width: 46rem) {
-  .ledger summary {
-    grid-template-columns: 1.1rem 1fr auto;
-  }
-  .led-rule { display: none; }
   .led-inputs { padding-left: 1rem; }
   .led-table td:first-child { width: auto; white-space: normal; }
   .sheet-body, .sheet-head { padding-left: 1.1rem; padding-right: 1.1rem; }
