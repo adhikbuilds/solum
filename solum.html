@@ -331,6 +331,19 @@ table.buildup tr.profit td.val{font-size:var(--fs-body); color:var(--accent-500)
 /* sub-section headings inside the cost buildup (mirror the Cost assumptions groups) */
 table.buildup tr.grp td{font-size:var(--fs-label); font-weight:var(--fw-black); letter-spacing:.07em; text-transform:uppercase; color:var(--accent-500); padding:16px 0 6px; border-bottom:1px solid var(--line)}
 table.buildup tr.grp:first-child td{padding-top:2px}
+/* collapsible cost groups (Land / Construction / Soft cost) — the subtotal row stays an
+   eyebrow-style header in its label cell, but its own value/psf read as a real number,
+   not a faded label, since it's the number most people will actually stop and read. */
+table.buildup tr.grp-toggle{cursor:pointer}
+table.buildup tr.grp-toggle:hover td.lab{color:var(--accent-600, var(--accent-500))}
+table.buildup tr.grp-toggle td.val,
+table.buildup tr.grp-toggle td.psf{text-transform:none; letter-spacing:normal; font-weight:var(--fw-bold); color:var(--ink); font-size:var(--fs-body)}
+table.buildup tr.grp-toggle td.psf{font-size:var(--fs-label); color:var(--muted)}
+table.buildup tr.grp .chev{display:inline-block; width:.85em; color:var(--muted)}
+table.buildup tr.grp-child{display:none}
+table.buildup tr.grp-child.show{display:table-row}
+table.buildup tr.grp-child td.lab{padding-left:22px; color:var(--muted); font-weight:var(--fw-medium)}
+table.buildup tr.grp-child td.val{font-weight:var(--fw-medium)}
 
 table.rectable{width:100%; border-collapse:collapse; font-size:var(--fs-body)}
 table.rectable th{text-align:right; font-weight:var(--fw-bold); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:0 0 8px; border-bottom:2px solid var(--line)}
@@ -861,7 +874,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div>
             <div class="panel">
               <h2><span class="n">01</span> Financial breakdown <button class="info" data-pop="finbreak">i</button></h2>
-              <p class="sec-note">AED/sqft below is per sqft of <b>saleable area</b> throughout, for comparability — including construction, which is <i>priced</i> per sqft of BUA (see Assumptions) but re-expressed here on the same basis as everything else.</p>
+              <p class="sec-note">AED/sqft below is per sqft of <b>saleable area</b> throughout, for comparability — including construction, which is <i>priced</i> per sqft of BUA (see Assumptions) but re-expressed here on the same basis as everything else. Land, construction and soft cost are one line each until you open them.</p>
               <table class="buildup" id="buildupTable"></table>
             </div>
           </div>
@@ -1380,6 +1393,9 @@ let PROJECTS=[];
 let CURRENT_ID=null;
 let saveTimer=null;
 let PENDING_DELETE_ID=null;
+/* which cost groups are expanded on the Financial breakdown table — UI-only, not
+   part of a plot's saved data, so it lives here rather than in STATE/defaultState(). */
+let BUILDUP_OPEN=new Set();
 
 const POPS = {
   land:{t:"The plot acquisition price being tested.", s:"Compare it against the Residual Land Value, the most payable that still clears the hurdle.", tier:'input'},
@@ -2185,23 +2201,30 @@ function render(){
   /* cost buildup table (Summary) — AED total + AED/sqft of saleable area */
   const bt=document.getElementById('buildupTable');
   const psf=n=> best.sal>0? fN(n/best.sal) : '—';
+  /* Land / construction / soft cost each collapse to a single clickable subtotal row —
+     the underlying line items only render (as indented child rows) when that group is
+     in BUILDUP_OPEN. Revenue and the two closing totals stay as plain single rows since
+     there's nothing under them worth hiding. */
+  const landSub=mk.land+best.dld;
+  const consSub=best.hard+best.cont+best.park;
+  const softSub=best.archd+best.archs+best.auth+best.landsc+best.misc+best.mkt;
   bt.innerHTML=
     grp('Revenue')+
     row2('Gross development value',fA(best.gdv),psf(best.gdv))+
-    grp('Land cost')+
-    row2('Land (tested)',fA(mk.land),psf(mk.land))+
-    row2('DLD transfer fee',fA(best.dld),psf(best.dld))+
-    grp('Construction (hard) cost')+
-    row2('Construction (hard)',fA(best.hard),psf(best.hard))+
-    row2('Contingency',fA(best.cont),psf(best.cont))+
-    row2('Parking bays',fA(best.park),psf(best.park))+
-    grp('Soft cost')+
-    row2('Architect: design',fA(best.archd),psf(best.archd))+
-    row2('Architect: supervision',fA(best.archs),psf(best.archs))+
-    row2('Authorities',fA(best.auth),psf(best.auth))+
-    row2('Landscape & variations',fA(best.landsc),psf(best.landsc))+
-    row2('Miscellaneous',fA(best.misc),psf(best.misc))+
-    row2('Marketing & sales',fA(best.mkt),psf(best.mkt))+
+    grpRow('Land cost',fA(landSub),psf(landSub),'land')+
+    childRow('Land (tested)',fA(mk.land),psf(mk.land),'land')+
+    childRow('DLD transfer fee',fA(best.dld),psf(best.dld),'land')+
+    grpRow('Construction (hard) cost',fA(consSub),psf(consSub),'construction')+
+    childRow('Construction (hard)',fA(best.hard),psf(best.hard),'construction')+
+    childRow('Contingency',fA(best.cont),psf(best.cont),'construction')+
+    childRow('Parking bays',fA(best.park),psf(best.park),'construction')+
+    grpRow('Soft cost',fA(softSub),psf(softSub),'soft')+
+    childRow('Architect: design',fA(best.archd),psf(best.archd),'soft')+
+    childRow('Architect: supervision',fA(best.archs),psf(best.archs),'soft')+
+    childRow('Authorities',fA(best.auth),psf(best.auth),'soft')+
+    childRow('Landscape & variations',fA(best.landsc),psf(best.landsc),'soft')+
+    childRow('Miscellaneous',fA(best.misc),psf(best.misc),'soft')+
+    childRow('Marketing & sales',fA(best.mkt),psf(best.mkt),'soft')+
     rowc2('Total investment',fA(best.total),psf(best.total),'total')+
     rowc2('Net profit',fA(best.profit),psf(best.profit),'profit');
 
@@ -2243,6 +2266,16 @@ function rowc(l,v,c){return `<tr class="${c}"><td class="lab">${l}</td><td class
 function row2(l,v,psf){return `<tr><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;}
 function grp(l){return `<tr class="grp"><td colspan="3">${l}</td></tr>`;}
 function rowc2(l,v,psf,c){return `<tr class="${c}"><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;}
+/* clickable group-subtotal row (Financial breakdown) — chevron + label + subtotal, always
+   visible; the line items behind it render via childRow() only when BUILDUP_OPEN has `key`. */
+function grpRow(l,v,psf,key){
+  const open=BUILDUP_OPEN.has(key);
+  return `<tr class="grp grp-toggle" data-key="${key}"><td class="lab"><span class="chev">${open?'▾':'▸'}</span> ${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;
+}
+function childRow(l,v,psf,key){
+  const open=BUILDUP_OPEN.has(key);
+  return `<tr class="grp-child${open?' show':''}" data-parent="${key}"><td class="lab">${l}</td><td class="val">${v}</td><td class="psf">${psf}/sqft</td></tr>`;
+}
 
 function renderScen(best,mk){
   const pf=STATE.scenarioFlex.price/100, cf=STATE.scenarioFlex.cost/100;
@@ -2343,6 +2376,16 @@ document.addEventListener('click',closePop);
 document.getElementById('expbtn').addEventListener('click',()=>{
   const b=document.getElementById('expbody'); const open=b.classList.toggle('show');
   document.getElementById('expbtn').firstChild.textContent=(open?'▾':'▸')+' Show every mix the optimiser weighed ';
+});
+
+/* Financial breakdown group toggles — delegated once on the table itself since its rows
+   are fully rebuilt by render() every time; re-registering per-row would leak listeners. */
+document.getElementById('buildupTable').addEventListener('click',e=>{
+  const tr=e.target.closest('tr.grp-toggle');
+  if(!tr) return;
+  const key=tr.dataset.key;
+  if(BUILDUP_OPEN.has(key)) BUILDUP_OPEN.delete(key); else BUILDUP_OPEN.add(key);
+  render();
 });
 (function(){ const t=document.getElementById('cfToggle'); if(!t) return;
   t.addEventListener('click',()=>{ const c=document.getElementById('cf-chart'); const open=c.style.display==='none'; c.style.display=open?'block':'none'; document.getElementById('cfToggleIcon').textContent=open?'▾':'▸'; });
