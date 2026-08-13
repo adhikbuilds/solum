@@ -313,6 +313,7 @@ body.view-compare #portfolioView{display:none}
 .modal .btn.primary[disabled]{opacity:.45; cursor:not-allowed}
 /* the arithmetic behind the strip, spelled out so it can be checked by hand */
 .eff-note{margin-top:var(--sp-3); line-height:1.6}
+.rlv-note{margin-top:var(--sp-3); line-height:1.6}
 .mixlegend{display:flex; flex-wrap:wrap; gap:var(--sp-4); margin-bottom:var(--sp-5); padding-top:var(--sp-1)}
 .mixlegend .li{display:flex; align-items:center; gap:6px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted)}
 .mixlegend .li b{color:var(--ink); font-weight:var(--fw-bold); font-family:var(--font-mono)}
@@ -859,6 +860,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div>
             <div class="panel">
               <h2><span class="n">01</span> Financial breakdown <button class="info" data-pop="finbreak">i</button></h2>
+              <p class="sec-note">AED/sqft below is per sqft of <b>saleable area</b> throughout, for comparability — including construction, which is <i>priced</i> per sqft of BUA (see Assumptions) but re-expressed here on the same basis as everything else.</p>
               <table class="buildup" id="buildupTable"></table>
             </div>
           </div>
@@ -876,6 +878,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
                 <div class="k">Residual land value <button class="info" data-pop="rlv">i</button></div>
                 <div class="v" id="rlv">—</div>
               </div>
+              <p class="sec-note rlv-note" id="rlv-note"></p>
             </div>
             <div class="panel">
               <h2><span class="n">03</span> Scenario testing <button class="info" data-pop="scenario">i</button></h2>
@@ -2202,6 +2205,19 @@ function render(){
   document.getElementById('rectable-foot').innerHTML=
     `<tr class="total"><td>Total</td><td></td><td>${sumUnits}</td><td>${fN(sumSize)} sqft</td><td></td><td>${fA(sumVal)}</td></tr>`;
   document.getElementById('rlv').textContent=fA(best.rlv);
+  /* the arithmetic behind RLV, spelled out the same way eff-note does for efficiency —
+     Al Mizan asked for RLV to be explained on screen, not just reachable via the info icon */
+  const rlvNote=document.getElementById('rlv-note');
+  if(rlvNote){
+    const feeRate=mk.land>0? best.dld/mk.land*100 : 0;
+    const headroom=best.rlv-mk.land;
+    rlvNote.textContent =
+      `The most you could pay for this land and still clear a ${fP(mk.hurdle)} hurdle on the recommended mix. `
+      + `Gross development value of ${fA(best.gdv)}, divided by 1+hurdle to back out the margin, `
+      + `less non-land costs of ${fA(best.nonland)}, then divided by 1+DLD fee (${feeRate.toFixed(0)}%) since the fee is `
+      + `charged on the land price itself. Against the land price being tested (${fA(mk.land)}), that is `
+      + `${headroom>=0?'+':'−'}${fA(Math.abs(headroom))} of headroom.`;
+  }
   bindPops();
 
   renderScen(best,mk);
