@@ -27,3 +27,8 @@ build/
 
 # Client material — source documents live outside git until cleared for commit
 inbox/
+
+# scripts/market-scrape — Python venv and scraped output (real listing data, not fixtures)
+scripts/market-scrape/.venv/
+scripts/market-scrape/output/*.json
+scripts/market-scrape/__pycache__/
