@@ -174,7 +174,7 @@ body.view-compare #portfolioView{display:none}
 .kpicell.accent .v{color:var(--accent-500)}
 
 /* ================= side KPI row (secondary tier) ================= */
-.kpiside{display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius-md) var(--radius-md); overflow:hidden; margin-bottom:var(--sp-5); margin-top:-1px}
+.kpiside{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius-md) var(--radius-md); overflow:hidden; margin-bottom:var(--sp-5); margin-top:-1px}
 .kpiside .sc{background:var(--surface); padding:var(--sp-3) var(--sp-4)}
 .kpiside .k{font-weight:var(--fw-semibold); font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
 .kpiside .v{font-family:var(--font-mono); font-size:var(--fs-body); font-weight:var(--fw-bold); color:var(--ink); margin-top:3px}
@@ -193,6 +193,16 @@ body.view-compare #portfolioView{display:none}
 .tag.pursue{background:var(--success-bg); color:var(--success)}
 .tag.negotiate{background:var(--warning-bg); color:var(--warning)}
 .tag.pass{background:var(--error-bg); color:var(--error)}
+
+/* the lead sentence at the top of Summary — verdict + the number it turns on +
+   the binding constraint, stated once so it never has to be pieced together from
+   the KPI strip, the financial breakdown and the RLV card separately */
+.verdict-band{margin-bottom:var(--sp-5); padding:var(--sp-4) var(--sp-5); border-radius:var(--radius-md); background:var(--surface-2); border-left:4px solid var(--line-strong)}
+.verdict-band .sec-note{margin:0; font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--ink); line-height:1.5}
+.verdict-band .sec-note .tag{margin-right:8px; vertical-align:1px}
+.verdict-band.pursue{border-left-color:var(--success)}
+.verdict-band.negotiate{border-left-color:var(--warning)}
+.verdict-band.pass{border-left-color:var(--error)}
 
 /* ================= development programme strip ================= */
 .devstrip{display:flex; gap:var(--sp-6); flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-5)}
@@ -852,8 +862,15 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
       <!-- ===== SUMMARY ===== -->
       <div class="tabpanel-x" id="tab-summary">
 
+        <!-- the one sentence a demo audience needs before any table: the verdict, the
+             number it turns on, and the constraint that's actually binding. Same
+             populate-in-render pattern as eff-note/rlv-note, not a new mechanism. -->
+        <div class="verdict-band" id="verdict-band">
+          <p class="sec-note" id="verdict-note">—</p>
+        </div>
+
         <!-- headline KPIs — decision-first, JD vocabulary -->
-        <div class="sec-eyebrow"><span class="n">A</span> Headline metrics <button class="info" data-pop="headline">i</button></div>
+        <div class="sec-eyebrow"><span class="n">01</span> Headline metrics <button class="info" data-pop="headline">i</button></div>
         <div class="kpistrip">
           <div class="kpicell accent"><div class="k">IRR</div><div class="v" id="vm-irr">—</div></div>
           <div class="kpicell"><div class="k">Return on investment</div><div class="v" id="vm-roi">—</div></div>
@@ -861,10 +878,12 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div class="kpicell"><div class="k">Net profit</div><div class="v" id="vm-profit">—</div></div>
           <div class="kpicell"><div class="k">Verdict</div><div class="v" id="vm-verdict-cell">—</div></div>
         </div>
-        <!-- side metrics — supporting derivation, JD-style -->
+        <!-- side metrics — unit-economics context that Financial breakdown doesn't already
+             state (total investment and gross sales are dropped here on purpose: they're
+             the same two numbers as Financial breakdown's Total investment / Gross
+             development value rows, just re-labelled, and repeating them here read as
+             three different numbers instead of one). -->
         <div class="kpiside">
-          <div class="sc"><div class="k">Total investment</div><div class="v" id="sm-inv">—</div></div>
-          <div class="sc"><div class="k">Gross sales</div><div class="v" id="sm-gross">—</div></div>
           <div class="sc"><div class="k">Avg. price / sqft</div><div class="v" id="sm-avgprice">—</div></div>
           <div class="sc"><div class="k">Cost / sqft (with land)</div><div class="v" id="sm-cpsf-w">—</div></div>
           <div class="sc"><div class="k">Cost / sqft (no land)</div><div class="v" id="sm-cpsf-n">—</div></div>
@@ -873,7 +892,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
         <div class="grid sum-grid">
           <div>
             <div class="panel">
-              <h2><span class="n">01</span> Financial breakdown <button class="info" data-pop="finbreak">i</button></h2>
+              <h2><span class="n">02</span> Financial breakdown <button class="info" data-pop="finbreak">i</button></h2>
               <p class="sec-note">AED/sqft below is per sqft of <b>saleable area</b> throughout, for comparability — including construction, which is <i>priced</i> per sqft of BUA (see Assumptions) but re-expressed here on the same basis as everything else. Land, construction and soft cost are one line each until you open them.</p>
               <table class="buildup" id="buildupTable"></table>
             </div>
@@ -882,7 +901,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <!-- development programme — total units / sellable area / avg size -->
             <div class="devstrip" id="devstrip"></div>
             <div class="panel sum-mix">
-              <h2><span class="n">02</span> Recommended unit mix <button class="info" data-pop="recmix">i</button></h2>
+              <h2><span class="n">03</span> Recommended unit mix <button class="info" data-pop="recmix">i</button></h2>
               <table class="rectable">
                 <thead><tr><th>Type</th><th>Size</th><th>Units</th><th>Total size</th><th>Price/sqft</th><th>Total value</th></tr></thead>
                 <tbody id="rectable-body"></tbody>
@@ -2113,9 +2132,12 @@ function render(){
   } else if(noteEl){ noteEl.className='sec-note eff-note'; }
 
   if(!best){
-    ['vm-irr','vm-roi','vm-rop','vm-profit','sm-inv','sm-gross','sm-avgprice','sm-cpsf-w','sm-cpsf-n','cf-irr','cf-peak','cf-profit','cf-months'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent='—';});
+    ['vm-irr','vm-roi','vm-rop','vm-profit','sm-avgprice','sm-cpsf-w','sm-cpsf-n','cf-irr','cf-peak','cf-profit','cf-months'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent='—';});
     document.getElementById('vm-verdict-cell').innerHTML = unpriced.length
       ? '<span class="tag">no pricing</span>' : '<span class="tag pass">no mix</span>';
+    const vb=document.getElementById('verdict-band');
+    if(vb){ vb.className='verdict-band'; document.getElementById('verdict-note').textContent =
+      unpriced.length ? 'No verdict yet — price every unit type before this can be evaluated.' : 'No verdict yet — the recommended mix is empty.'; }
     const cfc=document.getElementById('cf-chart'); if(cfc) cfc.innerHTML='';
     document.getElementById('devstrip').innerHTML='';
     document.getElementById('buildupTable').innerHTML='';
@@ -2145,6 +2167,20 @@ function render(){
   document.getElementById('vm-profit').textContent=fM(best.profit);
   document.getElementById('vm-verdict-cell').innerHTML=`<span class="tag ${v.toLowerCase()}">${VERDICT_LABEL[v]}</span>`;
 
+  /* the lead sentence: verdict, the number it turns on, the constraint actually binding it.
+     Same headroom math as rlv-note below — stated here first so a reader gets the
+     conclusion before the derivation. */
+  const vband=document.getElementById('verdict-band'), vnote=document.getElementById('verdict-note');
+  if(vband && vnote){
+    vband.className='verdict-band '+v.toLowerCase();
+    const headroom=best.rlv-mk.land;
+    const cmp=best.mcost>=mk.hurdle ? 'clears' : 'falls short of';
+    const tail = headroom>=0
+      ? `with ${fA(headroom)} of headroom on the land price being tested.`
+      : `the land price being tested is ${fA(Math.abs(headroom))} above what that hurdle supports.`;
+    vnote.innerHTML = `<span class="tag ${v.toLowerCase()}">${VERDICT_LABEL[v]}</span> the recommended mix ${cmp} a ${fP(mk.hurdle)} hurdle at ${fP(best.mcost)} return on investment${headroom>=0?',':' —'} ${tail}`;
+  }
+
   /* timeline & cashflow section */
   document.getElementById('cf-irr').innerHTML = cfd.irrAnnual==null
     ? '<span class="na">n/a</span>' : fP(cfd.irrAnnual);
@@ -2154,9 +2190,8 @@ function render(){
   renderCashflow(cfd);
   updatePayWarn();
 
-  /* side metrics */
-  document.getElementById('sm-inv').textContent=fM(best.total);
-  document.getElementById('sm-gross').textContent=fM(best.gdv);
+  /* side metrics — total investment and gross sales deliberately not repeated here;
+     see Financial breakdown for those two. */
   document.getElementById('sm-avgprice').textContent=fN(best.avgPricePsf);
   document.getElementById('sm-cpsf-w').textContent=fN(best.cpsfWith);
   document.getElementById('sm-cpsf-n').textContent=fN(best.cpsfNo);
