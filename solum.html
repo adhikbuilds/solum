@@ -324,6 +324,23 @@ body.view-compare #portfolioView{display:none}
 /* the arithmetic behind the strip, spelled out so it can be checked by hand */
 .eff-note{margin-top:var(--sp-3); line-height:1.6}
 .rlv-note{margin-top:var(--sp-3); line-height:1.6}
+/* RLV derivation, as a formula strip instead of a sentence — same numbers, same order
+   of operations as the rlv() calc (÷hurdle, −non-land, ÷DLD fee), just laid out so each
+   step is read, not parsed out of a paragraph. The two rightmost steps (land tested,
+   headroom) repeat what verdict-band already says at the top of the page in words, but
+   stated as a number here — someone looking at the RLV card didn't necessarily scroll
+   past the banner to get here. */
+.rlv-math{display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px 6px; margin-top:var(--sp-4); padding-top:var(--sp-4); border-top:1px solid var(--line)}
+.rlv-math .step{display:flex; flex-direction:column; gap:2px}
+.rlv-math .step .k{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:var(--fw-bold); white-space:nowrap}
+.rlv-math .step .v{font-family:var(--font-mono); font-size:var(--fs-label); font-weight:var(--fw-bold); color:var(--ink); white-space:nowrap}
+.rlv-math .step.result .v{color:var(--accent-500)}
+.rlv-math .step.good .v{color:var(--success)}
+.rlv-math .step.bad .v{color:var(--error)}
+.rlv-math .op{display:flex; flex-direction:column; align-items:center; gap:1px; padding-bottom:1px}
+.rlv-math .op .sym{font-family:var(--font-mono); font-weight:var(--fw-bold); font-size:var(--fs-label); color:var(--muted)}
+.rlv-math .op .sub{font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.02em}
+.rlv-math .div{width:1px; align-self:stretch; background:var(--line); margin:0 2px}
 .mixlegend{display:flex; flex-wrap:wrap; gap:var(--sp-4); margin-bottom:var(--sp-5); padding-top:var(--sp-1)}
 .mixlegend .li{display:flex; align-items:center; gap:6px; font-size:var(--fs-label); font-weight:var(--fw-semibold); color:var(--muted)}
 .mixlegend .li b{color:var(--ink); font-weight:var(--fw-bold); font-family:var(--font-mono)}
@@ -911,7 +928,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
                 <div class="k">Residual land value <button class="info" data-pop="rlv">i</button></div>
                 <div class="v" id="rlv">—</div>
               </div>
-              <p class="sec-note rlv-note" id="rlv-note"></p>
+              <div class="rlv-math" id="rlv-note"></div>
             </div>
           </div>
         </div>
@@ -2280,12 +2297,19 @@ function render(){
   if(rlvNote){
     const feeRate=mk.land>0? best.dld/mk.land*100 : 0;
     const headroom=best.rlv-mk.land;
-    rlvNote.textContent =
-      `The most you could pay for this land and still clear a ${fP(mk.hurdle)} hurdle on the recommended mix. `
-      + `Gross development value of ${fA(best.gdv)}, divided by 1+hurdle to back out the margin, `
-      + `less non-land costs of ${fA(best.nonland)}, then divided by 1+DLD fee (${feeRate.toFixed(0)}%) since the fee is `
-      + `charged on the land price itself. Against the land price being tested (${fA(mk.land)}), that is `
-      + `${headroom>=0?'+':'−'}${fA(Math.abs(headroom))} of headroom.`;
+    const step=(k,v,cls)=>`<div class="step${cls?' '+cls:''}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+    const op=(sym,sub)=>`<div class="op"><div class="sym">${sym}</div><div class="sub">${sub}</div></div>`;
+    rlvNote.innerHTML =
+      step('Gross development value', fA(best.gdv))
+      + op('÷ '+(1+mk.hurdle).toFixed(2), fP(mk.hurdle)+' hurdle')
+      + op('−', '')
+      + step('Non-land costs', fA(best.nonland))
+      + op('÷ '+(1+feeRate/100).toFixed(2), feeRate.toFixed(0)+'% DLD fee')
+      + op('=', '')
+      + step('Residual land value', fA(best.rlv), 'result')
+      + '<div class="div"></div>'
+      + step('Land price tested', fA(mk.land))
+      + step('Headroom', (headroom>=0?'+':'−')+fA(Math.abs(headroom)), headroom>=0?'good':'bad');
   }
   bindPops();
 
