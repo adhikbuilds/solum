@@ -893,7 +893,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
           <div>
             <div class="panel">
               <h2><span class="n">02</span> Financial breakdown <button class="info" data-pop="finbreak">i</button></h2>
-              <p class="sec-note">AED/sqft below is per sqft of <b>saleable area</b> throughout, for comparability — including construction, which is <i>priced</i> per sqft of BUA (see Assumptions) but re-expressed here on the same basis as everything else. Land, construction and soft cost are one line each until you open them.</p>
+              <p class="sec-note">AED/sqft below is per sqft of <b>saleable area</b> throughout, for comparability.</p>
               <table class="buildup" id="buildupTable"></table>
             </div>
           </div>
@@ -1439,7 +1439,7 @@ const POPS = {
   unitprice:{t:"Sales price per sq ft, set independently for each unit type.", s:"Modeled assumption. No DLD comparable transactions wired in yet. Edit to match your own market read.", tier:'modeled'},
   breakeven:{t:"The average sale price per sq ft the recommended mix needs to achieve, at this land price, to exactly hit your hurdle.", s:"Compare it against your unit pricing on Unit Matrix: if pricing is well above this, you have room; if it's close or below, the deal is pricing-sensitive.", tier:null},
   coverage:{t:"Building footprint as a share of plot area, implied by GFA, floor count, podium and basement levels.", s:"A rough planning check, not a substitute for the DDA plot document.", tier:'modeled'},
-  finbreak:{t:"Revenue, cost and profit behind the recommended mix, at today's land price. AED/sqft is of total saleable area.", s:"", tier:null},
+  finbreak:{t:"Revenue, cost and profit behind the recommended mix, at today's land price.", s:"AED/sqft is per sqft of total saleable area throughout — including construction, which is priced per sqft of BUA elsewhere (see Assumptions) but re-expressed here on the same basis as everything else, so every row is comparable. Land, construction and soft cost are grouped to one line each; click a group to see what's inside it.", tier:null},
   recmix:{t:"The profit-maximising mix within the Unit Matrix bands, re-solved live.", s:"", tier:null},
   scenario:{t:"The same recommended mix, with sale price and construction cost moved up and down by the amounts set on Assumptions.", s:"", tier:null},
   headline:{t:"The headline numbers for this deal.", s:"IRR is the annualised, time-weighted return from the development cashflow — it accounts for when cash goes out and comes back. Return on investment (net profit ÷ total cost) and return on project (net profit ÷ gross sales) are undiscounted margins at today's money. Net profit is at the recommended mix. Verdict compares return on investment to your margin hurdle.", tier:null},
