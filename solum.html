@@ -771,6 +771,7 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
   <nav class="leftnav" id="leftnav">
     <div class="leftnav-eyebrow">This plot</div>
     <button class="leftnav-item active" data-tab="summary">Summary</button>
+    <button class="leftnav-item" data-tab="scenarios">Scenario testing</button>
     <button class="leftnav-item" data-tab="mix">Unit Matrix</button>
     <button class="leftnav-item" data-tab="assumptions">Assumptions</button>
     <button class="leftnav-item" data-tab="details">Plot Details</button>
@@ -880,10 +881,6 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
               </div>
               <p class="sec-note rlv-note" id="rlv-note"></p>
             </div>
-            <div class="panel">
-              <h2><span class="n">03</span> Scenario testing <button class="info" data-pop="scenario">i</button></h2>
-              <div class="scen" id="scen"></div>
-            </div>
           </div>
         </div>
 
@@ -895,6 +892,15 @@ footer .srcs{font-weight:var(--fw-semibold); font-size:10px; margin-top:12px}
             <div class="cf-kpi"><div class="k">Net profit (money of the day)</div><div class="v" id="cf-profit">—</div></div>
             <div class="cf-kpi"><div class="k">Time to handover</div><div class="v" id="cf-months">—</div></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== SCENARIO TESTING ===== -->
+      <div class="tabpanel-x" id="tab-scenarios" style="display:none">
+        <div class="panel">
+          <h2><span class="n">01</span> Scenario testing <button class="info" data-pop="scenario">i</button></h2>
+          <p class="sec-note">The recommended mix, re-priced at the price/cost swings set on Assumptions. Same numbers as Summary — this is its own screen because the base/downside/upside comparison is the actual decision, not a footnote to the P&amp;L.</p>
+          <div class="scen" id="scen"></div>
         </div>
       </div>
 
@@ -2060,6 +2066,11 @@ const fN=n=> Math.round(n).toLocaleString('en-US');
 const fM=n=> 'AED '+(Math.abs(n)/1e6).toFixed(1)+'M';
 const fP=n=> (n*100).toFixed(1)+'%';
 const verdictOf=(m,h)=> m>=h?'PURSUE':(m>=0.8*h?'NEGOTIATE':'PASS');
+/* PASS is the internal identifier (kept as-is so its CSS class/colour wiring, VCOLOR and
+   VERDICT_RANK below, and every stored r.verdict value don't need to change) but the word reads
+   as "it passed" to a human, when it means the opposite: pass on this deal. Every place the
+   verdict is shown as text goes through this label instead of the raw identifier. */
+const VERDICT_LABEL={PURSUE:'PURSUE', NEGOTIATE:'NEGOTIATE', PASS:'DECLINE'};
 
 const VICON_SVG=(()=>{
   const ok=THEME.color('--success'), warn=THEME.color('--warning'), bad=THEME.color('--error');
@@ -2116,7 +2127,7 @@ function render(){
   document.getElementById('vm-roi').innerHTML=fP(best.mcost)+' <span class="u">net ÷ investment</span>';
   document.getElementById('vm-rop').innerHTML=fP(best.mgdv)+' <span class="u">net ÷ sales</span>';
   document.getElementById('vm-profit').textContent=fM(best.profit);
-  document.getElementById('vm-verdict-cell').innerHTML=`<span class="tag ${v.toLowerCase()}">${v}</span>`;
+  document.getElementById('vm-verdict-cell').innerHTML=`<span class="tag ${v.toLowerCase()}">${VERDICT_LABEL[v]}</span>`;
 
   /* timeline & cashflow section */
   document.getElementById('cf-irr').innerHTML = cfd.irrAnnual==null
@@ -2247,7 +2258,7 @@ function renderScen(best,mk){
           rlv=gdv/(1+mk.hurdle)-nonland, v=verdictOf(mcost,mk.hurdle);
     host.insertAdjacentHTML('beforeend',
       `<div class="scard ${idx===0?'base':''}">
-        <div class="st"><span class="name">${name}</span><span class="dotv ${v.toLowerCase()}">${v}</span></div>
+        <div class="st"><span class="name">${name}</span><span class="dotv ${v.toLowerCase()}">${VERDICT_LABEL[v]}</span></div>
         <div class="big">${fP(mcost)}</div>
         <div class="sm"><span>profit</span><b>${fM(profit)}</b></div>
         <div class="sm"><span>max land</span><b>${fM(rlv)}</b></div>
@@ -2400,7 +2411,7 @@ function renderPortfolio(){
     const card=document.createElement('div');
     card.className='pf-card'+(PF_SELECTED.has(r.id)?' selected':'');
     card.dataset.id=r.id;
-    const verdict=r.ok?`<span class="dotv ${r.verdict.toLowerCase()}">${r.verdict}</span>`:'<span class="dotv pass">NO MIX</span>';
+    const verdict=r.ok?`<span class="dotv ${r.verdict.toLowerCase()}">${VERDICT_LABEL[r.verdict]}</span>`:'<span class="dotv pass">NO MIX</span>';
     card.innerHTML=`
       <div class="pf-card-top">
         <div class="pf-card-id">
