@@ -45,6 +45,7 @@ class BuildableEnvelope:
     parcel_area_sqm: float
     ambiguous: bool
     basis: str
+    bounded: bool = True   # False when a side was deferred: the range is NOT a true bound
 
     @property
     def conservative_sqft(self) -> float:
@@ -69,7 +70,12 @@ class BuildableEnvelope:
         )
 
     def as_sourced(self) -> Sourced:
-        prov = Provenance.ASSUMPTION if self.ambiguous else Provenance.DERIVED
+        if not self.bounded:
+            prov = Provenance.DEFERRED
+        elif self.ambiguous:
+            prov = Provenance.ASSUMPTION
+        else:
+            prov = Provenance.DERIVED
         return Sourced((self.conservative_sqft, self.optimistic_sqft), prov, self.basis)
 
 
@@ -102,11 +108,13 @@ def buildable_envelope(reg: RegulatoryEnvelope) -> BuildableEnvelope:
     poly = parcel_polygon(reg.rings)
     setbacks = list(reg.setbacks_m.value or [])
 
+    complete = reg.setbacks_complete
+
     if not setbacks:
         return BuildableEnvelope(
             conservative=poly, optimistic=poly, setbacks_m=[],
-            parcel_area_sqm=poly.area, ambiguous=True,
-            basis='DDA published no setbacks; envelope is the raw parcel and is NOT buildable area',
+            parcel_area_sqm=poly.area, ambiguous=True, bounded=False,
+            basis=reg.setbacks_m.basis + ' -- envelope shown is the raw parcel and is NOT buildable area',
         )
 
     lo, hi = min(setbacks), max(setbacks)
@@ -116,8 +124,17 @@ def buildable_envelope(reg: RegulatoryEnvelope) -> BuildableEnvelope:
     # A buffer that eats the whole polygon returns empty rather than raising. On a small plot
     # with a large setback that is the correct answer -- there is nothing to build on -- but it
     # must surface as a fact, not as a zero that looks like arithmetic.
-    ambiguous = lo != hi
-    if ambiguous:
+    # A partial setback set cannot bound anything. If DDA published 5 m on two sides and pointed
+    # at a drawing for the other two, the widest published value is not the worst case -- the
+    # unread sides could be larger. Saying "conservative" here would be the exact failure this
+    # module exists to prevent, so the range is returned but marked as not a bound.
+    ambiguous = lo != hi or not complete
+    if not complete:
+        basis = (
+            f'{reg.setbacks_m.basis} Range computed from the {len(setbacks)} published '
+            f'side(s) only and does NOT bound the true envelope.'
+        )
+    elif ambiguous:
         basis = (
             f'setbacks {setbacks} m published per side, but DDA does not state which polygon '
             f'edge is SIDE1..SIDE{len(setbacks)}. Envelope bounded by uniform {hi} m '
@@ -128,5 +145,5 @@ def buildable_envelope(reg: RegulatoryEnvelope) -> BuildableEnvelope:
 
     return BuildableEnvelope(
         conservative=conservative, optimistic=optimistic, setbacks_m=setbacks,
-        parcel_area_sqm=poly.area, ambiguous=ambiguous, basis=basis,
+        parcel_area_sqm=poly.area, ambiguous=ambiguous, bounded=complete, basis=basis,
     )

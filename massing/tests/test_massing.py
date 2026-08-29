@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from solum_massing.dda import Provenance, _parse_floors, _parse_parking, parse_feature
+from solum_massing.dda import Provenance, _parse_floors, _parse_parking, _parse_setbacks, parse_feature
 from solum_massing.envelope import buildable_envelope
 from solum_massing.massing import generate
 
@@ -99,7 +99,7 @@ def test_gfa_ceiling_binds_before_the_envelope_for_taller_schemes(reg, env):
     assert optimistic[2].gfa_sqft > conservative[2].gfa_sqft
 
 
-def test_no_candidate_exceeds_what_the_authority_permits(reg, env):
+def test_no_candidate_exceeds_published_gfa_or_height(reg, env):
     for candidate in generate(reg, env, use_conservative=False):
         assert candidate.gfa_sqft <= reg.permitted_gfa_sqft.value + 1
         assert candidate.floors <= reg.max_floors.value
@@ -113,3 +113,64 @@ def test_entitlement_is_fully_reachable(reg, env):
 def test_parking_is_none_when_the_authority_stated_no_rule(reg, env):
     reg.parking_rule = _parse_parking('')
     assert all(c.parking_bays is None for c in generate(reg, env))
+
+
+# --- deferred setbacks: the authority pointing elsewhere is not the same as silence -----------
+
+def test_see_notes_is_deferred_not_absent():
+    """
+    Just under half of residential DDA plots defer a setback to prose. Treating 'SEE NOTES' as
+    absent would silently shrink the set and make a partial range look like a bound.
+    """
+    attrs = {'BUILDING_SETBACK_SIDE1': 'SEE NOTES', 'BUILDING_SETBACK_SIDE2': '5',
+             'BUILDING_SETBACK_SIDE3': 'SEE NOTES', 'BUILDING_SETBACK_SIDE4': '3'}
+    sourced, complete = _parse_setbacks(attrs, '')
+    assert complete is False
+    assert sourced.provenance is Provenance.DEFERRED
+    assert 'do NOT bound' in sourced.basis
+
+
+def test_uniform_setback_is_recovered_from_the_notes():
+    attrs = {f'BUILDING_SETBACK_SIDE{i}': 'SEE NOTES' for i in (1, 2, 3, 4)}
+    sourced, complete = _parse_setbacks(attrs, '- SETBACK: 1.5M FROM NEIGHBORING PLOTS.')
+    assert complete is True
+    assert sourced.provenance is Provenance.AUTHORITY
+    assert sourced.value == [1.5, 1.5, 1.5, 1.5]
+
+
+def test_conditional_setback_prose_is_refused():
+    """'0 from all sides; in case of built structures 3M' needs a judgement we will not make."""
+    attrs = {f'BUILDING_SETBACK_SIDE{i}': 'SEE NOTES' for i in (1, 2, 3, 4)}
+    notes = '- SETBACK: 0 SETBACK FROM ALL SIDES; IN CASE OF BUILT STRUCTURES - 3M TOWARDS NEIGHBORS.'
+    sourced, complete = _parse_setbacks(attrs, notes)
+    assert complete is False
+    assert sourced.value == []
+
+
+def test_incomplete_setbacks_make_the_envelope_unbounded(reg, env):
+    import copy
+    partial = copy.deepcopy(reg)
+    partial.setbacks_m, partial.setbacks_complete = _parse_setbacks(
+        {'BUILDING_SETBACK_SIDE1': 'SEE NOTES', 'BUILDING_SETBACK_SIDE2': '5'}, ''
+    )
+    e = buildable_envelope(partial)
+    assert e.bounded is False
+    assert e.as_sourced().provenance is Provenance.DEFERRED
+
+
+# --- the published coverage cap must actually bind -------------------------------------------
+
+def test_max_plot_coverage_caps_the_footprint(reg, env):
+    """
+    Absent on most plots, which is why it was easy to read for display and never enforce. On a
+    plot that publishes 30%, no candidate may exceed it.
+    """
+    import copy
+    from solum_massing.dda import Sourced
+    capped = copy.deepcopy(reg)
+    capped.max_plot_coverage = Sourced(30, Provenance.AUTHORITY, 'DDA MAX_PLOT_COVERAGE 30')
+
+    for c in generate(capped, env, use_conservative=False):
+        assert c.coverage <= 0.30 + 1e-6, f'{c.coverage:.3f} breaches the published 30% cap'
+    assert any(c.binding_constraint == 'plot coverage'
+               for c in generate(capped, env, use_conservative=False))
