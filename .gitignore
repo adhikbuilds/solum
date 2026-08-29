@@ -1,0 +1,3 @@
+.venv-massing/
+__pycache__/
+*.pyc
