@@ -32,6 +32,10 @@ export default function App() {
   const prov = data?.provenance ?? {}
   const f = solid?.feasibility
   const sk = solid?.scheme
+  // DDA published no bay ratio for this plot, so `requiredBays`/`parking_required` is 0 by
+  // construction, not by finding -- and the RLV below was priced with zero parking cost. 0/0
+  // reads as "this scheme needs no parking", which is a claim we have no basis for.
+  const parkingDeferred = !p?.parking_rule_sqm_per_bay
 
   return (
     <div className="flex h-screen flex-col">
@@ -147,7 +151,7 @@ export default function App() {
                     <Row k="Above / below grade" v={`${solid.height_m} m / ${solid.depth_m} m`} />
                     <Row
                       k="Parking"
-                      v={`${num(sk.parking_provided)} / ${num(sk.parking_required)}`}
+                      v={parkingDeferred ? '—' : `${num(sk.parking_provided)} / ${num(sk.parking_required)}`}
                       warn={sk.parking_shortfall > 0}
                     />
                   </dl>
@@ -155,6 +159,13 @@ export default function App() {
                     <Callout tone="destructive" title={`${num(sk.parking_shortfall)} bays short`}>
                       {sk.basement_levels} basement levels at the setback envelope cannot hold the
                       authority's requirement. Podium parking or a deeper basement is needed.
+                    </Callout>
+                  )}
+                  {parkingDeferred && (
+                    <Callout tone="deferred" title="Parking not priced">
+                      DDA published no parking rule for this plot, so no bay count is derived and
+                      none is invented. The residual land value below excludes parking cost
+                      entirely — treat it as an upper bound, not a final number.
                     </Callout>
                   )}
                 </>
@@ -165,7 +176,15 @@ export default function App() {
                   <SectionLabel>Feasibility <span className="text-muted-foreground font-normal normal-case">AED</span></SectionLabel>
                   <dl className="mb-1">
                     <Row k="Gross development value" v={aed(f.gdv)} title={aedFull(f.gdv)} />
-                    <Row k="Construction" v={aed(f.construction)} title={aedFull(f.construction)} />
+                    <Row
+                      k={f.construction_premium_pct > 0
+                        ? <span className="inline-flex items-center gap-1.5">Construction <Badge variant="assumption">+{pct(f.construction_premium_pct)} podium</Badge></span>
+                        : 'Construction'}
+                      v={aed(f.construction)}
+                      title={f.construction_premium_pct > 0
+                        ? `${aedFull(f.construction)} — includes a +${pct(f.construction_premium_pct)} assumption for the podium's transfer structure and second core, unpriced elsewhere in this model`
+                        : aedFull(f.construction)}
+                    />
                     <Row k="Soft costs" v={aed(f.soft_costs)} title={aedFull(f.soft_costs)} />
                     <Row k="Parking" v={aed(f.parking_cost)} title={aedFull(f.parking_cost)} />
                     <Row k="Marketing" v={aed(f.marketing)} title={aedFull(f.marketing)} />
@@ -217,6 +236,7 @@ export default function App() {
                 activeFloors={solid?.floors}
                 bestFloors={data.best_by_rlv}
                 onSelect={setFloors}
+                parkingDeferred={parkingDeferred}
               />
             </TabsContent>
 
@@ -281,7 +301,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Row({
   k, v, strong, accent, warn, title,
-}: { k: string; v: React.ReactNode; strong?: boolean; accent?: boolean; warn?: boolean; title?: string }) {
+}: { k: React.ReactNode; v: React.ReactNode; strong?: boolean; accent?: boolean; warn?: boolean; title?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5" title={title}>
       <dt className={`text-[13px] ${strong || accent ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>{k}</dt>

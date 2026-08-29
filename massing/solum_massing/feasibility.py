@@ -24,6 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .dda import Provenance, Sourced
+from .scheme import PODIUM_THRESHOLD_FLOORS
 
 # --- defaults, carried over from the prototype's defaultState() -------------------------------
 
@@ -42,6 +43,16 @@ DEFAULT_COSTS = {
     'dld_transfer_rate': 0.04,
     'target_profit_on_cost': 0.20,
     'base_efficiency': 0.82,
+    # Not from a bill of quantities, and not attributed to any specific cost report -- this is our
+    # own modelling judgement, tagged `assumption`, not `authority`. Once a scheme needs a podium
+    # (same PODIUM_THRESHOLD_FLOORS as scheme.py: above 6 storeys, per that module's own line, "a
+    # podium would be invented detail" below it), it also needs a transfer structure over the
+    # podium levels, a second core/lift bank and heavier wind bracing than a simple slab -- real
+    # extra scope, unpriced anywhere else in this model. Without a BOQ for this plot we cannot
+    # size it precisely, so 12% is deliberately a conservative placeholder for that scope, not a
+    # verified figure -- it exists so a podium scheme is not silently priced as if it were a slab,
+    # not to manufacture a case for building taller.
+    'podium_transfer_premium': 0.12,
 }
 
 
@@ -102,6 +113,10 @@ class Feasibility:
     rlv_psf_land: float = 0.0
     blended_psf: float = 0.0
     breakeven_psf: float = 0.0
+    # Fraction of hard cost added because this candidate needs a podium. 0.0 means no premium
+    # applied -- surfaced so a flat number is never mistaken for "identical to build regardless
+    # of height", which was the actual bug: every storey option priced the same either way.
+    construction_premium_pct: float = 0.0
 
     def as_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -113,6 +128,7 @@ def appraise(
     gfa_sqft: float,
     plot_area_sqft: float,
     *,
+    floors: int = 1,
     parking_bays: int | None = None,
     mix: list[UnitType] | None = None,
     costs: dict | None = None,
@@ -122,6 +138,10 @@ def appraise(
 
     `parking_bays` overrides the derived bay count when the authority published a GFA-based
     parking rule -- the authority's own rule outranks our per-unit convention.
+
+    `floors` drives the podium construction premium (see `podium_transfer_premium`). It is the
+    only place height enters the money at all: previously it didn't, so every storey option for
+    a plot priced identically and "best" collapsed to whichever used the fewest floors.
     """
     c = {**DEFAULT_COSTS, **(costs or {})}
     mix = mix or RERA_MIX
@@ -155,8 +175,9 @@ def appraise(
         resident = sum(n * u.bays for n, u in zip(counts, mix))
         bays = int(round(resident * (1 + c['visitor_bay_rate'])))
 
+    premium = c['podium_transfer_premium'] if floors > PODIUM_THRESHOLD_FLOORS else 0.0
     bua = gfa_sqft * c['bua_factor']
-    hard = bua * c['construction_psf_bua']
+    hard = bua * c['construction_psf_bua'] * (1 + premium)
     soft = (hard * (c['arch_design_rate'] + c['arch_super_rate'] + c['contingency_rate'])
             + c['authorities_fixed'] + c['landscape_fixed'] + c['misc_fixed'])
     park = bays * c['parking_bay_cost']
@@ -182,6 +203,7 @@ def appraise(
         rlv_psf_land=round(rlv / plot_area_sqft, 2) if plot_area_sqft else 0.0,
         blended_psf=round(gdv / sal, 2) if sal else 0.0,
         breakeven_psf=round((1 + hurdle) * non_land / sal, 2) if sal else 0.0,
+        construction_premium_pct=premium,
     )
 
 

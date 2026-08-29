@@ -26,6 +26,7 @@ export interface Feasibility {
   parking_cost: number; marketing: number; non_land_cost: number
   residual_land_value: number; rlv_psf_land: number
   blended_psf: number; breakeven_psf: number
+  construction_premium_pct: number
 }
 
 export interface SchemeInfo {
