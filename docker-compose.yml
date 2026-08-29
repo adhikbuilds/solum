@@ -1,0 +1,54 @@
+# Solum -- local stack.
+#
+#   docker compose up --build
+#   open http://localhost:8000
+#
+# The massing service is stateless: it reads the regulatory envelope from DDA on each request and
+# every calculation downstream is pure. Postgres is here for the plot/appraisal records the
+# prototype persists, not for the massing engine, which needs no store to answer a question.
+services:
+  massing:
+    build:
+      context: ./massing
+    container_name: solum-massing
+    ports:
+      - '8010:8000'
+    environment:
+      TZ: Asia/Dubai
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+    container_name: solum-web
+    ports:
+      - '5180:80'
+    depends_on:
+      massing:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: solum-pg
+    environment:
+      POSTGRES_USER: solum
+      POSTGRES_PASSWORD: solum
+      POSTGRES_DB: solum
+    ports:
+      - '5434:5432'   # 5433 is taken by the rebuild's compose file
+    volumes:
+      - solum-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U solum -d solum']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  solum-pgdata:

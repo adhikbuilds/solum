@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Solum tokens.
+
+  The palette carries a domain idea rather than decoration: provenance. Every figure the product
+  shows is either published by the authority, derived losslessly from published figures, assumed
+  by us, or deferred by the authority to a document we do not hold. Those four states have their
+  own colours and they never borrow the brand accent, so "where did this number come from" is
+  legible at a glance and is not competing with "this is a Solum product".
+*/
+:root {
+  --radius: 0.375rem;
+
+  --background: oklch(0.985 0.003 250);
+  --foreground: oklch(0.19 0.012 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.012 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.012 260);
+
+  --primary: oklch(0.63 0.19 42);
+  --primary-foreground: oklch(0.99 0.005 60);
+  --secondary: oklch(0.955 0.005 250);
+  --secondary-foreground: oklch(0.28 0.012 260);
+  --muted: oklch(0.955 0.005 250);
+  --muted-foreground: oklch(0.52 0.012 258);
+  --accent: oklch(0.955 0.008 250);
+  --accent-foreground: oklch(0.24 0.012 260);
+  --destructive: oklch(0.55 0.17 20);
+  --border: oklch(0.915 0.006 255);
+  --input: oklch(0.915 0.006 255);
+  --ring: oklch(0.63 0.19 42);
+
+  /* provenance */
+  --authority: oklch(0.52 0.11 165);
+  --authority-bg: oklch(0.955 0.03 165);
+  --derived: oklch(0.51 0.13 258);
+  --derived-bg: oklch(0.955 0.028 258);
+  --assumption: oklch(0.60 0.14 62);
+  --assumption-bg: oklch(0.96 0.035 70);
+  --deferred: oklch(0.50 0.11 5);
+  --deferred-bg: oklch(0.955 0.025 5);
+
+  /* massing layers, shared with the 3D scene */
+  --layer-tower: oklch(0.68 0.19 45);
+  --layer-podium: oklch(0.58 0.13 48);
+  --layer-basement: oklch(0.62 0.015 70);
+}
+
+.dark {
+  --background: oklch(0.17 0.012 260);
+  --foreground: oklch(0.93 0.008 250);
+  --card: oklch(0.215 0.014 260);
+  --card-foreground: oklch(0.93 0.008 250);
+  --popover: oklch(0.215 0.014 260);
+  --popover-foreground: oklch(0.93 0.008 250);
+
+  --primary: oklch(0.70 0.17 45);
+  --primary-foreground: oklch(0.17 0.012 260);
+  --secondary: oklch(0.26 0.014 260);
+  --secondary-foreground: oklch(0.93 0.008 250);
+  --muted: oklch(0.26 0.014 260);
+  --muted-foreground: oklch(0.66 0.012 255);
+  --accent: oklch(0.28 0.014 260);
+  --accent-foreground: oklch(0.93 0.008 250);
+  --destructive: oklch(0.65 0.16 22);
+  --border: oklch(0.30 0.014 260);
+  --input: oklch(0.30 0.014 260);
+  --ring: oklch(0.70 0.17 45);
+
+  --authority: oklch(0.76 0.13 165);
+  --authority-bg: oklch(0.28 0.05 165);
+  --derived: oklch(0.74 0.11 258);
+  --derived-bg: oklch(0.27 0.05 258);
+  --assumption: oklch(0.78 0.12 68);
+  --assumption-bg: oklch(0.29 0.05 65);
+  --deferred: oklch(0.74 0.10 8);
+  --deferred-bg: oklch(0.28 0.05 8);
+
+  --layer-tower: oklch(0.70 0.18 45);
+  --layer-podium: oklch(0.60 0.13 48);
+  --layer-basement: oklch(0.55 0.015 70);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-authority: var(--authority);
+  --color-authority-bg: var(--authority-bg);
+  --color-derived: var(--derived);
+  --color-derived-bg: var(--derived-bg);
+  --color-assumption: var(--assumption);
+  --color-assumption-bg: var(--assumption-bg);
+  --color-deferred: var(--deferred);
+  --color-deferred-bg: var(--deferred-bg);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  * { border-color: var(--border); }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Figures line up in columns all over this product. */
+  .tnum { font-variant-numeric: tabular-nums; }
+}
