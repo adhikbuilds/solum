@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .dda import SQFT_PER_SQM, RegulatoryEnvelope
+from .dda import SQFT_PER_SQM, Provenance, RegulatoryEnvelope
 from .envelope import BuildableEnvelope
 
 
@@ -85,6 +85,17 @@ def generate(
     if not footprint_cap or not max_floors or not permitted_gfa:
         return []
 
+    # MAX_PLOT_COVERAGE is a hard published limit on footprint, independent of the setbacks, and
+    # it must bind. It is absent on most plots (0 of 1,000 residential plots sampled 2026-08-29
+    # carried one), which is exactly why it was easy to leave unenforced and never notice.
+    coverage_cap_sqft = None
+    if reg.max_plot_coverage.provenance is Provenance.AUTHORITY and plot_area:
+        cov = float(reg.max_plot_coverage.value)
+        if cov > 1:          # published as a percentage rather than a fraction
+            cov /= 100.0
+        coverage_cap_sqft = cov * plot_area
+        footprint_cap = min(footprint_cap, coverage_cap_sqft)
+
     out: list[Candidate] = []
     for floors in range(1, int(max_floors) + 1):
         wanted = permitted_gfa / floors        # footprint that would exactly use the entitlement
@@ -93,7 +104,11 @@ def generate(
 
         # Which limit stopped this candidate going further.
         if footprint >= footprint_cap and wanted > footprint_cap:
-            binding = 'envelope'               # the plate is as wide as the setbacks allow
+            binding = (
+                'plot coverage'
+                if coverage_cap_sqft is not None and coverage_cap_sqft <= footprint_cap + 1e-6
+                else 'envelope'
+            )
         elif floors == int(max_floors) and gfa < permitted_gfa:
             binding = 'height'                 # out of storeys before out of entitlement
         else:

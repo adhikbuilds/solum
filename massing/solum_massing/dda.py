@@ -52,6 +52,7 @@ class Provenance(str, Enum):
     AUTHORITY = 'authority'      # published by DDA for this specific plot
     DERIVED = 'derived'          # computed from AUTHORITY values by us, losslessly
     ASSUMPTION = 'assumption'    # our guess. Must never reach a headline number unflagged
+    DEFERRED = 'deferred'        # authority pointed at another document ('SEE NOTES')
     UNAVAILABLE = 'unavailable'  # the authority did not state it. Absence, not zero
 
 
@@ -82,6 +83,7 @@ class RegulatoryEnvelope:
     parking_rule: Sourced
     rings: list[list[list[float]]] = field(default_factory=list)
     notes: str = ''
+    setbacks_complete: bool = False
 
     @property
     def implied_far(self) -> Sourced:
@@ -109,6 +111,72 @@ def _num(attrs: dict, key: str) -> float | None:
         return float(v)
     except (TypeError, ValueError):
         return None
+
+
+
+# Values DDA uses to say "the number exists, but not in this field". Measured across 1,000
+# residential plots on 2026-08-29: SEE NOTES 1,890, SEE GUIDELINES 48, SEE DRAWING 3. Just under
+# half of residential plots (49.7%) defer at least one side this way, and 474 of 1,000 defer all
+# four. Treating these as absent would silently shrink the setback list -- a plot published as
+# ['SEE NOTES', '5', 'SEE NOTES', '3'] would look like a uniform 3-5 m site when two of its sides
+# are genuinely unknown, and the "conservative" bound would not be conservative at all.
+_DEFERRAL = re.compile(r'^\s*SEE\s+(NOTES?|DRAWINGS?|GUIDELINES?|SITE\s*PLAN)', re.I)
+
+# 'SETBACK: 1.5M FROM NEIGHBORING PLOTS.' -- the simple, uniform phrasing, which is the only one
+# we accept. '0 SETBACK FROM ALL SIDES; IN CASE OF BUILT STRUCTURES - 3M' is a conditional rule
+# and is deliberately refused: it needs a judgement about what is being built.
+_NOTE_SETBACK = re.compile(r'SETBACK\s*:?\s*([\d.]+)\s*M\b(?![^.]*\bIN CASE\b)', re.I)
+
+
+def _parse_setbacks(attrs: dict, notes: str) -> tuple[Sourced, bool]:
+    """
+    Read the four published setbacks.
+
+    Returns the values and whether the set is COMPLETE -- i.e. whether every side the authority
+    named resolved to a number. Incompleteness is the important half: a bounded envelope is only
+    a bound if we know all four sides.
+    """
+    raw = [attrs.get(f'BUILDING_SETBACK_SIDE{i}') for i in (1, 2, 3, 4)]
+    named = [v for v in raw if v not in (None, '', 'N/A')]
+
+    numeric: list[float] = []
+    deferred = 0
+    for v in named:
+        try:
+            numeric.append(float(v))
+        except (TypeError, ValueError):
+            if _DEFERRAL.match(str(v)):
+                deferred += 1
+
+    if deferred and not numeric:
+        # Every side deferred. The prose sometimes carries a single uniform figure.
+        m = _NOTE_SETBACK.search(notes or '')
+        if m:
+            val = float(m.group(1))
+            return Sourced(
+                [val] * 4, Provenance.AUTHORITY,
+                f'DDA GENERAL_NOTES: uniform {val:g} m setback (all {deferred} sides said "see notes")',
+            ), True
+        return Sourced(
+            [], Provenance.DEFERRED,
+            f'DDA deferred all {deferred} setbacks to another document, and GENERAL_NOTES '
+            f'states no simple uniform figure',
+        ), False
+
+    if deferred:
+        return Sourced(
+            numeric, Provenance.DEFERRED,
+            f'DDA published {numeric} m for {len(numeric)} side(s) but deferred {deferred} to '
+            f'another document. These values do NOT bound the envelope.',
+        ), False
+
+    if numeric:
+        return Sourced(
+            numeric, Provenance.AUTHORITY,
+            f'DDA BUILDING_SETBACK_SIDE1..{len(numeric)} = {numeric} metres',
+        ), True
+
+    return Sourced([], Provenance.UNAVAILABLE, 'DDA published no building setbacks for this plot'), False
 
 
 def _parse_floors(raw: object) -> Sourced:
@@ -163,17 +231,7 @@ def parse_feature(feature: dict, spatial_reference: int = SPATIAL_REFERENCE) -> 
     area = _num(attrs, 'AREA_SQFT')
     gfa = _num(attrs, 'GFA_SQFT')
 
-    setbacks = [
-        s for s in (_num(attrs, f'BUILDING_SETBACK_SIDE{i}') for i in (1, 2, 3, 4)) if s is not None
-    ]
-    if setbacks:
-        sb = Sourced(
-            setbacks,
-            Provenance.AUTHORITY,
-            f'DDA BUILDING_SETBACK_SIDE1..{len(setbacks)} = {setbacks} metres',
-        )
-    else:
-        sb = Sourced([], Provenance.UNAVAILABLE, 'DDA published no building setbacks for this plot')
+    sb, setbacks_complete = _parse_setbacks(attrs, notes)
 
     cov = _num(attrs, 'MAX_PLOT_COVERAGE')
     coverage = (
@@ -199,6 +257,7 @@ def parse_feature(feature: dict, spatial_reference: int = SPATIAL_REFERENCE) -> 
         parking_rule=_parse_parking(notes),
         rings=(feature.get('geometry') or {}).get('rings', []),
         notes=notes,
+        setbacks_complete=setbacks_complete,
     )
 
 
