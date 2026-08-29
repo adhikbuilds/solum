@@ -11,6 +11,16 @@ export {
   bayCount,
   parkingCost,
 } from './defaults.js';
+export {
+  impliedFar,
+  requiredBays,
+  generateCandidates,
+  capacityFlags,
+  type Provenance,
+  type Sourced,
+  type RegulatoryEnvelope,
+  type Candidate,
+} from './capacity.js';
 export { decideVerdict } from './verdict.js';
 export { suggestRemedies, type Remedy, type RemedyLever } from './remedy.js';
 export { irr, npv, type IrrResult, type IrrFailure } from './irr.js';

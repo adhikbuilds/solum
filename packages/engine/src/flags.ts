@@ -21,7 +21,11 @@ export type FlagCode =
   /** Comparables sample is too small to support a price conclusion. */
   | 'COMPS_SAMPLE_TOO_SMALL'
   /** Comparables snapshot predates the staleness threshold. */
-  | 'COMPS_STALE';
+  | 'COMPS_STALE'
+  /** The authority deferred a setback elsewhere, so the buildable envelope is not a bound. */
+  | 'SETBACK_DEFERRED'
+  /** No massing option reaches the permitted GFA — setbacks or height bind first. */
+  | 'ENTITLEMENT_UNREACHABLE';
 
 export type Severity = 'info' | 'warn' | 'blocker';
 
