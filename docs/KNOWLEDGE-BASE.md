@@ -29,21 +29,24 @@ file, not a directory — it is a **git worktree** of `/Users/aagarwal/solum`, c
 
 | | |
 |---|---|
-| `/Users/aagarwal/solum` | `feat/market-scrape-firecrawl` @ `94a56ce` — the rebuild |
-| `/Users/aagarwal/solum-prototype-local` | `fix/almizan-feedback-bucket1` @ `f1907b3` — the prototype worktree |
-| `origin` | `github.com/adhikbuilds/solum` — reachable. `origin/main` @ `2da6a1a` |
-| `prototype` | `github.com/DKubadia/solum` — **gone** |
+| `/Users/aagarwal/solum` | `main` @ `9e30f92` — the rebuild [updated 2026-08-29; was `feat/market-scrape-firecrawl`, now merged] |
+| `/Users/aagarwal/solum-prototype-local` | `feat/massing-engine` @ `569cc2c` — the prototype worktree, now also home to the massing/entitlement service (`massing/` + `web/`, see `docs/prd/massing.md` on that branch) [updated 2026-08-29; branched on from `fix/almizan-feedback-bucket1`, which still exists as its own branch/ref] |
+| `origin` | `github.com/adhikbuilds/solum` — **private**; a collaborator needs to be added, the URL alone 404s for them |
+| `prototype` | `github.com/DKubadia/solum` — **gone**, but see the resolved note above: its history is safe on `origin` regardless |
 
 ### Two repo facts that need a decision
 
-**The prototype remote no longer exists.** `git fetch prototype` returns `Repository not found`
-`[verified 2026-08-27]`. Deleted, renamed, or access revoked — from here it is indistinguishable.
-The locally fetched refs `prototype/main` and `prototype/fix/almizan-feedback-bucket1` are now
-**the only copy of roughly forty commits**, including the entire `market-inspirations/` competitor
-research, all four PRDs, `PROJECT_CONTEXT.md`, `DECISIONS.md`, and the Al Mizan feedback file. They
-exist in exactly one place: this laptop. A `git bundle` or a push of those refs to `origin` costs
-minutes and removes a single-point-of-failure on the most valuable thinking in the project. Not done
-— the working agreement gates git separately from builds.
+**The prototype remote no longer exists** `[verified 2026-08-27]` — `git fetch prototype` returns
+`Repository not found`. Deleted, renamed, or access revoked; from here it is indistinguishable.
+
+> **Resolved 2026-08-29.** The single-point-of-failure this created is closed: `prototype/main` and
+> `fix/almizan-feedback-bucket1` (the ~40 commits — `market-inspirations/`, all four PRDs,
+> `PROJECT_CONTEXT.md`, `DECISIONS.md`, the Al Mizan feedback file) are now reachable from
+> `origin/feat/massing-engine` and from `origin/prototype/main` / `origin/prototype/almizan-bucket1`
+> directly `[verified 2026-08-29, checked with git merge-base --is-ancestor]`. Anyone with repo
+> access can pull all of it — nothing is stranded on this laptop only. This matters concretely for
+> onboarding a second person onto the repo: adding them as a GitHub collaborator is now sufficient
+> by itself; no separate hand-off of local-only history is needed.
 
 **The rebuild README has a broken cross-link.** Line 190 points at
 `docs/feedback/2026-08-almizan-demo.md`. That file does not exist on `feat/market-scrape-firecrawl`;
