@@ -18,10 +18,12 @@ const col = createColumnHelper<Solid>()
  * stage is "what can I pay for the land", not "how tall can I go".
  */
 export function CandidateTable({
-  solids, activeFloors, bestFloors, onSelect,
+  solids, activeFloors, bestFloors, onSelect, parkingDeferred = false,
 }: {
   solids: Solid[]; activeFloors: number | undefined
   bestFloors: number | null; onSelect: (floors: number) => void
+  /** DDA published no bay ratio for this plot: every row's 0 bays is an absence, not a finding. */
+  parkingDeferred?: boolean
 }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'rlv', desc: true }])
 
@@ -51,6 +53,7 @@ export function CandidateTable({
       id: 'parking', header: 'Parking',
       cell: (c) => {
         const short = c.getValue()
+        if (parkingDeferred) return <span className="text-muted-foreground">—</span>
         return short > 0 ? (
           <span className="text-destructive inline-flex items-center gap-1 font-medium">
             <TriangleAlert className="size-3" />{num(short)} short

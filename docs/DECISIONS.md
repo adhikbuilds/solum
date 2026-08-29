@@ -8,6 +8,16 @@ Format: date · one-line decision · why (if not obvious) · link to PRD/commit 
 
 ---
 
+## 2026-08-29 — Massing & Entitlement Study given a PRD, retroactively
+The `massing/` + `web/` surface (FastAPI service + React/three.js viewer, `feat/massing-engine`)
+had shipped with zero product documentation — no PRD, no entry here, no mention in
+`PROJECT_CONTEXT.md` — despite being a real, running second app. Today's bugfixes (floating
+render geometry, a silent "0/0" parking claim, an RLV column that didn't vary by storey count)
+were built reactively off screenshots before this was written. Locked the missing spec after the
+fact so the next change goes through brainstorm → lock → build like everything else. Relationship
+to `solum.html` deliberately left open — same job, same RLV formula, different architecture, not
+yet decided whether/how they merge. Spec: docs/prd/massing.md.
+
 ## 2026-08-07 — Al Mizan demo feedback recorded
 First client demo on live credentials. Feedback captured verbatim in
 `feedback/2026-08-almizan-demo.md`, with our triage kept separate from their

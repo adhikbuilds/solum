@@ -68,6 +68,7 @@ def _study(reg, *, conservative: bool = True) -> dict:
     for solid, cand in zip(scene['solids'], candidates):
         f = appraise(
             cand.gfa_sqft, plot_area,
+            floors=cand.floors,
             parking_bays=cand.parking_bays,
         )
         solid['feasibility'] = f.as_dict()
