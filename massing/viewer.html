@@ -59,6 +59,19 @@
     background:#FFF6F0;font-size:11.5px;line-height:1.5;color:#6B4A33}
   .note b{color:var(--accent-dim);font-weight:600}
 
+  .mini{font:400 9px/1 'DM Mono',monospace;letter-spacing:.06em;color:var(--muted);text-transform:none;float:right;padding-top:1px}
+  .row.strong dt,.row.strong dd{font-weight:600;color:var(--ink)}
+  .row.strong{border-top:1px solid var(--line);margin-top:4px;padding-top:8px}
+  .row.accent dd{color:var(--accent);font-size:15px}
+  .row.accent dt{color:var(--ink);font-weight:600}
+  .mono{font:500 11px/1 'DM Mono',monospace;color:var(--accent-dim)}
+  .star{font:500 8px/1 'DM Mono',monospace;font-style:normal;letter-spacing:.08em;
+    text-transform:uppercase;background:var(--accent);color:#fff;padding:2px 4px;border-radius:2px;
+    display:block;margin-top:4px}
+  .row.warn dd{color:#C1440E;font-weight:600}
+  .warnbox{margin-top:9px;padding:9px 11px;background:#FFF1EC;border-left:2px solid #C1440E;
+    font-size:11.5px;line-height:1.5;color:#7A3218}
+  .warnbox b{font-weight:600}
   .hint{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
     font:400 11.5px/1 Inter;color:var(--muted);background:rgba(245,243,241,.9);
     padding:7px 14px;border-radius:100px;border:1px solid var(--line)}
@@ -85,11 +98,22 @@
     <div class="sect">Massing options</div>
     <div class="opts" id="opts"></div>
 
+    <div class="sect">Scheme <span class="mini" id="schemeTag">modelled</span></div>
+    <dl id="scheme"></dl>
+
+    <div class="sect">Feasibility <span class="mini">AED</span></div>
+    <dl id="fin"></dl>
+
+    <div class="sect">Unit schedule <span class="mini" id="mixNote">RERA benchmark</span></div>
+    <dl id="sched"></dl>
+
     <div class="sect">Site</div>
     <div class="legend">
       <div class="lg"><span class="sw" style="background:#C9B9A8"></span>Parcel</div>
       <div class="lg"><span class="sw" style="background:#8FA9C9"></span>Envelope</div>
-      <div class="lg"><span class="sw" style="background:#FF6B19"></span>Massing</div>
+      <div class="lg"><span class="sw" style="background:#FF6B19"></span>Tower</div>
+      <div class="lg"><span class="sw" style="background:#C4763A"></span>Podium</div>
+      <div class="lg"><span class="sw" style="background:#9C9186"></span>Basement</div>
     </div>
     <div class="note" id="note"></div>
   </div>
@@ -97,17 +121,30 @@
 
 <div class="badge">
   <div class="n" id="bigGfa">—</div>
-  <div class="l">GFA sqft</div>
+  <div class="l" id="bigLabel">GFA sqft</div>
 </div>
 
 <div class="hint">drag to orbit · scroll to zoom · right-drag to pan</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.128.0/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const SCENE_URL = 'fixtures/scene-3156315.json';
+// Same origin as the API, so no CORS and nothing separate to deploy.
+const params = new URLSearchParams(location.search);
+const PLOT = params.get('plot');
+const OPTIMISTIC = params.get('optimistic') === '1';
+const SCENE_URL = (PLOT ? `/api/plot/${PLOT}` : '/api/demo') + (OPTIMISTIC ? '?optimistic=true' : '');
 
 let scene, camera, renderer, massGroup, scn, active = 0;
 const FT = 10.763910416709722;
+
+function money(n) {
+  if (n == null) return '—';
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (a >= 1e3) return Math.round(n / 1e3) + 'K';
+  return String(Math.round(n));
+}
 
 function fmt(n, d = 0) {
   return n == null ? '—' : Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
@@ -171,22 +208,39 @@ function fillPlane(rings, colour, y, opacity) {
   return g;
 }
 
-function buildMass(solid, floorH) {
-  const g = new THREE.Group();
-  const shell = new THREE.MeshLambertMaterial({color: 0xFF6B19, transparent: true, opacity: 0.9});
-  const edgeMat = new THREE.LineBasicMaterial({color: 0x8A3A0C, transparent: true, opacity: 0.55});
+const PALETTE = {
+  basement: {face: 0x9C9186, edge: 0x6B6158, op: 0.55},   // below grade, recessive
+  podium:   {face: 0xC4763A, edge: 0x7A3D14, op: 0.96},   // the base reads heavier
+  tower:    {face: 0xFF6B19, edge: 0x8A3A0C, op: 0.94},
+};
 
-  solid.footprint_rings.forEach(ring => {
-    const shape = ringShape(ring);
-    // One extrusion per floor, with a hairline gap, so the storeys read as storeys.
-    for (let f = 0; f < solid.floors; f++) {
-      const geo = new THREE.ExtrudeGeometry(shape, {depth: floorH * 0.92, bevelEnabled: false});
+function buildMass(solid) {
+  const g = new THREE.Group();
+  const mats = {};
+  for (const k in PALETTE) {
+    mats[k] = {
+      face: new THREE.MeshLambertMaterial({
+        color: PALETTE[k].face, transparent: PALETTE[k].op < 1, opacity: PALETTE[k].op
+      }),
+      edge: new THREE.LineBasicMaterial({color: PALETTE[k].edge, transparent: true, opacity: 0.5}),
+    };
+  }
+
+  (solid.levels || []).forEach(lv => {
+    const m = mats[lv.kind];
+    // A hairline gap between slabs so storeys read as storeys instead of one smooth prism --
+    // this is what makes a massing model legible as a building rather than a box.
+    const h = lv.height_m * 0.9;
+    lv.rings.forEach(ring => {
+      const geo = new THREE.ExtrudeGeometry(ringShape(ring), {depth: h, bevelEnabled: false});
       geo.rotateX(-Math.PI / 2);
-      const mesh = new THREE.Mesh(geo, shell);
-      mesh.position.y = f * floorH + floorH * 0.92;
+      const mesh = new THREE.Mesh(geo, m.face);
+      mesh.position.y = lv.base_m + h;
       g.add(mesh);
-      g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat).translateY(mesh.position.y));
-    }
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), m.edge);
+      edges.position.y = mesh.position.y;
+      g.add(edges);
+    });
   });
   return g;
 }
@@ -215,12 +269,60 @@ function renderPanel() {
     ['Floor-to-floor', scn.floor_height_m + ' m', 'assumption'],
   ].map(([k, v, t]) => `<div class="row"><dt>${k}${tag(t)}</dt><dd>${v}</dd></div>`).join('');
 
-  document.getElementById('opts').innerHTML = scn.solids.map((s, i) => `
+  const best = scn.best_by_rlv;
+  document.getElementById('opts').innerHTML = scn.solids.map((s, i) => {
+    const f = s.feasibility || {};
+    const rlv = f.residual_land_value;
+    return `
     <button class="opt" aria-pressed="${i === active}" onclick="select(${i})">
-      <span class="fl">${s.floors}F</span>
-      <span class="mt">${fmt(s.footprint_sqft)} sqft plate · ${s.height_m} m<br>${s.binding_constraint} · ${fmt(s.parking_bays)} bays</span>
+      <span class="fl">${s.floors}F${s.floors === best ? '<em class="star">best</em>' : ''}</span>
+      <span class="mt">${fmt(f.total_units)} units · ${fmt(s.footprint_sqft)} sqft plate · ${s.height_m} m<br>
+        <span class="mono">${rlv != null ? 'RLV ' + money(rlv) : ''}</span> · ${s.binding_constraint}</span>
       <span class="ut">${(s.gfa_utilisation * 100).toFixed(0)}%</span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
+
+  const sol = scn.solids[active] || {};
+  const sk = sol.scheme;
+  if (sk) {
+    const short = sk.parking_shortfall;
+    document.getElementById('scheme').innerHTML = [
+      ['Basement levels', sk.basement_levels + ' × 3.0 m'],
+      ['Podium levels', sk.podium_levels ? sk.podium_levels + ' × 4.5 m' : '—'],
+      ['Tower levels', sk.tower_levels + ' × 3.2 m'],
+      ['Podium plate', sk.podium_footprint_sqft ? fmt(sk.podium_footprint_sqft) + ' sqft' : '—'],
+      ['Tower plate', fmt(sk.tower_footprint_sqft) + ' sqft'],
+      ['Height above grade', sol.height_m + ' m'],
+      ['Depth below grade', sol.depth_m + ' m'],
+      ['Parking', fmt(sk.parking_provided) + ' / ' + fmt(sk.parking_required) + ' bays',
+        short ? 'warn' : ''],
+    ].map(([k, v, cls]) => `<div class="row ${cls || ''}"><dt>${k}</dt><dd>${v}</dd></div>`).join('')
+      + (short ? `<div class="warnbox"><b>${fmt(short)} bays short.</b> ${sk.basement_levels} basement levels at the setback envelope cannot hold the authority's requirement. Podium parking or a deeper basement is needed.</div>` : '');
+  }
+
+  const f = (scn.solids[active] || {}).feasibility;
+  const fin = document.getElementById('fin');
+  if (f) {
+    fin.innerHTML = [
+      ['Gross development value', money(f.gdv)],
+      ['Construction', money(f.construction)],
+      ['Soft costs', money(f.soft_costs)],
+      ['Parking', money(f.parking_cost)],
+      ['Marketing', money(f.marketing)],
+      ['Total non-land cost', money(f.non_land_cost), 'strong'],
+      ['Residual land value', money(f.residual_land_value), 'accent'],
+      ['RLV per sqft of land', 'AED ' + fmt(f.rlv_psf_land, 0)],
+      ['Blended sale price', 'AED ' + fmt(f.blended_psf, 0) + ' psf'],
+      ['Breakeven', 'AED ' + fmt(f.breakeven_psf, 0) + ' psf'],
+    ].map(([k, v, cls]) => `<div class="row ${cls || ''}"><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+
+    document.getElementById('sched').innerHTML = (f.units || []).map(u => `
+      <div class="row"><dt>${u.label} · ${fmt(u.size_sqft)} sqft @ ${fmt(u.price_psf)}</dt>
+      <dd>${u.count}</dd></div>`).join('')
+      + `<div class="row strong"><dt>Total units</dt><dd>${fmt(f.total_units)}</dd></div>`
+      + `<div class="row"><dt>Saleable · ${(f.efficiency * 100).toFixed(0)}% efficiency</dt><dd>${fmt(f.saleable_sqft)} sqft</dd></div>`
+      + `<div class="row"><dt>Parking bays</dt><dd>${fmt(f.bays)}</dd></div>`;
+  }
 
   const bounded = scn.geometry.bounded;
   document.getElementById('note').innerHTML = bounded
@@ -231,8 +333,10 @@ function renderPanel() {
 window.select = function (i) {
   active = i;
   massGroup.clear();
-  massGroup.add(buildMass(scn.solids[i], scn.floor_height_m));
-  document.getElementById('bigGfa').textContent = fmt(scn.solids[i].gfa_sqft);
+  massGroup.add(buildMass(scn.solids[i]));
+  const fe = scn.solids[i].feasibility;
+  document.getElementById('bigGfa').textContent = fe ? money(fe.residual_land_value) : fmt(scn.solids[i].gfa_sqft);
+  document.getElementById('bigLabel').textContent = fe ? 'Residual land value · AED' : 'GFA sqft';
   renderPanel();
 };
 
