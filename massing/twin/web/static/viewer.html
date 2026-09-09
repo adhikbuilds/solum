@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Solum · City base</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<div id="stage"></div>
+
+<div class="bar">
+  <div class="brand"><b>Solum</b><span>City base · LOD1</span></div>
+  <div class="where" id="where">—</div>
+  <div class="modes" id="modes">
+    <button data-mode="site" aria-pressed="true">Site</button>
+    <button data-mode="value" aria-pressed="false">Value</button>
+    <button data-mode="status" aria-pressed="false">Status</button>
+    <button data-mode="provenance" aria-pressed="false">Height</button>
+    <button data-mode="landuse" aria-pressed="false">Use</button>
+  </div>
+  <div class="find"><input id="find" placeholder="plot number" autocomplete="off"></div>
+</div>
+
+<div class="card" id="left">
+  <div class="inner">
+    <div class="sect">The district</div>
+    <dl class="kpi" id="stats"></dl>
+    <div class="sect" id="legend-title">Legend</div>
+    <div class="legend" id="legend"></div>
+    <div class="basis" id="basis"></div>
+  </div>
+</div>
+
+<div class="card" id="right" hidden>
+  <button class="close" id="close" title="close">✕</button>
+  <div class="inner" id="sel"></div>
+</div>
+
+<div class="clock">
+  <label for="hour">Sun</label>
+  <input type="range" id="hour" min="6" max="19" step="0.25" value="15">
+  <output id="hourOut">15:00</output>
+</div>
+<div class="hint">drag to orbit · scroll to zoom · click a parcel</div>
+<div class="loading" id="loading">loading imagery…</div>
+<div class="attr" id="attr"></div>
+<div class="err" id="err">
+  <strong>No baked district found.</strong>
+  <code>cd massing &amp;&amp; python -m twin.build</code>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="scene.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
