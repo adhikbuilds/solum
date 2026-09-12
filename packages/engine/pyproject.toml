@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solum-engine"
+version = "0.1.0"
+description = "The appraisal core: DDA record to buildable envelope to residual land value."
+requires-python = ">=3.11"
+dependencies = ["shapely>=2.0", "pyproj>=3.6"]
+
+[tool.setuptools]
+packages = ["solum_massing"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

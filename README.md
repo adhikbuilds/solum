@@ -18,7 +18,7 @@ open http://localhost:5180
 ```
 
 That is the whole fresh-clone path — no network fetch, no prerequisites.
-`massing/twin/seed/downtown-dubai.json` is 1,078 plots of Downtown Dubai, Business Bay and DIFC,
+`packages/city/solum_city/seed/downtown-dubai.json` is 1,078 plots of Downtown Dubai, Business Bay and DIFC,
 committed: a verbatim, checksummed slice of the 2026-09-11 DDA snapshot, loaded through the same
 loader the full city uses. Details and the JSON's shape: **[docs/seed-data.md](docs/seed-data.md)**.
 
@@ -27,13 +27,13 @@ different. Read that doc before quoting a number off a seeded stack.
 
 ### The whole city
 
-100,215 plots instead of 1,078, and it has to be fetched once. `twin/raw/` is gitignored, so
+100,215 plots instead of 1,078, and it has to be fetched once. `solum_city/raw/` is gitignored, so
 nothing on a fresh clone can shortcut this:
 
 ```bash
 cd massing
-python -m twin.pipeline.city fetch     # ~101 paginated requests to DDA   (~35 min, once)
-python -m twin.pipeline.city massing   # the derived scheme per plot      (~20 min, 12 workers)
+python -m solum_city.pipeline.city fetch     # ~101 paginated requests to DDA   (~35 min, once)
+python -m solum_city.pipeline.city massing   # the derived scheme per plot      (~20 min, 12 workers)
 cd ..
 docker compose run --rm loader         # load the dated snapshot, warm the overview  (~35 s)
 echo 'SOLUM_AOI=dubai-all' >> .env     # point the backend at it
@@ -44,7 +44,7 @@ docker compose up -d backend
 optional — without it the map draws plots and skips schemes, and the Massing toggle has nothing
 to show. Both are slow once and then never again: the loader reads what they wrote in 35 seconds.
 
-The loader is a job, not a service: it reads the dated acquisition from `massing/twin/raw/` on the
+The loader is a job, not a service: it reads the dated acquisition from `packages/city/solum_city/raw/` on the
 host rather than from the image, because that is ~300 MB of immutable JSON and no backend image
 should carry a copy of one day's Dubai. The seeder needs no such mount — its data is in the image.
 
@@ -132,25 +132,62 @@ In the order a second engineer would hit them.
 | **`feasibility.py` has no unit test** | It is the module that produces the AED figure and the only engine module the suite does not import directly. Everything downstream of it is asserted; the money itself is not. |
 | **The cost basis is unsourced** | Fourteen numbers in `DEFAULT_COSTS` — construction at 345/sqft BUA, BUA factor 1.45, efficiency 0.82, 20% profit on cost — and only the podium premium documents where it came from. The repo's own `[verified]`/`[relayed]`/`[assumption]` convention is not applied to any of them. |
 | **The cost model is calibrated for towers** | AED 3.5 m of fixed soft cost is 4-5% of a tower and 70-77% of a villa, so 64,884 of 70,183 priced plots come out negative. See below. Recalibrating is a modelling decision, not a bug fix. |
-| **No CI** | `pytest massing/tests`, `pnpm build`, `python scripts/e2e.py` are exactly what a workflow should run on every PR, and nothing does. |
+| **No CI** | `pytest packages/engine/tests`, `pnpm build`, `python scripts/e2e.py` are exactly what a workflow should run on every PR, and nothing does. |
 | **Secrets are literals** | `POSTGRES_PASSWORD: solum` is in `docker-compose.yml`. Fine locally, a liability on a shared host. `.env` + `env_file`. |
 | **No schema versioning** | `schema.sql` is idempotent, which covers adding things and nothing else. The first column rename has no migration path. |
 | **`sys.path.insert` x6** | How `service/` reaches `twin/`. Works, fragile. A `pyproject.toml` and `pip install -e .` retires all six. |
-| **`massing/twin/` is misnamed** | It began as a digital twin of one district and now holds the database layer and the city pipeline. It is `massing/city/`. |
+| **`packages/city/solum_city/` is misnamed** | It began as a digital twin of one district and now holds the database layer and the city pipeline. It is `massing/city/`. |
 
 ## Layout
 
+A monorepo: two deployables in `apps/`, the libraries they share in `packages/`.
+
 ```
-massing/            the engine and the backend
-  solum_massing/    pure: DDA record → envelope → candidates → money.  No I/O but dda.py
-  service/          FastAPI: the study, and the city surface
-  twin/             the city base
-    db/             schema, loader, MVT cutter
-    pipeline/       fetch → geojson → massing → tiles
-    web/            the single-district three.js viewer (separate tool, still useful)
-web/                React + Vite + nginx
-docs/prd/           what each piece is for, and what would make it wrong
+apps/
+  api/              FastAPI — the live DDA study and the city tile server
+    solum_api/      main.py (one plot) · city.py (the city surface)
+    Dockerfile      built from the repo root: the image is three projects
+  web/              React + Vite + MapLibre, served by nginx
+
+packages/
+  engine/           pure appraisal: DDA record → envelope → candidates → money
+    solum_massing/  no I/O except dda.py
+    fixtures/       one verified ArcGIS response, so tests never touch the network
+    tests/          16 tests
+  city/             the city scale
+    solum_city/
+      sources/      acquisition — paginated, dated, immutable
+      pipeline/     fetch → geojson → massing → tiles
+      db/           schema.sql · load.py · seed.py · tiles.py (MVT cutter)
+      seed/         downtown-dubai.json — 1,078 plots, committed
+      config/       AOI definitions
+      web/          the single-district three.js viewer (separate tool, still useful)
+      raw/ out/     gitignored: the 320 MB acquisition and its derivatives
+    tests/          50 tests
+
+docs/               PRDs, the seed doc, the knowledge base
+scripts/e2e.py      20 Playwright checks against the running containers
+legacy/             superseded: the single-file prototype, Supabase, the marketing site
 ```
+
+Each Python project has a `pyproject.toml` and is installed with `pip install -e`. Nothing
+resolves imports by counting directories up from `__file__` — ten `sys.path.insert` calls used to,
+which is precisely why the tree could not be reorganised without breaking imports no test covered.
+
+```bash
+pip install -e packages/engine -e packages/city -e apps/api
+pytest packages/engine/tests packages/city/tests        # 66 tests, offline, ~1.4 s
+```
+
+### What is in legacy/
+
+Not dead, but not the product. `solum.html` is the 233 KB single-file prototype still served at
+`/` by Vercel; `supabase/` its seven migrations; `ingestion/` the DLD comps pipeline;
+`site/` and `market-inspirations/` the marketing work. `api/plot.js` stays at the repo root
+because Vercel requires functions there. None of it is imported by `apps/` or `packages/`.
+
+An earlier TypeScript implementation — Next.js, a TS appraisal engine, auth/RLS/tenancy migrations
+— lives on the branch `archive/ts-platform`. It shares no history with this tree.
 
 ## Conventions
 

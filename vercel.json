@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/solum.html" }
+    {
+      "source": "/",
+      "destination": "/legacy/solum.html"
+    }
   ]
 }

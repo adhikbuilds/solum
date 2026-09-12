@@ -38,7 +38,10 @@ services:
 
   backend:
     build:
-      context: ./massing
+      # The repo root, because the image is three projects: packages/engine, packages/city and
+      # apps/api. A context of apps/api could not COPY the packages it depends on.
+      context: .
+      dockerfile: apps/api/Dockerfile
     image: solum-backend:local
     container_name: solum-backend
     ports:
@@ -62,7 +65,7 @@ services:
 
   web:
     build:
-      context: ./web
+      context: ./apps/web
     container_name: solum-web
     ports:
       - '5180:80'
@@ -72,7 +75,7 @@ services:
     restart: unless-stopped
 
   # A job, not a service. It reads the dated acquisition from the host rather than from the image:
-  # `twin/raw` is ~300 MB of immutable JSON and baking it into a layer would make every backend
+  # `solum_city/raw` is ~300 MB of immutable JSON and baking it into a layer would make every backend
   # image carry a copy of one day's Dubai.
   # The same image as the backend, not a second build of the same context. Compose names an
   # unnamed build after its service, so `loader` was building and caching its own copy -- and a
@@ -87,9 +90,9 @@ services:
     environment:
       SOLUM_DSN: postgresql://solum:${POSTGRES_PASSWORD:-solum}@postgres:5432/solum
     volumes:
-      - ./massing/twin/raw:/app/twin/raw:ro
-      - ./massing/twin/out:/app/twin/out:ro
-    command: ['python', '-m', 'twin.db.load', '--aoi', 'dubai-all', '--warm']
+      - ./packages/city/solum_city/raw:/app/packages/city/solum_city/raw:ro
+      - ./packages/city/solum_city/out:/app/packages/city/solum_city/out:ro
+    command: ['python', '-m', 'solum_city.db.load', '--aoi', 'dubai-all', '--warm']
 
   # The zero-prerequisite path. `twin/seed/downtown-dubai.json` is committed, so this needs no host
   # volume, no network and no twenty-minute fetch -- which is what a fresh clone actually has.
@@ -101,7 +104,7 @@ services:
     profiles: ['seed']
     environment:
       SOLUM_DSN: postgresql://solum:${POSTGRES_PASSWORD:-solum}@postgres:5432/solum
-    command: ['python', '-m', 'twin.db.seed', '--warm']
+    command: ['python', '-m', 'solum_city.db.seed', '--warm']
 
 volumes:
   solum-pgdata:

@@ -3,11 +3,11 @@
 - **Status:** Building — all six phases shipped 2026-09-11
 - **Date:** 2026-09-11
 - **Owner:** adhik
-- **Related:** `docs/prd/massing.md`, `massing/twin/README.md`, `massing/solum_massing/basemap.py`
+- **Related:** `docs/prd/massing.md`, `packages/city/solum_city/README.md`, `packages/engine/solum_massing/basemap.py`
 
 ## 1. Problem / why now
 
-The city base works and stops at 1.6 x 1.6 km. `massing/twin` bakes one AOI — Dubai
+The city base works and stops at 1.6 x 1.6 km. `packages/city/solum_city` bakes one AOI — Dubai
 Healthcare City Phase 1, 88 parcels — into a single 388 KB `district.json` that the browser
 fetches whole and three.js draws as one scene. Every gate passes. It is the right shape for a
 district and the wrong shape for a city.
@@ -64,7 +64,7 @@ which is the rule `basemap.py` already enforces and the reason this does not bec
 ## 5. Architecture
 
 ```
-DDA MapServer/2 ──paginate 2000/req──▶ twin/raw/dubai-all/<date>/page-NNN.json   [snapshot, dated]
+DDA MapServer/2 ──paginate 2000/req──▶ solum_city/raw/dubai-all/<date>/page-NNN.json   [snapshot, dated]
                                               │
                                      reproject 3997 → 4326  (display only)
                                               │
@@ -84,7 +84,7 @@ DDA MapServer/2 ──paginate 2000/req──▶ twin/raw/dubai-all/<date>/page-
 ```
 
 `maxRecordCount` is 2000 and `supportsPagination` is true, so the pull is ~51 requests over
-`resultOffset` / `resultRecordCount`. The snapshot lands in `twin/raw/<aoi>/<date>/` exactly the
+`resultOffset` / `resultRecordCount`. The snapshot lands in `solum_city/raw/<aoi>/<date>/` exactly the
 way the DHCC build already does, so a city map is reproducible and carries the day it was taken.
 
 ## 6. Phases — each one renders before the next starts
