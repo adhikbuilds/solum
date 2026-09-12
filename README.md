@@ -12,30 +12,41 @@ Two scales of one question — *what may be built here, and what is the land wor
 ## Run it
 
 ```bash
-docker compose up --build          # postgres + backend + web
-docker compose run --rm loader     # load the dated snapshot, warm the overview  (~35 s)
+docker compose up --build -d       # postgres + backend + web
+docker compose run --rm seeder     # fill the database from the committed seed
 open http://localhost:5180
 ```
 
-The loader is a job, not a service: it reads the dated acquisition from `massing/twin/raw/` on the
-host rather than from the image, because that is ~300 MB of immutable JSON and no backend image
-should carry a copy of one day's Dubai.
+That is the whole fresh-clone path — no network fetch, no prerequisites.
+`massing/twin/seed/downtown-dubai.json` is 1,078 plots of Downtown Dubai, Business Bay and DIFC,
+committed: a verbatim, checksummed slice of the 2026-09-11 DDA snapshot, loaded through the same
+loader the full city uses. Details and the JSON's shape: **[docs/seed-data.md](docs/seed-data.md)**.
 
-### On a fresh clone there is no acquisition yet
+The seed is one district, and a flattering one — the whole-city RLV distribution looks very
+different. Read that doc before quoting a number off a seeded stack.
 
-`twin/raw/` is gitignored, so the loader has nothing to read until the city has been fetched once.
-This is the step a new machine needs and the one the commands above assume:
+### The whole city
+
+100,215 plots instead of 1,078, and it has to be fetched once. `twin/raw/` is gitignored, so
+nothing on a fresh clone can shortcut this:
 
 ```bash
 cd massing
 python -m twin.pipeline.city fetch     # ~101 paginated requests to DDA   (~35 min, once)
 python -m twin.pipeline.city massing   # the derived scheme per plot      (~20 min, 12 workers)
-cd .. && docker compose run --rm loader
+cd ..
+docker compose run --rm loader         # load the dated snapshot, warm the overview  (~35 s)
+echo 'SOLUM_AOI=dubai-all' >> .env     # point the backend at it
+docker compose up -d backend
 ```
 
 `fetch` writes a dated, immutable snapshot; re-running on the same day is a no-op. `massing` is
 optional — without it the map draws plots and skips schemes, and the Massing toggle has nothing
 to show. Both are slow once and then never again: the loader reads what they wrote in 35 seconds.
+
+The loader is a job, not a service: it reads the dated acquisition from `massing/twin/raw/` on the
+host rather than from the image, because that is ~300 MB of immutable JSON and no backend image
+should carry a copy of one day's Dubai. The seeder needs no such mount — its data is in the image.
 
 ## The shape
 

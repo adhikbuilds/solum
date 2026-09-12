@@ -70,8 +70,16 @@ def shutdown() -> None:
     _pool.close()
 
 
-NOT_LOADED = ('no snapshot loaded for {aoi}. Run `docker compose run --rm loader` '
+NOT_LOADED = ('no snapshot loaded for {aoi}. Run `docker compose run --rm seeder` for the '
+              'committed Downtown seed (1,078 plots, a few seconds, no network), or '
+              '`docker compose run --rm loader` for the full city if you have fetched it '
               '(about 35 seconds for 100,215 plots).')
+# A database that holds a city under a different name and a service pointed at the wrong one look
+# identical from the UI -- both say "empty". Naming what is actually loaded turns a dead end into
+# a one-line fix, and it is the mistake the seed makes easy to make: the seed loads as
+# `downtown-dubai`, the full fetch as `dubai-all`.
+WRONG_AOI = ('no snapshot loaded for {aoi}, but the database holds {loaded}. Point the backend '
+             'at it with SOLUM_AOI, e.g. `SOLUM_AOI={first} docker compose up -d backend`.')
 
 
 def _snapshot() -> int:
@@ -87,8 +95,21 @@ def _snapshot() -> int:
     except Exception as e:
         raise HTTPException(503, f'database not ready: {e}') from e
     if snap is None:
-        raise HTTPException(503, NOT_LOADED.format(aoi=AOI))
+        raise HTTPException(503, _empty_message())
     return snap
+
+
+def _empty_message() -> str:
+    try:
+        with _pool.connection() as conn, conn.cursor() as cur:
+            cur.execute('SELECT DISTINCT aoi FROM snapshots ORDER BY aoi')
+            loaded = [r[0] for r in cur.fetchall()]
+    except Exception:
+        loaded = []
+    if loaded:
+        return WRONG_AOI.format(aoi=AOI, loaded=', '.join(f'`{a}`' for a in loaded),
+                                first=loaded[0])
+    return NOT_LOADED.format(aoi=AOI)
 
 
 @router.get('/api/city/manifest')

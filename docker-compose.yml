@@ -1,7 +1,8 @@
 # Solum -- the whole stack.
 #
 #   docker compose up --build            # postgres + backend + web
-#   docker compose run --rm loader       # load the dated snapshot into Postgres, warm the overview
+#   docker compose run --rm seeder       # fill an empty DB from the committed seed (no fetch)
+#   docker compose run --rm loader       # ...or load the dated city-wide snapshot, if you have it
 #   open http://localhost:5180
 #
 # Three services and one job, which is the shape the city map forced. Before this there were two
@@ -20,7 +21,9 @@ services:
     container_name: solum-pg
     environment:
       POSTGRES_USER: solum
-      POSTGRES_PASSWORD: solum
+      # Overridable from `.env` (see `.env.example`). The default is a development convenience and
+      # is safe only because the container publishes to localhost.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-solum}
       POSTGRES_DB: solum
     ports:
       - '5434:5432'   # 5433 is taken by the rebuild's compose file
@@ -42,8 +45,11 @@ services:
       - '8010:8000'
     environment:
       TZ: Asia/Dubai
-      SOLUM_DSN: postgresql://solum:solum@postgres:5432/solum
-      SOLUM_AOI: dubai-all
+      SOLUM_DSN: postgresql://solum:${POSTGRES_PASSWORD:-solum}@postgres:5432/solum
+      # The seed loads as `downtown-dubai`; the full city loads as `dubai-all`. Whichever you
+      # loaded, the backend has to be pointed at it -- `SOLUM_AOI=downtown-dubai docker compose up`,
+      # or set it once in `.env`.
+      SOLUM_AOI: ${SOLUM_AOI:-downtown-dubai}
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,11 +85,23 @@ services:
         condition: service_healthy
     profiles: ['load']
     environment:
-      SOLUM_DSN: postgresql://solum:solum@postgres:5432/solum
+      SOLUM_DSN: postgresql://solum:${POSTGRES_PASSWORD:-solum}@postgres:5432/solum
     volumes:
       - ./massing/twin/raw:/app/twin/raw:ro
       - ./massing/twin/out:/app/twin/out:ro
     command: ['python', '-m', 'twin.db.load', '--aoi', 'dubai-all', '--warm']
+
+  # The zero-prerequisite path. `twin/seed/downtown-dubai.json` is committed, so this needs no host
+  # volume, no network and no twenty-minute fetch -- which is what a fresh clone actually has.
+  seeder:
+    image: solum-backend:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ['seed']
+    environment:
+      SOLUM_DSN: postgresql://solum:${POSTGRES_PASSWORD:-solum}@postgres:5432/solum
+    command: ['python', '-m', 'twin.db.seed', '--warm']
 
 volumes:
   solum-pgdata:

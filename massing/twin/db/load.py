@@ -68,8 +68,16 @@ def _esri_rings(geometry: dict) -> list[list[list[float]]] | None:
     return [r for r in rings if len(r) >= 4] if rings else None
 
 
-def load(dsn: str, aoi: str, *, warm: bool = False) -> int:
-    snap = parcels.latest(aoi)
+def load(dsn: str, aoi: str, *, warm: bool = False, snapshot=None,
+         massing_features=None) -> int:
+    """
+    Load one acquisition into Postgres.
+
+    `snapshot` overrides the on-disk lookup. It only has to answer `.fetched_on`,
+    `.feature_count`, `.source` and `.features()` -- which is how `twin.db.seed` feeds a committed
+    JSON file through exactly this path instead of maintaining a second, divergent loader.
+    """
+    snap = snapshot or parcels.latest(aoi)
     if snap is None:
         print(f'! no snapshot on disk for {aoi}; run `python -m twin.pipeline.city fetch`')
         return 1
@@ -150,7 +158,7 @@ def load(dsn: str, aoi: str, *, warm: bool = False) -> int:
                 '  ST_Transform(geom_4326, 3857), %s) WHERE snapshot_id = %s',
                 (LO_TOLERANCE_M, snapshot_id))
 
-            _load_massing(cur, snapshot_id, aoi)
+            _load_massing(cur, snapshot_id, aoi, features=massing_features)
             cur.execute('ANALYZE plots'); cur.execute('ANALYZE massing')
 
         conn.commit()
@@ -162,35 +170,36 @@ def load(dsn: str, aoi: str, *, warm: bool = False) -> int:
     return 0
 
 
-def _load_massing(cur, snapshot_id: int, aoi: str) -> None:
+def _load_massing(cur, snapshot_id: int, aoi: str, features=None) -> None:
     """
-    The derived scheme, from the file the massing stage already wrote.
+    The derived scheme -- from `features` when the caller has them (the seed bakes its own,
+    1,078 plots being seconds of work), otherwise from the file the massing stage wrote.
 
     Deliberately not recomputed here: `python -m twin.pipeline.city massing` is a twenty-minute
     parallel bake, and making a database load depend on it would mean every load pays for it. If
     the file is absent the tables simply carry no schemes and the map falls back to flat plots.
     """
-    path = ROOT / 'out' / aoi / 'massing.geojsonl'
-    if not path.exists():
-        print(f'· no massing.geojsonl for {aoi}; skipping schemes '
-              f'(run `python -m twin.pipeline.city massing`)')
-        return
+    if features is None:
+        path = ROOT / 'out' / aoi / 'massing.geojsonl'
+        if not path.exists():
+            print(f'· no massing.geojsonl for {aoi}; skipping schemes '
+                  f'(run `python -m twin.pipeline.city massing`)')
+            return
+        features = (json.loads(line) for line in path.open())
 
     n = 0
     with cur.copy(
         """COPY massing (snapshot_id, plot_number, kind, base_m, top_m, floors,
                          land_use, status, geom_4326) FROM STDIN"""
     ) as copy:
-        with path.open() as fh:
-            for line in fh:
-                f = json.loads(line)
-                p = f['properties']
-                copy.write_row((
-                    snapshot_id, p['plot'], p['kind'], p['base_m'], p['top_m'],
-                    p.get('floors'), p.get('use'), p.get('status'),
-                    _wkt(f['geometry']['coordinates']),
-                ))
-                n += 1
+        for f in features:
+            p = f['properties']
+            copy.write_row((
+                snapshot_id, p['plot'], p['kind'], p['base_m'], p['top_m'],
+                p.get('floors'), p.get('use'), p.get('status'),
+                _wkt(f['geometry']['coordinates']),
+            ))
+            n += 1
     cur.execute('UPDATE massing SET geom_4326 = ST_SetSRID(geom_4326, 4326) '
                 'WHERE snapshot_id = %s', (snapshot_id,))
     print(f'· {n:,} massing volumes')
