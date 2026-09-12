@@ -62,7 +62,7 @@ with sync_playwright() as pw:
 
     # the live DDA study -- the one path that leaves the stack
     try:
-        pg.get_by_role('button', name=re.compile('run the full study', re.I)).click(timeout=6000)
+        pg.get_by_role('button', name=re.compile('value it here', re.I)).click(timeout=6000)
         pg.wait_for_timeout(22000)
         body = pg.locator('body').inner_text()
         check('live DDA study returns', re.search(r'residual land value|no scheme', body, re.I) is not None,
@@ -90,6 +90,13 @@ with sync_playwright() as pw:
           f"{len([t for t in tiles if '/massing/' in t])} requests")
     pg.get_by_text('Satellite', exact=True).click(); pg.wait_for_timeout(5000)
     check('satellite toggles', True)
+
+    # The handoff: a plot found on the map opens in the study screen, which is the whole reason
+    # the two screens stopped being separate products.
+    pg.get_by_role('button', name=re.compile('open full study', re.I)).click()
+    pg.wait_for_timeout(15000)
+    body = pg.locator('body').inner_text()
+    check('city hands the plot to the study', '3156315' in body and re.search('regulatory envelope', body, re.I) is not None)
 
     pg.screenshot(path='e2e-final.png')
     real = [e for e in errors if 'circle-11' not in e and 'wood-pattern' not in e and 'THREE' not in e]

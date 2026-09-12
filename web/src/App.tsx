@@ -67,7 +67,7 @@ export default function App() {
                      text-white/60 backdrop-blur hover:text-white">
           ← Back to the study
         </button>
-        <CityView />
+        <CityView onOpenStudy={openPlot} />
       </Suspense>
     )
   }

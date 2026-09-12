@@ -69,7 +69,13 @@ function Toggle({ on, set, label, hint }: { on: boolean; set: (v: boolean) => vo
   )
 }
 
-export default function CityView() {
+/**
+ * `onOpenStudy` is the handoff the city was missing: you could find a plot on the map and read
+ * its entitlement, and then had to retype its number into the study screen to see the scheme,
+ * the massing options and the unit schedule. Finding and studying were the same task split
+ * across two screens that did not know about each other.
+ */
+export default function CityView({ onOpenStudy }: { onOpenStudy?: (plot: string) => void }) {
   const { data: manifest, isLoading, isError, error } = useCityManifest()
   const [mode, setMode] = useState<Mode>('site')
   const [massing, setMassing] = useState(false)
@@ -268,12 +274,21 @@ export default function CityView() {
             </p>
           )}
 
-          <button onClick={() => setStudyFor(selected.plot)} disabled={study.isFetching}
-                  className="mt-4 w-full rounded border border-[#FF6B19] bg-[#FF6B19] py-2.5 font-mono text-[10px]
-                             uppercase tracking-[0.11em] text-black hover:bg-[#B84E12] hover:text-white
-                             disabled:border-white/15 disabled:bg-transparent disabled:text-white/40">
-            {study.isFetching ? 'solving…' : study.data ? 'Re-run' : 'Run the full study'}
-          </button>
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => setStudyFor(selected.plot)} disabled={study.isFetching}
+                    className="flex-1 rounded border border-white/15 py-2.5 font-mono text-[10px]
+                               uppercase tracking-[0.11em] text-white/70 hover:border-white/35 hover:text-white
+                               disabled:text-white/30">
+              {study.isFetching ? 'solving…' : study.data ? 'Re-run here' : 'Value it here'}
+            </button>
+            {onOpenStudy && (
+              <button onClick={() => onOpenStudy(selected.plot)}
+                      className="flex-1 rounded border border-[#FF6B19] bg-[#FF6B19] py-2.5 font-mono text-[10px]
+                                 uppercase tracking-[0.11em] text-black hover:bg-[#B84E12] hover:text-white">
+                Open full study →
+              </button>
+            )}
+          </div>
 
           {study.isError && <p className="mt-3 border-l-2 border-white/15 pl-2.5 text-[11px] text-white/40">{(study.error as Error).message}</p>}
           {study.data?.money && (
