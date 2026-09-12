@@ -21,6 +21,22 @@ The loader is a job, not a service: it reads the dated acquisition from `massing
 host rather than from the image, because that is ~300 MB of immutable JSON and no backend image
 should carry a copy of one day's Dubai.
 
+### On a fresh clone there is no acquisition yet
+
+`twin/raw/` is gitignored, so the loader has nothing to read until the city has been fetched once.
+This is the step a new machine needs and the one the commands above assume:
+
+```bash
+cd massing
+python -m twin.pipeline.city fetch     # ~101 paginated requests to DDA   (~35 min, once)
+python -m twin.pipeline.city massing   # the derived scheme per plot      (~20 min, 12 workers)
+cd .. && docker compose run --rm loader
+```
+
+`fetch` writes a dated, immutable snapshot; re-running on the same day is a no-op. `massing` is
+optional — without it the map draws plots and skips schemes, and the Massing toggle has nothing
+to show. Both are slow once and then never again: the loader reads what they wrote in 35 seconds.
+
 ## The shape
 
 ```
@@ -95,6 +111,21 @@ G+14  tower   GFA 103,183   RLV/sqft   +685    fixed =  4.2%
 
 The numbers have **not** been changed — recalibrating the cost basis is a modelling decision, not
 a bug fix. Instead `fixed_cost_share` travels with every row and the UI says so in words.
+
+## What to do next
+
+In the order a second engineer would hit them.
+
+| | |
+|---|---|
+| **`feasibility.py` has no unit test** | It is the module that produces the AED figure and the only engine module the suite does not import directly. Everything downstream of it is asserted; the money itself is not. |
+| **The cost basis is unsourced** | Fourteen numbers in `DEFAULT_COSTS` — construction at 345/sqft BUA, BUA factor 1.45, efficiency 0.82, 20% profit on cost — and only the podium premium documents where it came from. The repo's own `[verified]`/`[relayed]`/`[assumption]` convention is not applied to any of them. |
+| **The cost model is calibrated for towers** | AED 3.5 m of fixed soft cost is 4-5% of a tower and 70-77% of a villa, so 64,884 of 70,183 priced plots come out negative. See below. Recalibrating is a modelling decision, not a bug fix. |
+| **No CI** | `pytest massing/tests`, `pnpm build`, `python scripts/e2e.py` are exactly what a workflow should run on every PR, and nothing does. |
+| **Secrets are literals** | `POSTGRES_PASSWORD: solum` is in `docker-compose.yml`. Fine locally, a liability on a shared host. `.env` + `env_file`. |
+| **No schema versioning** | `schema.sql` is idempotent, which covers adding things and nothing else. The first column rename has no migration path. |
+| **`sys.path.insert` x6** | How `service/` reaches `twin/`. Works, fragile. A `pyproject.toml` and `pip install -e .` retires all six. |
+| **`massing/twin/` is misnamed** | It began as a digital twin of one district and now holds the database layer and the city pipeline. It is `massing/city/`. |
 
 ## Layout
 
