@@ -1,0 +1,141 @@
+{
+  "city": "dubai",
+  "aoi": {
+    "id": "dhcc-phase-1",
+    "name": "Dubai Healthcare City, Phase 1",
+    "why": "Anchored on plot 3156315, whose full DDA record is already checked in at packages/engine/fixtures/parcel-3156315.json. The whole base can therefore be built and validated offline against numbers the repo has already verified, before the live layer is touched at district scale.",
+    "kind": "envelope",
+    "crs": 3997,
+    "envelope": {
+      "xmin": 498201,
+      "ymin": 2791019,
+      "xmax": 499778,
+      "ymax": 2792642
+    },
+    "extent_m": {
+      "x": 1577,
+      "y": 1623
+    },
+    "wgs84_bbox_for_reference_only": [
+      55.31548,
+      25.225365,
+      55.33113,
+      25.240017
+    ]
+  },
+  "target_crs": 3997,
+  "crs_note": "EPSG:3997, Dubai Local Transverse Mercator. A projected CRS whose unit is the metre, which is why no reprojection appears anywhere in the geometry path: a 10 m setback is 10 m. This is the same rule packages/engine/solum_massing/basemap.py already enforces -- reproject for display only, never for maths.",
+  "origin": {
+    "x": 498990,
+    "y": 2791831,
+    "basis": "centre of the AOI envelope, rounded to the metre",
+    "wgs84_for_reference_only": [
+      55.323309,
+      25.232696
+    ]
+  },
+  "axis_convention": "Baked rings are a local PLAN frame in metres: x = easting - origin.x, y = northing - origin.y. The renderer supplies the Y-up step with rotateX(-PI/2), which is the same one-line move packages/engine/solum_massing/solid.py -> web/src/components/Scene.tsx already makes. Keeping the bake in plan means a district and a plot study cannot end up mirrored against each other.",
+  "units": "metre",
+  "vertical": {
+    "model": "flat",
+    "ground_elevation_m": 0.0,
+    "datum": "unknown",
+    "provenance": "assumption",
+    "basis": "No DEM is sampled at LOD1. This AOI spans 1.6 km of Dubai coastal plain, where terrain relief is a small fraction of one storey, and the global fallback (Copernicus GLO-30) is a DSM -- it contains the buildings themselves, so sampling it to seat buildings would double-count them. A flat plane at a documented, unknown datum is the honest LOD1 statement. Revisit only with a bare-earth DTM, and only if a use case needs it."
+  },
+  "height": {
+    "floor_height_m": 3.2,
+    "floor_height_provenance": "assumption",
+    "floor_height_basis": "ASSUMED_FLOOR_HEIGHT_M in packages/engine/solum_massing/solid.py. DDA publishes storeys, not metres, so metres are always derived from a floor-to-floor assumption.",
+    "chain": [
+      "MAX_HEIGHT_METERS  -> authority, metres published for this plot",
+      "MAX_HEIGHT_FLOORS  -> derived,   'G+N' storeys x floor_height_m",
+      "HEIGHT_CATEGORY    -> assumption, storey band midpoint x floor_height_m",
+      "(nothing)          -> unavailable, drawn as a ground outline, never as an invented building"
+    ],
+    "no_default_height": "There is deliberately no conservative default at the end of the chain. A parcel with no published height is UNAVAILABLE and renders as an outline; guessing one produces a building that does not exist."
+  },
+  "basis": {
+    "value": "permitted",
+    "statement": "Every height in this base is what DDA PERMITS on the parcel, not what is standing on it. MAX_HEIGHT_FLOORS is a ceiling. A completed plot may be built well below it, and an empty plot carries a permitted height with nothing on it at all. CONSTRUCTION_STATUS is carried through per feature so the two can be told apart downstream, but it does not change the height -- it only says whether anything is there.",
+    "what_would_change_it": "Partly done: OSM supplies real footprints and, for 28 of them, a surveyed height. The parcel heights remain permitted ceilings. A full as-built layer still needs municipal LOD1/LOD2, Overture heights or LiDAR."
+  },
+  "lod": {
+    "level": "LOD1",
+    "policy": "Footprint extrusion to a resolved height, flat roof, one material per typology. LOD2/LOD3 are out of scope for the base; the hero zone below is where they would land first."
+  },
+  "hero_zone": null,
+  "sources": [
+    {
+      "id": "dda-parcels",
+      "name": "Dubai Development Authority BASIC_LAND_BASE parcel layer",
+      "url": "https://gis.dda.gov.ae/server/rest/services/DDA/BASIC_LAND_BASE/MapServer/2/query",
+      "crs": 3997,
+      "gives": [
+        "geometry",
+        "AREA_SQFT",
+        "GFA_SQFT",
+        "MAX_HEIGHT_FLOORS",
+        "MAX_HEIGHT_METERS",
+        "HEIGHT_CATEGORY",
+        "CONSTRUCTION_STATUS",
+        "LANDUSE_DETAILS",
+        "BUILDING_SETBACK_SIDE1..4",
+        "GENERAL_NOTES"
+      ],
+      "coverage": "DDA governs 44.8% of Dubai's 3,039 registered projects (measured 2026-08-29 against the RERA register). Trakhees 30.4%, Dubai Municipality 18.1%, Dubai South 4.2%, DSO 2.4%. An AOI that straddles a jurisdiction boundary will simply return fewer parcels there -- that gap is reported, not filled.",
+      "attribution": "Parcel data: Dubai Development Authority"
+    },
+    {
+      "id": "esri-world-imagery",
+      "name": "Esri World Imagery tile cache",
+      "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      "crs": 3857,
+      "gives": [
+        "ground texture"
+      ],
+      "attribution": "Imagery: Esri, Maxar, Earthstar Geographics",
+      "attribution_required": true,
+      "note": "Already wired through packages/engine/solum_massing/basemap.py. Esri's terms require the source named wherever the imagery is shown."
+    },
+    {
+      "id": "osm-buildings",
+      "name": "OpenStreetMap building footprints (via Overpass)",
+      "url": "https://overpass-api.de/api/interpreter",
+      "crs": 4326,
+      "gives": [
+        "building footprints",
+        "building:levels",
+        "height",
+        "name",
+        "building type"
+      ],
+      "coverage": "471 footprints inside this AOI; 28 carry a surveyed height (20 building:levels, 8 height). Community-surveyed, so completeness varies street by street and nothing here treats an OSM height as authoritative.",
+      "attribution": "Building footprints: \u00a9 OpenStreetMap contributors, ODbL",
+      "attribution_required": true,
+      "license": "ODbL 1.0 \u2014 attribution required, share-alike attaches to derived databases",
+      "note": "The only source in this base delivered in WGS84. It is reprojected once, offline, into EPSG:3997 so that no downstream geometry mixes degrees with metres."
+    }
+  ],
+  "attribution": [
+    "Parcel data: Dubai Development Authority",
+    "Imagery: Esri, Maxar, Earthstar Geographics",
+    "Building footprints: \u00a9 OpenStreetMap contributors, ODbL"
+  ],
+  "camera": [
+    {
+      "id": "district-oblique",
+      "position": [
+        900,
+        520,
+        900
+      ],
+      "target": [
+        0,
+        40,
+        0
+      ],
+      "note": "Frames the whole AOI from the south-east at roughly 30 degrees."
+    }
+  ]
+}

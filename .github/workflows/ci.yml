@@ -1,0 +1,58 @@
+# What can actually run on a clean runner, offline, in under two minutes.
+#
+# Deliberately NOT here: `scripts/e2e.py`. It needs Docker, a loaded Postgres, Playwright with a
+# browser, and it drives one assertion against the live `gis.dda.gov.ae` layer. A job that depends
+# on a third party's uptime fails for reasons that are not about this repo, and a red build nobody
+# trusts is worse than no build. It stays a local gate, documented in the README.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install the three projects
+        run: |
+          pip install -r apps/api/requirements.txt pytest
+          pip install --no-deps -e packages/engine -e packages/city -e apps/api
+      - name: Tests
+        run: pytest packages/engine/tests packages/city/tests -q
+      - name: The service imports
+        # Catches exactly the break that shipped once: a module renamed, an import left behind,
+        # and a container that builds cleanly and then dies on startup.
+        run: python -c "import solum_api.main, solum_api.city, solum_city.db.seed"
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # `build` is `tsc -b && vite build`, so this typechecks and bundles in one step.
+      - run: pnpm build
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Both images build
+        run: docker compose build

@@ -123,10 +123,10 @@ unrecorded a second time:
 DDA ArcGIS layer (public, no token)
         │  fetch_plot() / fetch_context()
         ▼
-massing/solum_massing/  — pure Python: dda → envelope → massing → scheme → feasibility → solid
+packages/engine/solum_massing/  — pure Python: dda → envelope → massing → scheme → feasibility → solid
         │
         ▼
-massing/service/main.py  — FastAPI, one impure boundary (the DDA fetch); everything downstream
+apps/api/solum_api/main.py  — FastAPI, one impure boundary (the DDA fetch); everything downstream
         │                  is a pure function over the fetched record (reproducible: same plot
         │  JSON            record → same candidates → same money, every time)
         ▼
@@ -163,7 +163,7 @@ honesty this data actually needs:
   real perf/timeout trade-off on a live external call that hasn't been measured, not a one-line
   style change.
 - **No test coverage for `solid.py`'s render-geometry assembly or `Scene.tsx`** — today's fixes
-  were verified with one-off numeric scripts, not committed tests. `massing/tests/` covers the
+  were verified with one-off numeric scripts, not committed tests. `packages/engine/tests/` covers the
   regulatory/scheme layer well; the render layer has none.
 
 ## 8. Acceptance check

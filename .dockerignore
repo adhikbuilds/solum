@@ -1,0 +1,24 @@
+# The build context is the repo root, so everything the image never reads is listed here. Without
+# this the daemon receives ~500 MB before the first instruction runs.
+
+.git/
+**/__pycache__/
+**/*.pyc
+.venv*/
+**/node_modules/
+
+# The dated acquisition and everything cut from it: 320 MB. `raw/` is the immutable DDA snapshot
+# and `out/` its derivatives; the loader mounts both from the host at run time, precisely so no
+# backend image carries a copy of one day's Dubai. The committed seed in `solum_city/seed/` is
+# 1.9 MB and IS copied -- that is the point of it.
+packages/city/solum_city/raw/
+packages/city/solum_city/out/
+
+# Tests and the superseded prototype are not part of the runtime image.
+packages/*/tests/
+legacy/
+brand/
+market-inspirations/
+docs/
+scripts/
+apps/web/dist/

@@ -1,0 +1,147 @@
+{
+  "city": "dubai",
+  "aoi_id": "dhcc-phase-1",
+  "aoi_name": "Dubai Healthcare City, Phase 1",
+  "built_at": "2026-09-09T18:00:47+00:00",
+  "basis": "permitted",
+  "basis_statement": "Every height in this base is what DDA PERMITS on the parcel, not what is standing on it. MAX_HEIGHT_FLOORS is a ceiling. A completed plot may be built well below it, and an empty plot carries a permitted height with nothing on it at all. CONSTRUCTION_STATUS is carried through per feature so the two can be told apart downstream, but it does not change the height -- it only says whether anything is there.",
+  "source_crs": 3997,
+  "target_crs": 3997,
+  "origin": [
+    498990.0,
+    2791831.0
+  ],
+  "axis_convention": "Baked rings are a local PLAN frame in metres: x = easting - origin.x, y = northing - origin.y. The renderer supplies the Y-up step with rotateX(-PI/2), which is the same one-line move packages/engine/solum_massing/solid.py -> web/src/components/Scene.tsx already makes. Keeping the bake in plan means a district and a plot study cannot end up mirrored against each other.",
+  "units": "metre",
+  "vertical": {
+    "model": "flat",
+    "ground_elevation_m": 0.0,
+    "datum": "unknown",
+    "provenance": "assumption",
+    "basis": "No DEM is sampled at LOD1. This AOI spans 1.6 km of Dubai coastal plain, where terrain relief is a small fraction of one storey, and the global fallback (Copernicus GLO-30) is a DSM -- it contains the buildings themselves, so sampling it to seat buildings would double-count them. A flat plane at a documented, unknown datum is the honest LOD1 statement. Revisit only with a bare-earth DTM, and only if a use case needs it."
+  },
+  "lod": "LOD1",
+  "floor_height_m": 3.2,
+  "height_chain": [
+    "MAX_HEIGHT_METERS  -> authority, metres published for this plot",
+    "MAX_HEIGHT_FLOORS  -> derived,   'G+N' storeys x floor_height_m",
+    "HEIGHT_CATEGORY    -> assumption, storey band midpoint x floor_height_m",
+    "(nothing)          -> unavailable, drawn as a ground outline, never as an invented building"
+  ],
+  "sources": [
+    {
+      "id": "dda-parcels",
+      "name": "Dubai Development Authority BASIC_LAND_BASE parcel layer",
+      "url": "https://gis.dda.gov.ae/server/rest/services/DDA/BASIC_LAND_BASE/MapServer/2/query",
+      "crs": 3997,
+      "gives": [
+        "geometry",
+        "AREA_SQFT",
+        "GFA_SQFT",
+        "MAX_HEIGHT_FLOORS",
+        "MAX_HEIGHT_METERS",
+        "HEIGHT_CATEGORY",
+        "CONSTRUCTION_STATUS",
+        "LANDUSE_DETAILS",
+        "BUILDING_SETBACK_SIDE1..4",
+        "GENERAL_NOTES"
+      ],
+      "coverage": "DDA governs 44.8% of Dubai's 3,039 registered projects (measured 2026-08-29 against the RERA register). Trakhees 30.4%, Dubai Municipality 18.1%, Dubai South 4.2%, DSO 2.4%. An AOI that straddles a jurisdiction boundary will simply return fewer parcels there -- that gap is reported, not filled.",
+      "attribution": "Parcel data: Dubai Development Authority"
+    },
+    {
+      "id": "esri-world-imagery",
+      "name": "Esri World Imagery tile cache",
+      "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      "crs": 3857,
+      "gives": [
+        "ground texture"
+      ],
+      "attribution": "Imagery: Esri, Maxar, Earthstar Geographics",
+      "attribution_required": true,
+      "note": "Already wired through packages/engine/solum_massing/basemap.py. Esri's terms require the source named wherever the imagery is shown."
+    },
+    {
+      "id": "osm-buildings",
+      "name": "OpenStreetMap building footprints (via Overpass)",
+      "url": "https://overpass-api.de/api/interpreter",
+      "crs": 4326,
+      "gives": [
+        "building footprints",
+        "building:levels",
+        "height",
+        "name",
+        "building type"
+      ],
+      "coverage": "471 footprints inside this AOI; 28 carry a surveyed height (20 building:levels, 8 height). Community-surveyed, so completeness varies street by street and nothing here treats an OSM height as authoritative.",
+      "attribution": "Building footprints: \u00a9 OpenStreetMap contributors, ODbL",
+      "attribution_required": true,
+      "license": "ODbL 1.0 \u2014 attribution required, share-alike attaches to derived databases",
+      "note": "The only source in this base delivered in WGS84. It is reprojected once, offline, into EPSG:3997 so that no downstream geometry mixes degrees with metres."
+    }
+  ],
+  "attribution": [
+    "Parcel data: Dubai Development Authority",
+    "Imagery: Esri, Maxar, Earthstar Geographics",
+    "Building footprints: \u00a9 OpenStreetMap contributors, ODbL"
+  ],
+  "snapshot": {
+    "fetched_on": "2026-09-09",
+    "pages": 1,
+    "feature_count": 88,
+    "truncated": false,
+    "directory": "2026-09-09"
+  },
+  "stats": {
+    "fetched": 88,
+    "kept": 88,
+    "rejected": 0,
+    "solid": 51,
+    "outlined": 37,
+    "beyond_aoi": 5,
+    "by_height_provenance": {
+      "derived": 53,
+      "unavailable": 30,
+      "authority": 4,
+      "assumption": 1
+    },
+    "by_status": {
+      "Completed": 39,
+      "Empty": 33,
+      "Under Construction": 8,
+      "Suspended": 4,
+      "Pre-Construction": 4
+    },
+    "by_landuse": {
+      "OPEN SPACE": 17,
+      "FACILITIES (CLINIC)": 14,
+      "FACILITIES (PRIVATE HOSPITAL)": 7,
+      "COMMERCIAL (RETAIL), RESIDENTIAL (APARTMENT)": 5,
+      "COMMERCIAL (OFFICES,RETAIL), HOSPITALITY (HOTEL), RESIDENTIAL (APARTMENT)": 5,
+      "COMMERCIAL (OFFICES,RETAIL)": 3,
+      "COMMERCIAL (OFFICES)": 3,
+      "COMMERCIAL (OFFICES), FACILITIES (CLINIC)": 3,
+      "UTILITIES (SUBSTATION 132 KV)": 3,
+      "OPEN SPACE (NEIGHBORHOOD PARK)": 3,
+      "UTILITIES (UTILITY CORRIDOR)": 3,
+      "COMMERCIAL (OFFICES,RETAIL), FACILITIES (CLINIC)": 3
+    },
+    "tallest_m": 156.8,
+    "total_gfa_sqm": 909171.4,
+    "built_count": 471,
+    "built_with_surveyed_height": 28,
+    "built_at_permitted_ceiling": 25,
+    "built_shape_only": 418,
+    "built_footprint_sqm": 449873.5,
+    "parcels_with_a_building": 46,
+    "priced": 51,
+    "withheld": 37,
+    "hypothetical": 40,
+    "rlv_psf_land": {
+      "min": -39.7,
+      "median": 676.0,
+      "max": 1344.3
+    }
+  },
+  "rejected": []
+}

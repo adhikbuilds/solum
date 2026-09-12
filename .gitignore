@@ -4,3 +4,6 @@ __pycache__/
 
 # Local compose overrides; see .env.example
 .env
+
+# Editable installs
+*.egg-info/

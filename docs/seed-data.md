@@ -1,8 +1,8 @@
 # Seed data: a city in a file
 
-A fresh clone has an empty Postgres and no way to fill it. `twin/raw/` — the dated ArcGIS
+A fresh clone has an empty Postgres and no way to fill it. `solum_city/raw/` — the dated ArcGIS
 acquisition the loader reads — is 206 MB and gitignored, for the same reason nobody commits a
-database dump: it is derived, it is large, and it is dated. So `python -m twin.db.load` on a new
+database dump: it is derived, it is large, and it is dated. So `python -m solum_city.db.load` on a new
 machine correctly says *no snapshot on disk*, and the only path forward is a twenty-minute fetch
 against a public authority layer followed by a twenty-minute massing bake.
 
@@ -21,7 +21,7 @@ open http://localhost:5180
 
 ## What the seed is
 
-`massing/twin/seed/downtown-dubai.json` — **1,078 plots, 1.9 MB**, a 6 km × 6 km window of the
+`packages/city/solum_city/seed/downtown-dubai.json` — **1,078 plots, 1.9 MB**, a 6 km × 6 km window of the
 DDA parcel layer centred on the Burj Khalifa district. It covers Downtown Dubai, Business Bay and
 DIFC: the exact area the reference products (DXB Interact, investmentmap.ai) show, and the area
 with the richest published height data in the city — 699 of the 1,078 plots carry a
@@ -62,7 +62,7 @@ same code as it is for the full city.
       "snapshot_feature_count": 100215
     },
     "out_fields": ["OBJECTID", "PLOT_NUMBER", "...18 fields"],
-    "regenerate": "python -m twin.db.seed --extract"
+    "regenerate": "python -m solum_city.db.seed --extract"
   },
   "features": [ /* 1,078 ArcGIS features, exactly as the layer returned them */ ]
 }
@@ -98,7 +98,7 @@ One feature, rings truncated:
 }
 ```
 
-`sha256` is over the `features` array serialised compactly with sorted keys. `twin.db.seed`
+`sha256` is over the `features` array serialised compactly with sorted keys. `solum_city.db.seed`
 verifies it before loading and refuses a seed that does not match — a snapshot slice that has been
 hand-edited is no longer a snapshot slice, and silently loading one would put invented numbers in
 a database whose whole contract is that its numbers are traceable.
@@ -120,7 +120,7 @@ docker compose run --rm seeder
 ```bash
 pip install -r massing/requirements.txt
 cd massing
-python -m twin.db.seed --warm
+python -m solum_city.db.seed --warm
 ```
 
 Either way the sequence is:
@@ -131,7 +131,7 @@ Either way the sequence is:
 3. Massing is baked **in-process**. The file pipeline spends twenty minutes on 100k plots across a
    process pool; 1,078 plots is a few seconds, so the seed carries no derived geometry and the
    plates are computed fresh at load time.
-4. Rows land through **the real loader** — `twin.db.load.load()`, with the seed passed as a
+4. Rows land through **the real loader** — `solum_city.db.load.load()`, with the seed passed as a
    `snapshot` override. The height chain, the placeholder cleaning, the RLV, the dual 4326/3997
    geometry and the per-snapshot idempotency are not reimplemented here. A second loader that
    drifts from the first is worse than no seed at all.
@@ -157,13 +157,13 @@ Get this wrong and the API says so by name rather than just reporting an empty c
 
 ## Regenerating it
 
-Needs `twin/raw/` — a developer re-cutting the seed has the full snapshot; everyone else just
+Needs `solum_city/raw/` — a developer re-cutting the seed has the full snapshot; everyone else just
 loads the committed result.
 
 ```bash
 cd massing
-python -m twin.db.seed --extract                      # from the newest dubai-all snapshot
-python -m twin.db.seed --extract --source-aoi dhcc-phase-1
+python -m solum_city.db.seed --extract                      # from the newest dubai-all snapshot
+python -m solum_city.db.seed --extract --source-aoi dhcc-phase-1
 ```
 
 The window is defined in `twin/db/seed.py` as `WINDOW_CENTRE` / `WINDOW_HALF_M`. The centre is the
@@ -190,9 +190,9 @@ model is settled.
 - **Not the city.** 1,078 of 100,215 plots. Search, the district statistics and the value
   distribution are all computed over what is loaded, so they describe Downtown, not Dubai.
 - **Not a fixture for the appraisal tests.** Those run against
-  `massing/fixtures/parcel-3156315.json`, a single verified parcel, and stay offline and fast.
+  `packages/engine/fixtures/parcel-3156315.json`, a single verified parcel, and stay offline and fast.
   This is display data.
 - **Not a representative sample.** See above — it is the densest, tallest 1% of the city.
 - **Not a substitute for a fetch when the numbers matter.** It is pinned to 2026-09-11. Plot
-  boundaries, heights and construction status change. `python -m twin.pipeline.city fetch` is
+  boundaries, heights and construction status change. `python -m solum_city.pipeline.city fetch` is
   still how you get today's city.

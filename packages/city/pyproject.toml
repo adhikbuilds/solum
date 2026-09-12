@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solum-city"
+version = "0.1.0"
+description = "The city scale: acquisition, massing pipeline, Postgres load and MVT tiles."
+requires-python = ">=3.11"
+dependencies = [
+    "solum-engine",
+    "psycopg[binary,pool]>=3.2",
+    "pyproj>=3.6",
+    "shapely>=2.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["solum_city*"]
+
+# The seed JSON, the AOI configs and the schema are data the package cannot run without, and
+# setuptools ships only .py files unless told otherwise. Leaving this out is how an image builds
+# cleanly and then fails at startup on a missing schema.sql.
+[tool.setuptools.package-data]
+solum_city = ["db/*.sql", "db/migrations/*.sql", "config/*.json", "seed/*.json"]

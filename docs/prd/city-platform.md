@@ -3,7 +3,7 @@
 - **Status:** Shipped 2026-09-12 — `docker compose up --build` verified green
 - **Date:** 2026-09-12
 - **Owner:** adhik
-- **Related:** `docs/prd/city-map.md` (the map itself), `massing/twin/README.md`
+- **Related:** `docs/prd/city-map.md` (the map itself), `packages/city/solum_city/README.md`
 
 ## 1. Problem / why now
 
@@ -11,7 +11,7 @@ The city map works and is not a system. It is a hand-written HTML page served by
 app on a second port, reading three generated files that live outside git:
 
 ```
-massing/twin/out/dubai-all/plots.pmtiles      33 MB   the map
+packages/city/solum_city/out/dubai-all/plots.pmtiles      33 MB   the map
                           /plots-index.json  3.2 MB   read whole into process memory for search
                           /plots.geojsonl     58 MB   the thing both were cut from
 ```
