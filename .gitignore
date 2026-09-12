@@ -1,3 +1,6 @@
 .venv-massing/
 __pycache__/
 *.pyc
+
+# Local compose overrides; see .env.example
+.env
