@@ -39,19 +39,55 @@ router = APIRouter()
 _pool = ConnectionPool(DSN, min_size=1, max_size=8, open=False, kwargs={'autocommit': False})
 
 
+SCHEMA = Path(__file__).resolve().parents[1] / 'twin' / 'db' / 'schema.sql'
+
+
 def startup() -> None:
+    """
+    Open the pool, and make sure the tables exist before anything asks for them.
+
+    The schema used to be applied only by the loader, which meant a freshly-started stack with an
+    empty database answered every city route with a 500 from `UndefinedTable` -- not the "run the
+    loader" message the UI was written to show. A backend that cannot come up against an empty
+    database is a deployment trap: the first thing a new environment does is start empty.
+
+    `schema.sql` is idempotent (`CREATE TABLE IF NOT EXISTS` throughout), so this is safe on every
+    boot and costs milliseconds.
+    """
     _pool.open()
+    try:
+        with _pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(SCHEMA.read_text())
+            conn.commit()
+    except Exception as e:
+        # Not fatal. The study path needs no database at all, and a backend that refuses to serve
+        # it because Postgres is slow to accept connections is worse than one that says so here.
+        print(f'! schema not applied at startup: {e}')
 
 
 def shutdown() -> None:
     _pool.close()
 
 
+NOT_LOADED = ('no snapshot loaded for {aoi}. Run `docker compose run --rm loader` '
+              '(about 35 seconds for 100,215 plots).')
+
+
 def _snapshot() -> int:
-    with _pool.connection() as conn:
-        snap = tilesvc.snapshot_id(conn, AOI)
+    """
+    The newest loaded snapshot, or a 503 that says what to do about it.
+
+    503 and not 500: an empty database is a state this service is expected to be in, not a fault
+    in it. The distinction is what lets the UI show an instruction instead of a stack trace.
+    """
+    try:
+        with _pool.connection() as conn:
+            snap = tilesvc.snapshot_id(conn, AOI)
+    except Exception as e:
+        raise HTTPException(503, f'database not ready: {e}') from e
     if snap is None:
-        raise HTTPException(503, f'no snapshot loaded for {AOI}; run `python -m twin.db.load`')
+        raise HTTPException(503, NOT_LOADED.format(aoi=AOI))
     return snap
 
 
@@ -65,14 +101,10 @@ def manifest() -> dict:
     written by one stage and the massing by another, and the panel could not say how many plots
     had a scheme.
     """
+    snap = _snapshot()
     with _pool.connection() as conn, conn.cursor() as cur:
-        cur.execute(
-            'SELECT id, fetched_on, feature_count FROM snapshots WHERE aoi = %s '
-            'ORDER BY fetched_on DESC LIMIT 1', (AOI,))
-        row = cur.fetchone()
-        if row is None:
-            raise HTTPException(503, f'no snapshot loaded for {AOI}')
-        snap, fetched_on, _ = row
+        cur.execute('SELECT fetched_on FROM snapshots WHERE id = %s', (snap,))
+        fetched_on = cur.fetchone()[0]
 
         cur.execute('SELECT height_src, count(*) FROM plots WHERE snapshot_id=%s GROUP BY 1', (snap,))
         height = {k: v for k, v in cur.fetchall()}
