@@ -103,7 +103,11 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
       container: container.current,
       style: BASEMAP,
       center: [55.2708, 25.15], zoom: 9.6,
-      maxPitch: 70, attributionControl: false, hash: true,
+      // 85 is MapLibre's ceiling and the one worth having: at 70 the camera still looks down at
+      // the city, and the view that shows a tower against its neighbours is the near-horizontal
+      // one. Rotation was always enabled -- right-drag and ctrl-drag both bear -- but 70 made it
+      // feel as though the angle was locked when it was only shallow.
+      maxPitch: 85, attributionControl: false, hash: true,
     })
     map.current = m
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right')
@@ -295,7 +299,7 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
       </div>
       <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-full border border-white/10
                       bg-black/60 px-3 py-2 text-[11px] text-white/45">
-        {MODE_LABEL[mode]} · drag to pan · right-drag to tilt · click a plot
+        {MODE_LABEL[mode]} · drag to pan · right-drag or ⌃-drag to orbit · shift-drag to box-zoom · click a plot
       </div>
     </>
   )

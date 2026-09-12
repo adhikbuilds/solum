@@ -50,26 +50,35 @@
   --layer-basement: oklch(0.62 0.015 70);
 }
 
-.dark {
-  --background: oklch(0.17 0.012 260);
-  --foreground: oklch(0.93 0.008 250);
-  --card: oklch(0.215 0.014 260);
-  --card-foreground: oklch(0.93 0.008 250);
-  --popover: oklch(0.215 0.014 260);
-  --popover-foreground: oklch(0.93 0.008 250);
+/*
+  Dark, and tuned to the city rather than to a generic inversion.
 
-  --primary: oklch(0.70 0.17 45);
-  --primary-foreground: oklch(0.17 0.012 260);
-  --secondary: oklch(0.26 0.014 260);
-  --secondary-foreground: oklch(0.93 0.008 250);
-  --muted: oklch(0.26 0.014 260);
-  --muted-foreground: oklch(0.66 0.012 255);
-  --accent: oklch(0.28 0.014 260);
-  --accent-foreground: oklch(0.93 0.008 250);
-  --destructive: oklch(0.65 0.16 22);
-  --border: oklch(0.30 0.014 260);
-  --input: oklch(0.30 0.014 260);
-  --ring: oklch(0.70 0.17 45);
+  The study screen and the city map were two different products to look at: one a cool blue-grey
+  dark mode, the other the warm near-black the map needs so that 100,000 plot colours are the only
+  lit thing on screen. Two screens of one tool cannot disagree about what dark means, so these
+  values ARE the city's -- #0E0D0C ground, #191715 surface, #FF6B19 accent -- expressed as tokens
+  so every existing `bg-card` and `text-muted-foreground` in the study inherits them for free.
+*/
+.dark {
+  --background: oklch(0.145 0.004 60);      /* #0E0D0C */
+  --foreground: oklch(0.945 0.006 70);      /* #F2EEE9 */
+  --card: oklch(0.205 0.005 62);            /* #191715 */
+  --card-foreground: oklch(0.945 0.006 70);
+  --popover: oklch(0.235 0.006 62);         /* #221F1C */
+  --popover-foreground: oklch(0.945 0.006 70);
+
+  --primary: oklch(0.685 0.196 42);         /* #FF6B19 */
+  --primary-foreground: oklch(0.16 0.02 45);
+  --secondary: oklch(0.235 0.006 62);
+  --secondary-foreground: oklch(0.945 0.006 70);
+  --muted: oklch(0.235 0.006 62);
+  --muted-foreground: oklch(0.625 0.012 68);  /* #948A80 */
+  --accent: oklch(0.255 0.007 62);
+  --accent-foreground: oklch(0.945 0.006 70);
+  --destructive: oklch(0.62 0.15 25);
+  --border: oklch(0.285 0.006 62);          /* #2E2A26 */
+  --input: oklch(0.285 0.006 62);
+  --ring: oklch(0.685 0.196 42);
 
   --authority: oklch(0.76 0.13 165);
   --authority-bg: oklch(0.28 0.05 165);
