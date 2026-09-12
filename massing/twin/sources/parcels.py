@@ -64,7 +64,10 @@ class Snapshot:
         return out
 
 
-def _query(envelope: tuple[float, float, float, float], offset: int, crs: int) -> str:
+def _query(
+    envelope: tuple[float, float, float, float], offset: int, crs: int,
+    out_fields: str = OUT_FIELDS,
+) -> str:
     xmin, ymin, xmax, ymax = envelope
     geometry = {
         'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax,
@@ -76,7 +79,7 @@ def _query(envelope: tuple[float, float, float, float], offset: int, crs: int) -
         'inSR': str(crs),
         'outSR': str(crs),          # stated explicitly: the base does no reprojection downstream
         'spatialRel': 'esriSpatialRelIntersects',
-        'outFields': OUT_FIELDS,
+        'outFields': out_fields,
         'returnGeometry': 'true',
         # Paging on resultOffset without a deterministic sort is a real hazard, not a theoretical
         # one: the server is free to return rows in a different order per request, which both
@@ -136,6 +139,7 @@ def fetch(
     crs: int = SPATIAL_REFERENCE,
     refetch: bool = False,
     timeout: int = 60,
+    out_fields: str = OUT_FIELDS,
 ) -> Snapshot:
     """
     Acquire the AOI from the live DDA layer into a dated, immutable snapshot.
@@ -160,7 +164,7 @@ def fetch(
     offset = 0
 
     for page_no in range(MAX_PAGES):
-        body = _get(f'{LAYER}?{_query(envelope, offset, crs)}', timeout)
+        body = _get(f'{LAYER}?{_query(envelope, offset, crs, out_fields)}', timeout)
         feats = body.get('features') or []
         name = f'page-{page_no:03d}.json'
         text = json.dumps(body, separators=(',', ':'))
@@ -183,7 +187,7 @@ def fetch(
         'layer': LAYER,
         'crs': crs,
         'envelope': list(envelope),
-        'out_fields': OUT_FIELDS.split(','),
+        'out_fields': out_fields.split(','),
         'page_size': PAGE_SIZE,
         'pages': pages,
         'sha256_16': checksums,

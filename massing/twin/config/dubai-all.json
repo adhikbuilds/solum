@@ -1,0 +1,110 @@
+{
+  "city": "dubai",
+  "aoi": {
+    "id": "dubai-all",
+    "name": "Dubai \u2014 every DDA plot",
+    "why": "The city view. Not a district: the full published extent of the DDA plot layer, so the map opens on the emirate and a plot is something you zoom to rather than something you configure an AOI for.",
+    "kind": "envelope",
+    "crs": 3997,
+    "envelope": {
+      "xmin": 461782.942,
+      "ymin": 2744146.592,
+      "xmax": 522487.564,
+      "ymax": 2800032.99
+    },
+    "envelope_basis": "The DDA layer's own published extent, read from MapServer/2?f=json on 2026-09-11. Not a hand-drawn box -- asking the layer where it is means the AOI cannot be smaller than the data.",
+    "extent_m": {
+      "x": 60705,
+      "y": 55886
+    },
+    "expected_feature_count": 100216,
+    "expected_count_basis": "MapServer/2/query?where=1=1&returnCountOnly=true, measured 2026-09-11. The build compares against this and reports the difference rather than trusting the page loop."
+  },
+  "target_crs": 3997,
+  "display_crs": 4326,
+  "crs_note": "Two CRSs, and the direction matters. Geometry is acquired and stored in EPSG:3997 (Dubai Local Transverse Mercator, metres), which is where every setback, plate and RLV figure is computed. The reprojection to 4326 happens ONCE, offline, on the way into the vector tiles, because tiles are Web Mercator and nothing else. Nothing reprojects on the way back: a plot clicked on the map is resolved by PLOT_NUMBER and re-fetched in 3997 for the study.",
+  "tiles": {
+    "format": "pmtiles",
+    "min_zoom": 8,
+    "max_zoom": 16,
+    "layer": "plots",
+    "basis": "z16 is ~2.4 m/px at this latitude, which resolves a plot boundary without carrying vertices no one can see. z8 holds the whole emirate in a handful of tiles. tippecanoe drops nothing by density (--drop-densest-as-needed is deliberately NOT used): a missing plot is worse than a heavy tile, and the alternative -- coalescing -- would merge two plots into one clickable id. The derived massing is a second layer in the same archive, cut from z13 rather than z8: it is never drawn below z13.5, and carrying ~140,000 tower plates down to the whole-emirate zoom would be the heaviest thing in the file for a view that never asks for it. tippecanoe cannot give two inputs different zoom ranges in one pass, so the two are built separately and tile-join merges them.",
+    "massing_min_zoom": 13
+  },
+  "basemap": {
+    "id": "openfreemap-dark",
+    "style": "https://tiles.openfreemap.org/styles/dark",
+    "gives": [
+      "roads",
+      "coastline",
+      "water",
+      "landuse",
+      "labels"
+    ],
+    "attribution": "\u00a9 OpenStreetMap contributors",
+    "license": "ODbL 1.0",
+    "key_required": false,
+    "verified": "HTTP 200 on 2026-09-11. No API key, no usage ceiling published. OSM data served as MapLibre vector tiles.",
+    "why_not_self_hosted": "Planetiler over the planet is 2-3 hours of build for a road network we do not modify. If art direction ever needs a theme we control, Protomaps' dark themes at maps.protomaps.com are the fallback and the switch is one style URL.",
+    "why_dark": "The district viewer is light because it draws a handful of buildings in sunlight. The city draws 100,215 plot washes over a road network, and on a light ground the two compete -- every plot is ink, and ink over paper at city zoom is a grey smear. Dark lets the ground recede so the entitlement is the only lit thing on screen. OpenFreeMap serves liberty, bright, positron, dark and fiord; the switch is one URL."
+  },
+  "coverage": {
+    "statement": "This is every plot DDA publishes, which is not every plot in Dubai.",
+    "measured_2026_08_29": {
+      "dda": 44.8,
+      "trakhees": 30.4,
+      "dubai_municipality": 18.1,
+      "dubai_south": 4.2,
+      "dso": 2.4
+    },
+    "basis": "Share of Dubai's 3,039 RERA-registered projects by governing authority.",
+    "render_rule": "Areas governed by another authority carry no parcels and are drawn as nothing. They are never filled, interpolated or inferred. The city panel states the coverage so an empty Downtown reads as a jurisdiction boundary and not as a bug."
+  },
+  "height": {
+    "floor_height_m": 3.2,
+    "chain": [
+      "MAX_HEIGHT_METERS  -> authority",
+      "MAX_HEIGHT_FLOORS  -> derived",
+      "HEIGHT_CATEGORY    -> assumption",
+      "(nothing)          -> unavailable"
+    ],
+    "no_default_height": "Unchanged from dubai.json and non-negotiable at city scale: a plot with no published height extrudes to nothing and renders as an outline. 100,000 invented buildings is a more convincing lie than 88."
+  },
+  "basis": {
+    "value": "permitted",
+    "statement": "Every height on this map is what DDA PERMITS, not what is standing. CONSTRUCTION_STATUS travels with each plot so the two can be told apart, but it never changes the height."
+  },
+  "sources": [
+    {
+      "id": "dda-parcels",
+      "name": "Dubai Development Authority BASIC_LAND_BASE plot layer",
+      "url": "https://gis.dda.gov.ae/server/rest/services/DDA/BASIC_LAND_BASE/MapServer/2/query",
+      "crs": 3997,
+      "max_record_count": 2000,
+      "supports_pagination": true,
+      "attribution": "Plot data: Dubai Development Authority"
+    },
+    {
+      "id": "openfreemap",
+      "name": "OpenFreeMap Liberty vector basemap",
+      "url": "https://tiles.openfreemap.org/styles/liberty",
+      "crs": 3857,
+      "attribution": "\u00a9 OpenStreetMap contributors",
+      "attribution_required": true
+    }
+  ],
+  "attribution": [
+    "Plot data: Dubai Development Authority",
+    "Basemap \u00a9 OpenStreetMap contributors, ODbL"
+  ],
+  "camera": {
+    "center": [
+      55.2708,
+      25.15
+    ],
+    "zoom": 10.2,
+    "pitch": 0,
+    "bearing": 0,
+    "note": "Opens on the bounds of the plots themselves, computed at bake time -- not a hand-picked centre, which drifts the moment the layer does. Pitch is earned by zooming in, not given away at load, because an oblique city of 100,000 outlines reads as noise."
+  }
+}

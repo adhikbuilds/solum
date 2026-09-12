@@ -1,11 +1,13 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { Loader2, Search, TriangleAlert } from 'lucide-react'
-import { useStudy } from '@/api/client'
+import { useComparison, useStudy } from '@/api/client'
 import { Fact } from '@/components/Provenance'
 // three.js and its react bindings are ~900 kB of the bundle and are useless until a study
 // has loaded, so the viewer is split out and fetched alongside the first request.
 const Scene = lazy(() => import('@/components/Scene').then((m) => ({ default: m.Scene })))
 import { CandidateTable } from '@/components/CandidateTable'
+import { CompareTable } from '@/components/CompareTable'
+import { MassingGrid } from '@/components/MassingGrid'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,13 +15,28 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { aed, aedFull, num, pct, sqft } from '@/lib/format'
 
+/*
+ * The city is a whole screen, not a panel, and it is 100,000 plots of WebGL -- so it is split out
+ * and only fetched when someone asks for it. Loading maplibre and the map chrome into the bundle
+ * of a study screen that never opens it is a megabyte nobody asked for.
+ */
+const CityView = lazy(() => import('@/components/city/CityView'))
+
 export default function App() {
+  const [mode, setMode] = useState<'study' | 'compare' | 'city'>('study')
   const [plot, setPlot] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  // The screened set is committed on submit rather than tracked from the field, so editing the
+  // list does not refire a dozen DDA lookups per keystroke.
+  const [screened, setScreened] = useState<string[]>([])
+  const [compareDraft, setCompareDraft] = useState('')
   const [optimistic, setOptimistic] = useState(false)
   const [floors, setFloors] = useState<number | null>(null)
 
   const { data, isLoading, isError, error } = useStudy(plot, optimistic)
+  const comparison = useComparison(mode === 'compare' ? screened : [])
+
+  const openPlot = (n: string) => { setMode('study'); setPlot(n); setDraft(n); setFloors(null) }
 
   const solid = useMemo(() => {
     if (!data?.solids.length) return undefined
@@ -37,6 +54,24 @@ export default function App() {
   // reads as "this scheme needs no parking", which is a claim we have no basis for.
   const parkingDeferred = !p?.parking_rule_sqm_per_bay
 
+
+  // The city takes the viewport. It has its own bar, its own panels and its own dark ground, so
+  // it replaces the study chrome rather than nesting inside it.
+  if (mode === 'city') {
+    return (
+      <Suspense fallback={<div className="grid h-dvh place-content-center bg-[#0E0D0C] text-white/40">
+        <Loader2 className="size-5 animate-spin" /></div>}>
+        <button onClick={() => setMode('study')}
+          className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/15
+                     bg-black/80 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.11em]
+                     text-white/60 backdrop-blur hover:text-white">
+          ← Back to the study
+        </button>
+        <CityView />
+      </Suspense>
+    )
+  }
+
   return (
     <div className="flex h-screen flex-col">
       {/* ---- top bar ---- */}
@@ -46,29 +81,57 @@ export default function App() {
           <span className="text-muted-foreground font-mono text-[10px] tracking-[0.14em] uppercase">Massing</span>
         </div>
 
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(e) => { e.preventDefault(); setPlot(draft.trim() || null); setFloors(null) }}
-        >
-          <div className="relative">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-            <Input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="DDA plot number"
-              inputMode="numeric"
-              className="h-8 w-48 pl-8 font-mono text-xs"
-            />
-          </div>
-          <Button size="sm" type="submit">Study</Button>
-          {plot && (
-            <Button size="sm" variant="ghost" onClick={() => { setPlot(null); setDraft(''); setFloors(null) }}>
-              Demo plot
-            </Button>
-          )}
-        </form>
+        <Segmented
+          value={mode}
+          // Three scales of the same question: one plot, a screened set, or the whole emirate.
+          options={[['study', 'One plot'], ['compare', 'Screen'], ['city', 'The city']] as const}
+          onChange={setMode}
+        />
 
-        <div className="ml-auto flex items-center gap-2">
+        {mode === 'study' ? (
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => { e.preventDefault(); setPlot(draft.trim() || null); setFloors(null) }}
+          >
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <Input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="DDA plot number"
+                inputMode="numeric"
+                className="h-8 w-48 pl-8 font-mono text-xs"
+              />
+            </div>
+            <Button size="sm" type="submit">Study</Button>
+            {plot && (
+              <Button size="sm" variant="ghost" onClick={() => { setPlot(null); setDraft(''); setFloors(null) }}>
+                Demo plot
+              </Button>
+            )}
+          </form>
+        ) : (
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              setScreened([...new Set(compareDraft.split(/[\s,]+/).map((n) => n.trim()).filter(Boolean))])
+            }}
+          >
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <Input
+                value={compareDraft}
+                onChange={(e) => setCompareDraft(e.target.value)}
+                placeholder="Plot numbers, comma separated"
+                className="h-8 w-[340px] pl-8 font-mono text-xs"
+              />
+            </div>
+            <Button size="sm" type="submit">Screen</Button>
+          </form>
+        )}
+
+        <div className={`ml-auto flex items-center gap-2 ${mode === 'compare' ? 'invisible' : ''}`}>
           <span className="text-muted-foreground font-mono text-[10px] tracking-[0.1em] uppercase">Setbacks</span>
           <div className="bg-secondary inline-flex rounded-md p-0.5">
             {([false, true] as const).map((o) => (
@@ -87,6 +150,9 @@ export default function App() {
       </header>
 
       {/* ---- body ---- */}
+      {mode === 'compare' ? (
+        <CompareView q={comparison} onOpen={openPlot} />
+      ) : (
       <div className="flex min-h-0 flex-1">
         <aside className="bg-card w-[360px] shrink-0 overflow-y-auto border-r">
           {isLoading && (
@@ -221,8 +287,10 @@ export default function App() {
         </main>
       </div>
 
+      )}
+
       {/* ---- candidates ---- */}
-      {data && (
+      {mode === 'study' && data && (
         <div className="bg-card h-[268px] shrink-0 overflow-y-auto border-t">
           <Tabs defaultValue="options" className="p-3">
             <TabsList>
@@ -287,6 +355,89 @@ export default function App() {
           </Tabs>
         </div>
       )}
+    </div>
+  )
+}
+
+/** The header's two-state control, used for both the mode switch and the setback bound. */
+function Segmented<T extends string>({
+  value, options, onChange,
+}: { value: T; options: readonly (readonly [T, string])[]; onChange: (v: T) => void }) {
+  return (
+    <div className="bg-secondary inline-flex rounded-md p-0.5">
+      {options.map(([v, label]) => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          className={`rounded-sm px-2.5 py-1 font-mono text-[10px] font-medium tracking-wide uppercase transition-colors ${
+            value === v ? 'bg-card shadow-sm' : 'text-muted-foreground'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function CompareView({
+  q, onOpen,
+}: { q: ReturnType<typeof useComparison>; onOpen: (plot: string) => void }) {
+  if (q.isLoading) {
+    return (
+      <div className="text-muted-foreground flex flex-1 items-center justify-center gap-2 text-sm">
+        <Loader2 className="size-4 animate-spin" /> Reading the register…
+      </div>
+    )
+  }
+  if (q.isError) {
+    return (
+      <div className="flex flex-1 items-start justify-center p-8">
+        <div className="border-destructive/40 bg-destructive/5 max-w-lg rounded-md border p-4">
+          <p className="text-destructive flex items-center gap-2 text-sm font-semibold">
+            <TriangleAlert className="size-4" /> Could not screen these plots
+          </p>
+          <p className="text-muted-foreground mt-1 text-[13px]">{(q.error as Error).message}</p>
+        </div>
+      </div>
+    )
+  }
+  if (!q.data) {
+    return (
+      <div className="flex flex-1 items-start justify-center p-10">
+        <div className="max-w-xl">
+          <h2 className="text-[15px] font-semibold">Screen several plots at once</h2>
+          <p className="text-muted-foreground mt-2 text-[13px] leading-relaxed">
+            Enter DDA plot numbers separated by commas. Each is read from the register, massed
+            against its own published limits, and priced — then ranked by what the land is worth.
+          </p>
+          <p className="text-muted-foreground mt-3 text-[13px] leading-relaxed">
+            Every plot is reported as a <span className="text-foreground font-medium">range</span>.
+            DDA names four setbacks but never which edge each belongs to, so a single figure would
+            assert an ordering the register cannot support. Where two ranges overlap, the table
+            says so rather than implying the order is settled.
+          </p>
+          <p className="text-muted-foreground mt-3 font-mono text-[11px]">
+            Try 3156286, 3156269, 3156315, 3347596
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const { rows, priced, requested } = q.data
+  return (
+    <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="mb-3 flex items-baseline gap-3">
+        <h2 className="text-[13px] font-semibold">
+          {priced} of {requested} plots priced
+        </h2>
+        <span className="text-muted-foreground font-mono text-[10px] tracking-[0.1em] uppercase">
+          Ranked on residual land value · conservative bound
+        </span>
+      </div>
+      <MassingGrid rows={rows} onOpen={onOpen} />
+      <CompareTable rows={rows} onOpen={onOpen} />
     </div>
   )
 }
