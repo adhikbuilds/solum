@@ -52,6 +52,7 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
   const map = useRef<MLMap | null>(null)
   const [ready, setReady] = useState(false)
   const [hover, setHover] = useState<PlotProps | null>(null)
+  const [cam, setCam] = useState({ bearing: 0, pitch: 0 })
 
   const stops = useMemo(() => valueStops(manifest.rlv_psf), [manifest.rlv_psf])
 
@@ -110,7 +111,6 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
       maxPitch: 85, attributionControl: false, hash: true,
     })
     map.current = m
-    m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right')
 
     m.on('load', () => {
       try {
@@ -220,6 +220,7 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
       onSelect(p)
     })
     m.on('zoomend', () => onZoom(m.getZoom()))
+    m.on('move', () => setCam({ bearing: m.getBearing(), pitch: m.getPitch() }))
     return () => { ro.disconnect(); m.remove(); map.current = null }
     // Built once. Every later change is a paint/layout property, never a rebuild -- re-creating
     // the map on a mode change would refetch every tile in view.
@@ -269,6 +270,36 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, flyTo])
 
+  /*
+   * Explicit camera buttons, and the reason is a trackpad.
+   *
+   * MapLibre rotates on right-button drag or ctrl+left drag. On a Mac both are the same gesture
+   * and macOS claims it first: ctrl-drag opens the context menu, and a trackpad has no separate
+   * right button to drag with. So on the machine this is demoed from, rotation was reachable only
+   * through a control -- and the built-in one was an unstyled white box tucked under the plot
+   * panel, which is the same as not having one.
+   *
+   * These call the map directly, are on the left where nothing overlaps them, and the compass
+   * shows the bearing it will reset.
+   */
+  const nudge = (d: Partial<{ bearing: number; pitch: number; zoom: number }>) => {
+    const m = map.current
+    if (!m) return
+    m.easeTo({
+      bearing: m.getBearing() + (d.bearing ?? 0),
+      pitch: Math.max(0, Math.min(85, m.getPitch() + (d.pitch ?? 0))),
+      zoom: m.getZoom() + (d.zoom ?? 0),
+      duration: 300,
+    })
+  }
+  const Btn = ({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) => (
+    <button onClick={onClick} title={title} aria-label={title}
+      className="flex h-8 w-8 items-center justify-center border-r border-white/10 text-white/55
+                 hover:bg-white/10 hover:text-white">
+      {children}
+    </button>
+  )
+
   return (
     <>
       {/*
@@ -297,9 +328,30 @@ export function CityMap({ manifest, mode, massing, satellite, flyTo, onSelect, o
                       text-right text-[10px] leading-relaxed text-white/45">
         {manifest.attribution.join(' · ')}
       </div>
+      {/* Camera. A horizontal strip just right of the city panel and just under the bar -- the one
+          rectangle of this screen that no panel ever covers, at any viewport height. Vertically at
+          the left edge it sat underneath the city panel, which is how the built-in control was
+          lost in the first place. */}
+      <div className="absolute left-[332px] top-[84px] z-10 flex flex-row overflow-hidden rounded
+                      border border-white/10 bg-[#191715]/95 shadow-2xl backdrop-blur">
+        <Btn onClick={() => nudge({ zoom: 1 })} title="Zoom in">+</Btn>
+        <Btn onClick={() => nudge({ zoom: -1 })} title="Zoom out">−</Btn>
+        <Btn onClick={() => nudge({ pitch: 15 })} title="Tilt down toward the horizon">▲</Btn>
+        <Btn onClick={() => nudge({ pitch: -15 })} title="Tilt back to overhead">▼</Btn>
+        <Btn onClick={() => nudge({ bearing: -30 })} title="Rotate anticlockwise">↺</Btn>
+        <Btn onClick={() => nudge({ bearing: 30 })} title="Rotate clockwise">↻</Btn>
+        <button onClick={() => map.current?.easeTo({ bearing: 0, pitch: 0, duration: 400 })}
+          title={`Bearing ${Math.round(cam.bearing)}° · pitch ${Math.round(cam.pitch)}° — click to reset north`}
+          aria-label="Reset north"
+          className="flex h-8 w-9 items-center justify-center hover:bg-white/10">
+          <span className="text-[13px] leading-none text-[#FF6B19]"
+                style={{ display: 'inline-block', transform: `rotate(${-cam.bearing}deg)` }}>▲</span>
+        </button>
+      </div>
+
       <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-full border border-white/10
                       bg-black/60 px-3 py-2 text-[11px] text-white/45">
-        {MODE_LABEL[mode]} · drag to pan · right-drag or ⌃-drag to orbit · shift-drag to box-zoom · click a plot
+        {MODE_LABEL[mode]} · drag to pan · rotate and tilt with the controls · click a plot
       </div>
     </>
   )

@@ -45,6 +45,18 @@ with sync_playwright() as pw:
           f"{len([t for t in tiles if '/plots/' in t])} requests")
     check('canvas full size', pg.evaluate("() => {const c=document.querySelector('canvas'); return c.clientHeight}") > 800)
 
+    # Camera. A Mac trackpad cannot right-drag and macOS eats ctrl-drag for the context menu, so
+    # rotation is only reachable through these -- the hash going from three parts to five is the
+    # whole assertion.
+    before = pg.evaluate('() => location.hash')
+    for _ in range(3): pg.get_by_label('Rotate clockwise').click(); pg.wait_for_timeout(400)
+    for _ in range(4): pg.get_by_label('Tilt down toward the horizon').click(); pg.wait_for_timeout(400)
+    pg.wait_for_timeout(2000)
+    after = pg.evaluate('() => location.hash')
+    check('camera rotates and tilts', len(after.split('/')) == 5 and after != before, after)
+    pg.get_by_label('Reset north').click(); pg.wait_for_timeout(2000)
+    check('reset north works', len(pg.evaluate('() => location.hash').split('/')) == 3)
+
     # search
     pg.fill('input[placeholder="plot or area"]', '3156315')
     pg.wait_for_timeout(2500)
