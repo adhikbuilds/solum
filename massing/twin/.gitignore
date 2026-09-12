@@ -1,1 +1,6 @@
 raw/
+out/*/plots.geojsonl
+out/*/plots.pmtiles
+out/*/massing.geojsonl
+out/*/.*.pmtiles
+out/*/tiles-manifest.json

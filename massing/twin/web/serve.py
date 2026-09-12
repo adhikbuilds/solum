@@ -1,7 +1,12 @@
 """
-One command that serves the district and answers questions about it.
+One command that serves the DISTRICT and answers questions about it.
 
-    python -m twin.serve            # http://127.0.0.1:8081/viewer.html
+The city is not here any more. It moved to Postgres and to the one backend in `service/`, and
+this app is now what its name always said it was: a single baked district, drawn by three.js at
+`viewer.html`, plus the appraisal behind any parcel in it. The city map is a React route in
+`web/` talking to `/api/city/*`.
+
+    python -m twin.web.serve        # city.html (the emirate) and viewer.html (one district)
 
 Two surfaces, deliberately small:
 
@@ -25,6 +30,7 @@ from fastapi import FastAPI, HTTPException                      # noqa: E402
 from fastapi.staticfiles import StaticFiles                     # noqa: E402
 
 from twin.web.study import appraise_plot                         # noqa: E402
+
 
 STATIC = Path(__file__).resolve().parent / 'static'
 OUT = Path(__file__).resolve().parents[1] / 'out'
@@ -61,7 +67,8 @@ app.mount('/', StaticFiles(directory=str(STATIC), html=True), name='viewer')
 
 
 def main() -> int:
-    print('· http://127.0.0.1:8081/viewer.html')
+    print('· city     http://127.0.0.1:8081/city.html')
+    print('· district http://127.0.0.1:8081/viewer.html')
     uvicorn.run(app, host='127.0.0.1', port=8081, log_level='warning')
     return 0
 

@@ -19,7 +19,8 @@ python -m twin.pipeline.build --fixture   # offline, from the checked-in parcel 
 python -m twin.pipeline.gates             # the acceptance gates -> out/<aoi>/gates.md
 python -m pytest tests/test_twin.py
 
-python -m twin.web.serve                  # http://127.0.0.1:8081/viewer.html
+python -m twin.pipeline.city all          # the whole emirate -> out/dubai-all/plots.pmtiles
+python -m twin.web.serve                  # /city.html (Dubai) and /viewer.html (one district)
 ```
 
 `?imagery=off` or `?imagery=40` caps the ground tiles for a slow link or an automated capture.
@@ -166,3 +167,69 @@ DDA easting and northing it came from, to the millimetre.
 
 Parcel data: Dubai Development Authority. Imagery: Esri, Maxar, Earthstar Geographics.
 Building footprints: © OpenStreetMap contributors, ODbL.
+
+
+## Two scales, and why they are built differently
+
+The district above is one bake the browser downloads whole. `python -m twin.pipeline.city` does
+not, and cannot: DHCC Phase 1 is 88 parcels in 388 KB — 4.4 KB each — and DDA publishes **100,216
+plots**. The same bake is ~440 MB in a single fetch. So the city is delivered as vector tiles.
+
+| | district (`viewer.html`) | city (`city.html`) |
+|---|---|---|
+| extent | 1.6 × 1.6 km, one AOI | the DDA layer's own published extent |
+| plots | 88 | ~100,000 |
+| delivery | one `district.json`, fetched whole | one `plots.pmtiles`, range-requested |
+| renderer | three.js, hand-built scene | MapLibre GL JS over OpenFreeMap |
+| as-built | 471 OSM footprints, fetched | the whole emirate, already in the basemap tiles |
+| frame | local plan metres about an origin | Web Mercator, because tiles are |
+| what it answers | what a block looks like | where a plot is, and what it may become |
+| value | 51 priced, 37 withheld, live | baked offline for every plot, in 6 seconds |
+
+What does **not** differ is the chain. Geometry is acquired in EPSG:3997 and the reprojection to
+4326 happens once, offline, in `pipeline/city.py`, on the way into the tiles. Nothing reads it
+back: a plot clicked on the map is resolved by `PLOT_NUMBER` and re-fetched in 3997 by
+`/api/twin/appraise/{plot}`, which is the same pure appraisal the district uses. The height chain
+survives into the tile attributes — `authority → derived → assumption → unavailable` — and a plot
+with no published height carries no `height_m` and is drawn as an outline. At 88 parcels an
+invented height is a wrong building. At 100,000 it is a convincing city that does not exist.
+
+**The city map is not all of Dubai.** DDA governs 44.8% of the emirate's 3,039 RERA-registered
+projects (measured 2026-08-29): Trakhees 30.4%, Dubai Municipality 18.1%, Dubai South 4.2%,
+DSO 2.4%. Areas another authority governs carry no plots and are drawn as nothing. The coverage
+bar in the left panel says so, so an empty Downtown reads as a jurisdiction boundary rather than
+a bug.
+
+
+## The city view has two readings, and they are a switch
+
+**As-built** (default) is the city that is standing: OpenMapTiles' `building` source-layer — already
+inside the basemap tiles the page downloads — extruded to `render_height`, so the Burj stands at
+828 m. It costs no new source, no key and no extra request. It is grey on purpose; the moment the
+as-built city takes a colour it competes with the layer carrying the answer.
+
+**Entitlement massing** (toggle) puts the permitted envelope up in colour and drops the real city
+to 25% behind it, so a scheme is read against what it would replace.
+
+They cannot share a screen. Two 3D layers on the same ground make neither legible, which is why
+this is a toggle and not a blend — and why the plot extrusion, which used to be the default
+reading of the map, is now opt-in.
+
+
+## The scheme layer
+
+`python -m twin.pipeline.city massing` runs `parse_feature -> buildable_envelope -> generate ->
+build_scene` over every plot and bakes the winning scheme as its own tile layer. This is the same
+massing the district viewer draws — rectilinear blocks fitted to the site axis, tower capped for
+daylight, podium left full — not a plot polygon pushed up to its permitted height. A plot is a
+piece of land; no building is the shape of one, and extruding it is what made the city read as
+coloured blocks.
+
+It is the expensive stage: 26.6 s per 200 plots, ~222 min for the city single-threaded, so it
+runs across `cpu_count() - 2` workers in roughly twenty minutes. Per-storey levels collapse into
+one volume per kind with a real base and top, so a podium reads as a podium and the tower stands
+on it. Basements are dropped — underground, and a map looks down.
+
+Three things are zoom-level facts rather than settings, and the UI says so instead of appearing
+broken: OpenMapTiles carries no buildings below z14, the massing layer is cut from z13.5, and
+below either the toggle reads `zoom in`.

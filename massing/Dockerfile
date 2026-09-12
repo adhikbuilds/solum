@@ -14,6 +14,13 @@ COPY service/ ./service/
 COPY fixtures/ ./fixtures/
 COPY viewer.html .
 
+# The city base. Until now this was never copied in, which is the real reason the city map could
+# not be containerised -- not a missing compose entry, a missing COPY. `twin/db` holds the schema
+# and the tile cutter the service imports at startup; `twin/web/study.py` is the live appraisal.
+# `twin/raw` and `twin/out` are deliberately NOT copied: they are a 300 MB dated acquisition and
+# its derivatives, mounted at load time, not baked into an image.
+COPY twin/ ./twin/
+
 EXPOSE 8000
 
 # One worker: every endpoint is CPU-light (a full study is single-digit milliseconds) and the

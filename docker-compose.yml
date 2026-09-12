@@ -1,20 +1,52 @@
-# Solum -- local stack.
+# Solum -- the whole stack.
 #
-#   docker compose up --build
-#   open http://localhost:8000
+#   docker compose up --build            # postgres + backend + web
+#   docker compose run --rm loader       # load the dated snapshot into Postgres, warm the overview
+#   open http://localhost:5180
 #
-# The massing service is stateless: it reads the regulatory envelope from DDA on each request and
-# every calculation downstream is pure. Postgres is here for the plot/appraisal records the
-# prototype persists, not for the massing engine, which needs no store to answer a question.
+# Three services and one job, which is the shape the city map forced. Before this there were two
+# backends (the study service on :8010 and the city base on :8081), two frontends (a React app and
+# a hand-written HTML page), and three generated files outside git that no container ever saw.
+#
+# Postgres is not a side store here. It holds the plots, the derived massing and the tile cache,
+# and the tiles the browser draws are cut from it on request -- measured at 6 ms for a z16 tile
+# and 1.5 ms once cached. There is no bake step between the data and the map.
 services:
-  massing:
+  postgres:
+    # PostGIS, and multi-arch on purpose: postgis/postgis publishes amd64 only, which runs under
+    # emulation on an Apple Silicon machine and makes every measurement in docs/prd/city-platform.md
+    # meaningless.
+    image: imresamu/postgis:16-3.5
+    container_name: solum-pg
+    environment:
+      POSTGRES_USER: solum
+      POSTGRES_PASSWORD: solum
+      POSTGRES_DB: solum
+    ports:
+      - '5434:5432'   # 5433 is taken by the rebuild's compose file
+    volumes:
+      - solum-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U solum -d solum']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
     build:
       context: ./massing
-    container_name: solum-massing
+    image: solum-backend:local
+    container_name: solum-backend
     ports:
       - '8010:8000'
     environment:
       TZ: Asia/Dubai
+      SOLUM_DSN: postgresql://solum:solum@postgres:5432/solum
+      SOLUM_AOI: dubai-all
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ['CMD', 'python', '-c', "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 10s
@@ -29,26 +61,29 @@ services:
     ports:
       - '5180:80'
     depends_on:
-      massing:
+      backend:
         condition: service_healthy
     restart: unless-stopped
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: solum-pg
+  # A job, not a service. It reads the dated acquisition from the host rather than from the image:
+  # `twin/raw` is ~300 MB of immutable JSON and baking it into a layer would make every backend
+  # image carry a copy of one day's Dubai.
+  # The same image as the backend, not a second build of the same context. Compose names an
+  # unnamed build after its service, so `loader` was building and caching its own copy -- and a
+  # `docker compose build backend` left it running yesterday's code, which is exactly the class of
+  # bug that makes a container "work on my machine".
+  loader:
+    image: solum-backend:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ['load']
     environment:
-      POSTGRES_USER: solum
-      POSTGRES_PASSWORD: solum
-      POSTGRES_DB: solum
-    ports:
-      - '5434:5432'   # 5433 is taken by the rebuild's compose file
+      SOLUM_DSN: postgresql://solum:solum@postgres:5432/solum
     volumes:
-      - solum-pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U solum -d solum']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - ./massing/twin/raw:/app/twin/raw:ro
+      - ./massing/twin/out:/app/twin/out:ro
+    command: ['python', '-m', 'twin.db.load', '--aoi', 'dubai-all', '--warm']
 
 volumes:
   solum-pgdata:
