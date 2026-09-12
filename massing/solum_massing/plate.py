@@ -153,7 +153,8 @@ BLOCK_SEPARATION_M = 6.0
 
 
 def fit_blocks(
-    envelope: BaseGeometry, target_sqm: float, *, max_blocks: int = 3, aspect: float = 1.6
+    envelope: BaseGeometry, target_sqm: float, *, max_blocks: int = 3, aspect: float = 1.6,
+    max_depth_m: float | None = None,
 ) -> list[BaseGeometry]:
     """
     Fit the plate as one or more rectangular blocks, which is how awkward plots are actually built.
@@ -168,6 +169,12 @@ def fit_blocks(
     So: fit the largest rectangle, take what is needed from it, remove it plus a fire-separation
     gap, and repeat. Greedy rather than optimal, and that is the right trade -- the alternative is
     a packing search whose extra precision is well inside the error of the assumptions feeding it.
+
+    `max_depth_m` caps how deep each block may be. A residential floor is a double-loaded corridor
+    and every unit needs a window, so beyond roughly 27 m a plate cannot be all apartments however
+    much area the plot allows. Passing the cap turns one fat block into a bar -- and where a single
+    bar cannot hold the area, into the several bars a real scheme uses. Left as None the block is
+    fitted at the caller's aspect, which is what a podium or a car park should be.
     """
     if envelope.is_empty or target_sqm <= 0:
         return []
@@ -187,12 +194,25 @@ def fit_blocks(
         if piece.area <= 0:
             break
 
-        rect = fit_plate(piece, outstanding, aspect=aspect)
+        # A rectangle of `outstanding` area no deeper than the cap needs length/depth =
+        # area/depth^2. Clamped at 1.0 so a small plate stays a sensible rectangle instead of
+        # being stretched into a ribbon -- below the cap the constraint simply does not bind.
+        block_aspect = aspect
+        if max_depth_m:
+            block_aspect = max(1.0, outstanding / (max_depth_m ** 2))
+
+        rect = fit_plate(piece, outstanding, aspect=block_aspect)
         if rect.is_empty or rect.area <= 0:
             break
 
         blocks.append(rect)
         outstanding -= rect.area
         remaining = remaining.difference(rect.buffer(BLOCK_SEPARATION_M, join_style=2))
+
+    # A depth cap can make an awkward envelope unfittable at any aspect. A fat plate is a worse
+    # building than a bar but a far better answer than no building, so fall back rather than
+    # return nothing.
+    if not blocks and max_depth_m:
+        return fit_blocks(envelope, target_sqm, max_blocks=max_blocks, aspect=aspect)
 
     return blocks

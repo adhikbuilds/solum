@@ -20,6 +20,8 @@ from shapely.geometry import Polygon
 from shapely.geometry.base import BaseGeometry
 
 from .dda import SQFT_PER_SQM, Provenance, RegulatoryEnvelope, Sourced, fetch_context
+from .basemap import basemap_tiles
+from .feasibility import daylight_plate_depth_m
 from .envelope import BuildableEnvelope
 from .massing import Candidate
 from .plate import fit_blocks
@@ -80,12 +82,43 @@ class Solid:
     footprint_rings: list[list[list[float]]] = field(default_factory=list)
 
 
+def _context_pad_m(parcel) -> float:
+    """
+    How far out to fetch neighbours, scaled to the site.
+
+    A fixed 260 m ring is right for a large parcel and wrong for a small one: around a 30 m plot it
+    pulls in six blocks of buildings that are never legible at a camera framed on the subject, and
+    they only crowd the frame. Proportional to the parcel, floored so a tiny plot still gets a
+    setting and capped at the original radius so nothing fetches more than before.
+    """
+    minx, miny, maxx, maxy = parcel.bounds
+    extent = max(maxx - minx, maxy - miny)
+    return max(80.0, min(extent * 1.6, 260.0))
+
+
 def _context_massing(parcel, cx: float, cy: float, floor_height_m: float) -> list[dict]:
-    """Neighbouring parcels, extruded to their own published storey limit."""
+    """
+    Neighbouring parcels, drawn as buildings rather than as solid blocks of land.
+
+    The first version extruded each neighbour's whole parcel polygon to its storey limit. That is
+    not a building -- a 200 x 100 m parcel at 20 m is a wall -- and a block of them read as grey
+    slabs rather than as a site.
+
+    A plate area is derivable from two fields DDA already publishes for every neighbour:
+    permitted GFA over permitted storeys. That is the same `derived` move as `implied_far`, not an
+    assumed coverage ratio. `MAX_PLOT_COVERAGE` would be the direct answer but it is populated on
+    0.7% of the register (14 of 2,000 sampled), so it cannot carry this.
+
+    Where GFA or the storey limit is missing there is nothing to derive a footprint from, so the
+    neighbour is returned at `floors: 0` and drawn as a ground outline. An unknown neighbour shows
+    as a plot, never as an invented building.
+    """
     import re
     from shapely.affinity import translate
+    pad = _context_pad_m(parcel)
+    disc = parcel.centroid.buffer(pad, quad_segs=32)
     out = []
-    for f in fetch_context(parcel.bounds):
+    for f in fetch_context(parcel.bounds, pad_m=pad):
         rings = (f.get('geometry') or {}).get('rings') or []
         if not rings:
             continue
@@ -99,12 +132,43 @@ def _context_massing(parcel, cx: float, cy: float, floor_height_m: float) -> lis
             continue
         if poly.is_empty or poly.equals(parcel):
             continue
+
+        # Clip the neighbour to the same disc the camera frames. Several parcels next to a small
+        # plot are genuinely enormous -- one beside 3156269 spans 141 m and stands 67 m -- so drawn
+        # whole they are walls at the edge of frame that read as scenery gone wrong rather than as
+        # a city block. Cut to the disc, a large neighbour becomes the near face of a longer
+        # building, which is what it actually is from the site.
+        try:
+            poly = poly.intersection(disc)
+        except Exception:
+            pass
+        if poly.is_empty:
+            continue
+
+        try:
+            gfa_sqft = float(attrs.get('GFA_SQFT') or 0)
+        except (TypeError, ValueError):
+            gfa_sqft = 0.0
+
+        footprint = poly
+        if floors > 0 and gfa_sqft > 0:
+            plate_sqm = (gfa_sqft / floors) / SQFT_PER_SQM
+            # Only ever shrink: a derived plate larger than the parcel means the neighbour builds
+            # to its boundary, which the parcel polygon already represents.
+            if 0 < plate_sqm < poly.area:
+                try:
+                    footprint = shrink_to_area(poly, plate_sqm)
+                except Exception:
+                    footprint = poly
+        else:
+            floors = 0   # nothing to derive a footprint from: draw the plot, not a building
+
         out.append({
             'plot_number': str(attrs.get('PLOT_NUMBER', '')),
             'landuse': attrs.get('MAIN_LANDUSE'),
             'floors': floors,
             'height_m': round(floors * floor_height_m, 1),
-            'rings': _rings(translate(poly, xoff=-cx, yoff=-cy)),
+            'rings': _rings(translate(footprint, xoff=-cx, yoff=-cy)),
         })
     return out
 
@@ -134,6 +198,7 @@ def build_scene(
 
     base = env.conservative if use_conservative else env.optimistic
     envelope_sqft = base.area * SQFT_PER_SQM
+    plate_depth_m = daylight_plate_depth_m()
     solids = []
 
     # Shared across every candidate: fitting a plate is the expensive step, and most candidates
@@ -151,7 +216,9 @@ def build_scene(
             # Basements are underground and have no facade, so they follow the envelope rather
             # than being fitted as rectilinear blocks -- which is both what is actually built and
             # considerably cheaper than a plate search.
-            key = (round(lv.footprint_sqft), 'env' if lv.kind == 'basement' else 'plate')
+            # Keyed on kind, not just area: a tower plate is depth-capped for daylight and a
+            # podium plate of the same area is not, so they are different shapes.
+            key = (round(lv.footprint_sqft), lv.kind)
             if key not in cache:
                 # Rectilinear blocks, not a shrunk parcel outline. A plate that traces the
                 # cadastral boundary is the single thing that makes a massing model read as a
@@ -159,7 +226,14 @@ def build_scene(
                 if lv.kind == 'basement':
                     cache[key] = _rings(recentre(shrink_to_area(base, lv.footprint_sqft / SQFT_PER_SQM)))
                 else:
-                    blocks = fit_blocks(base, lv.footprint_sqft / SQFT_PER_SQM)
+                    # Only the tower is depth-capped. Podium levels carry parking and retail,
+                    # which have no daylight requirement -- capping them would carve a car park
+                    # into a courtyard. Leaving the podium full and slimming the tower is also
+                    # what gives the scheme its step without inventing a setback rule.
+                    blocks = fit_blocks(
+                        base, lv.footprint_sqft / SQFT_PER_SQM,
+                        max_depth_m=plate_depth_m if lv.kind == 'tower' else None,
+                    )
                     rings = []
                     for b in blocks:
                         rings.extend(_rings(recentre(b)))
@@ -223,6 +297,10 @@ def build_scene(
             'bounded': env.bounded,
         },
         'context': _context_massing(parcel, cx, cy, floor_height_m) if with_context else [],
+        # Tied to with_context: both are the "show me the site" payload, and a thumbnail wants
+        # neither. Sized to the same disc the neighbours are clipped to, so imagery and buildings
+        # cover the same ground.
+        'basemap': basemap_tiles(parcel, cx, cy, _context_pad_m(parcel)) if with_context else None,
         'floor_height_m': floor_height_m,
         'solids': solids,
     }

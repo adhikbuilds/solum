@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import type { Study } from './types'
+import type { Comparison, Study } from './types'
 
 async function get<T>(url: string): Promise<T> {
   const r = await fetch(url)
@@ -21,6 +21,18 @@ export function useStudy(plot: string | null, optimistic: boolean) {
       return get<Study>(plot ? `/api/plot/${plot}${q}` : `/api/demo${q}`)
     },
     // A plot's regulatory record does not change while someone is looking at it.
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+}
+
+export function useComparison(plots: string[]) {
+  const key = plots.join(',')
+  return useQuery({
+    queryKey: ['compare', key],
+    // Screening is an explicit action, not something to fire on every keystroke.
+    enabled: plots.length > 0,
+    queryFn: () => get<Comparison>(`/api/compare?plots=${encodeURIComponent(key)}&geometry=true`),
     staleTime: 5 * 60_000,
     retry: 1,
   })

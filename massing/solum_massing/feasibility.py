@@ -21,6 +21,10 @@ what developers in this market actually build.
 
 from __future__ import annotations
 
+import math
+
+from .dda import SQFT_PER_SQM
+
 from dataclasses import dataclass, field
 
 from .dda import Provenance, Sourced
@@ -122,6 +126,46 @@ class Feasibility:
         d = self.__dict__.copy()
         d['units'] = [u.__dict__ for u in self.units]
         return d
+
+
+# ---------------------------------------------------------------------------------------------
+# Daylight depth: the constraint that makes a floor plate building-shaped rather than merely
+# area-correct.
+#
+# A residential floor is a double-loaded corridor -- units either side of a central circulation
+# spine -- and every unit needs a window. That caps how deep the plate can be, whatever the plot
+# would otherwise allow. Without the cap a plate that satisfies the area target is a fat
+# rectangle, which is why the massing read as boxes stacked on boxes.
+#
+# The depth comes from the unit mix, which is the one place market data legitimately reaches the
+# geometry: DLD transactions carry no floor plates, but they do carry unit sizes per area, and
+# unit size is what sets unit depth. Today the mix is `RERA_MIX`; when the DLD comps are wired,
+# a per-area mix substitutes here and nothing else changes.
+#
+# Both figures below are ours, not the authority's, and are tagged `assumption` accordingly.
+UNIT_DEPTH_RATIO = 1.5     # unit depth : frontage. Apartments run deeper than they are wide.
+CORRIDOR_WIDTH_M = 2.4     # central circulation spine between the two rows of units.
+
+# Sanity band for a double-loaded residential slab, used to refuse a nonsense derivation rather
+# than let one reshape a building silently.
+MIN_PLATE_DEPTH_M = 16.0
+MAX_PLATE_DEPTH_M = 34.0
+
+
+def daylight_plate_depth_m(mix: list[UnitType] | None = None) -> float:
+    """
+    Maximum sensible plate depth for a residential floor, derived from the unit mix.
+
+    Share-weighted mean unit area -> unit depth at `UNIT_DEPTH_RATIO` -> two rows plus a corridor.
+    On `RERA_MIX` this yields a 1,045 sqft mean unit, 12.1 m deep, and a 26.5 m plate, which sits
+    inside the 22-28 m band a double-loaded slab actually occupies.
+    """
+    m = mix or RERA_MIX
+    total_share = sum(u.share for u in m) or 1.0
+    mean_sqft = sum(u.size_sqft * u.share for u in m) / total_share
+    mean_sqm = mean_sqft / SQFT_PER_SQM
+    unit_depth = math.sqrt(mean_sqm * UNIT_DEPTH_RATIO)
+    return max(MIN_PLATE_DEPTH_M, min(2 * unit_depth + CORRIDOR_WIDTH_M, MAX_PLATE_DEPTH_M))
 
 
 def appraise(
