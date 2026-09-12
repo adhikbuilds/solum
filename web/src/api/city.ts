@@ -67,6 +67,10 @@ export const useCityManifest = () =>
     queryFn: () => get<CityManifest>('/api/city/manifest'),
     // A snapshot is immutable; the manifest describing it cannot change while the page is open.
     staleTime: Infinity,
+    // No retry. The failure this call actually has is "nothing is loaded yet", which is a state
+    // with an instruction attached, not a blip -- and react-query's default three retries kept
+    // the screen on "loading the city" long enough to look hung instead of showing the fix.
+    retry: false,
   })
 
 export const useCitySearch = (q: string) =>
